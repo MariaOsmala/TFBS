@@ -1,0 +1,9 @@
+ID,Name,Species,GeneID,Family,Evidence
+T034342_2.00,SREBF2,Homo_sapiens,ENSG00000198911,bHLH,D
+T167060_2.00,ONECUT1,Homo_sapiens,ENSG00000169856,"CUT,Homeodomain",D
+T167059_2.00,ONECUT2,Homo_sapiens,ENSG00000119547,"CUT,Homeodomain",D
+T237343_2.00,PAX3,Homo_sapiens,ENSG00000135903,"Homeodomain,Paired box",D
+T237342_2.00,PAX4,Homo_sapiens,ENSG00000106331,"Homeodomain,Paired box",D
+T303232_2.00,NR1I2,Homo_sapiens,ENSG00000144852,Nuclear receptor,D
+T303230_2.00,NR1I3,Homo_sapiens,ENSG00000143257,Nuclear receptor,D
+T303210_2.00,PGR,Homo_sapiens,ENSG00000082175,Nuclear receptor,D
