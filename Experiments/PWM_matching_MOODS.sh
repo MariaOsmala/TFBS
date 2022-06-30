@@ -1,4 +1,4 @@
-cd /home/osmalama/Dropbox/Taipale-lab/Experiments
+cd /home/osmalama/Dropbox/Taipale-lab/TFBS/Experiments
 
 source activate /home/osmalama/softwares/conda_envs/MOODS
 
@@ -25,7 +25,8 @@ export PATH=/home/osmalama/softwares/MOODS-python-1.9.4.1/scripts:$PATH
 #M are PWM matrices of size 4 x length, space separated
 
 #S is the sequence
-S=/home/osmalama/Dropbox/Taipale-lab/Genomes/genome_assemblies_genome_fasta/ncbi-genomes-2022-06-22/GCF_000001405.40_GRCh38.p14_genomic.fna
+#S=/home/osmalama/Genomes/Homo_sapiens/hg38.fa.masked
+S=/home/osmalama/Genomes/Homo_sapiens/chr_sequences.fa #keep only chr1-22 chrX-Y
 
 n=300000 #the number of best hits
 
