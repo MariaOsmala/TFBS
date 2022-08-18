@@ -9,9 +9,10 @@ library(readxl)
 
 
 #Jolma2015
+rm(list=ls())
 
 
-
+source("code/read_excel_tables.R")
 # This table contains background subtracted PWMs for all of the TF pairs and individual TFs analyzed.  
 # First line for each factor contains information as follows:	
 # Base:	A, C, G or T
@@ -43,25 +44,79 @@ oranges=which(seq(20, 3335,5) %in% seq(2830,3160,5)) #67
 lilas=which(seq(20, 3335,5) %in% seq(3165,3325,5)) #33
 browns=which(seq(20, 3335,5) %in% seq(3330,3335,5)) #2
 
-all_table <- read_excel("/home/osmalama/Dropbox/Taipale-lab/TFBS/PWMs/Jolma2015/41586_2015_BFnature15518_MOESM33_ESM.xlsx", 
-                        sheet="S2 PWM models", col_names=FALSE, skip=19)
+all_table <- read_excel("../../PWMs/Jolma2015/41586_2015_BFnature15518_MOESM33_ESM.xlsx", 
+                        sheet="S2 PWM models", col_names=FALSE, skip=19, col_types=c(rep("text",13), rep("numeric",20)))
+#
 
  
 PWMs=split_df(all_table)[[1]]
 
 PWMs_metadata=do.call(rbind,lapply(seq(1,nrow(PWMs),5), function(i) PWMs[i,-1]))
 
+#remove ChIP-EXO motifs
+PWMs_metadata=PWMs_metadata[-browns,]
+
+
 colnames(PWMs_metadata)=c("symbol",	"family",	"experiment",
-                          "ligand sequence",	"batch", "seed",	"multinomial",
-                          "cycle","Matrix is one of the representative PWMs", "comment",
+                          "ligand",	"batch", "seed",	"multinomial",
+                          "cycle","representative", "comment",
                           "conservation p-value", "ChIP-seq cluster p-value", "category")
 
-PWMs_metadata=select(PWMs_metadata,c("symbol",	"family",	"experiment",
-                                     "ligand sequence",	"batch", "seed",	"multinomial",
-                                     "cycle","Matrix is one of the representative PWMs","comment", 
-                                     "conservation p-value", "ChIP-seq cluster p-value", "category"))
+
+#"symbol",	"clone","family", "organism",	"study","experiment",
+#"ligand",	"batch", "seed",	"multinomial",
+#"cycle","representative", "short", "type","comment", "filename"
+
+PWMs_metadata$clone=NA
+PWMs_metadata$study="Jolma2015"
+PWMs_metadata$short=NA
+PWMs_metadata$type=NA
+PWMs_metadata$filename=NA
 PWMs_metadata$organism="Homo_sapiens"
 
+PWMs_metadata$representative=toupper(PWMs_metadata$representative)
+
+PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
+  "ligand",	"batch", "seed",	"multinomial",
+  "cycle","representative", "short", "type","comment", "filename"))
+
+#add orange and lila information
+na_ind=which(is.na(PWMs_metadata$comment[oranges]))
+
+PWMs_metadata$comment[oranges[na_ind]]="technical-replicates"
+PWMs_metadata$comment[oranges[-na_ind]]=paste0(PWMs_metadata$comment[oranges[-na_ind]], ", technical-replicates")
+
+PWMs_metadata$comment[lilas]=paste0(PWMs_metadata$comment[lilas], ", new-individual-models")
+
+
+#no representative info
+ind=which(!PWMs_metadata$representative %in% c("YES", "NO")) # lilas and ind are the same
+PWMs_metadata$representative[ind]=NA
+
+PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
+                   select_if(~ !any(is.na(.))) )
+
+#remove ChIP-EXO motifs
+PWMs_list=PWMs_list[-browns]
+
+dir.create(paste0("../../PWMs/Jolma2015/pwms/","Homo_sapiens"), recursive = TRUE)
+for(m in 1:length(PWMs_list)){
+  
+  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2015/pwms/",PWMs_metadata[m,"organism"],"/", 
+                          paste0(PWMs_metadata[m,
+                                               -which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),
+                          ".pfm"))
+  
+  PWMs_metadata$filename[m]=paste0("PWMs/Jolma2015/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
+                                                                                           -which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
+  
+}
+
+write.table(PWMs_metadata, file="../../PWMs/Jolma2015/metadata.csv", row.names = FALSE)
+saveRDS(PWMs_metadata, file="data/Jolma2015.Rds")
+
+stop()
 
 PWMs_metadata %>%
   count(symbol) 
@@ -99,18 +154,7 @@ PWMs_metadata %>%
 #representative 223
 #nonrepresentative 167
 
-PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
-                   select_if(~ !any(is.na(.))) )
 
-dir.create(paste0("../../PWMs/Jolma2015/pwms/","Homo_sapiens"))
-for(m in 1:length(PWMs_list)){
-  
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2015/pwms/",PWMs_metadata[m,"organism"],"/", 
-                          paste0(PWMs_metadata[m,
-                          -which(colnames(PWMs_metadata)%in% c("comment", "conservation p-value", "ChIP-seq cluster p-value", "category","organism"))], collapse="_"),
-                          ".pfm"))
-}
 
 
 

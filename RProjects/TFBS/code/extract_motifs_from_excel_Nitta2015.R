@@ -18,11 +18,9 @@ library(readxl)
 
 source("code/read_excel_tables.R")
 
-oranges=which(seq(20, 3335,5) %in% seq(2830,3160,5)) #67
-lilas=which(seq(20, 3335,5) %in% seq(3165,3325,5)) #33
-browns=which(seq(20, 3335,5) %in% seq(3330,3335,5)) #2
 
-all_table <- read_excel("/home/osmalama/Dropbox/Taipale-lab/TFBS/PWMs/Nitta2015/elife-04837-supp1-v1.xlsx", 
+
+all_table <- read_excel("../../PWMs/Nitta2015/elife-04837-supp1-v1.xlsx", 
                         sheet="E. PWMs", col_names=FALSE, skip=2094)
 
  
@@ -31,14 +29,34 @@ PWMs=split_df(all_table)[[1]]
 PWMs_metadata=do.call(rbind,lapply(seq(1,nrow(PWMs),5), function(i) PWMs[i,]))
 
 PWMs_metadata=cbind(PWMs_metadata[,1], do.call(rbind, sapply(PWMs_metadata[,2], strsplit, split="_")) )
+# "symbol",	"clone","family", "organism",	"study","experiment",
+# "ligand",	"batch", "seed",	"multinomial",
+# "cycle","representative", "short", "type","comment"
 
-
-colnames(PWMs_metadata)=c("symbol",	"barcode",	"batch",
+colnames(PWMs_metadata)=c("symbol",	"ligand",	"batch",
                            "seed",	"multinomial",
                           "cycle")
 
-
+PWMs_metadata$clone=NA
+PWMs_metadata$family=NA
 PWMs_metadata$organism="Homo_sapiens"
+PWMs_metadata$study="Nitta2015"
+PWMs_metadata$experiment="HT-SELEX"   
+PWMs_metadata$representative=NA
+PWMs_metadata$short=NA
+PWMs_metadata$type=NA
+PWMs_metadata$comment=NA
+PWMs_metadata$filename=NA
+
+PWMs_metadata$multinomial=gsub("m", "",as.character(PWMs_metadata$multinomial))
+PWMs_metadata$cycle=gsub("c", "",as.character(PWMs_metadata$cycle))
+
+PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
+                                     "ligand",	"batch", "seed",	"multinomial",
+                                     "cycle","representative", "short", "type","comment", "filename")
+)
+
+
 
 
 PWMs_metadata %>%
@@ -55,12 +73,18 @@ for(m in 1:length(PWMs_list)){
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens","/", 
                           paste0(PWMs_metadata[m,
-                          -which(colnames(PWMs_metadata)%in% c("organism"))], collapse="_"),
+                          -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
                           ".pfm"))
+  
+  PWMs_metadata$filename[m]=paste0("PWMs/Nitta2015/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
+                                                                                           -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),".pfm")
+  
+  
 }
 
 
-
+write.table(PWMs_metadata, file="../../PWMs/Nitta2015/metadata.csv", row.names = FALSE)
+saveRDS(PWMs_metadata, file="data/Nitta2015.Rds")
 
 
 #display_table_shape(all_table)

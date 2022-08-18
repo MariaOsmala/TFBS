@@ -23,8 +23,8 @@ source("code/read_excel_tables.R")
 # comment:	comment field
 
 
-all_table <- read_excel("/home/osmalama/Dropbox/Taipale-lab/TFBS/PWMs/Yin2017/NIHMS1670407-supplement-Supplemental_tables_S1-6.xlsx", 
-                        sheet="S2 PWM models", col_names=FALSE, skip=22, n_max=8996-22)
+all_table <- read_excel("../../PWMs/Yin2017/NIHMS1670407-supplement-Supplemental_tables_S1-6.xlsx", 
+                        sheet="S2 PWM models", col_names=FALSE, skip=22, n_max=8996-22, col_types=c(rep("text",12), rep("numeric",19)))
 
  
 PWMs=split_df(all_table)[[1]]
@@ -32,23 +32,32 @@ PWMs=split_df(all_table)[[1]]
 PWMs_metadata=do.call(rbind,lapply(seq(1,nrow(PWMs),5), function(i) PWMs[i,-1]))
 
 
-colnames(PWMs_metadata)=c("symbol",	"clone type","families",	"experiment",
-                          "ligand sequence",	"batch", "seed",	"multinomial",
-                          "cycle","Matrix is one of the representative PWMs", "comment")
 
-PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone type","families",	"experiment",
-                                     "ligand sequence",	"batch", "seed",	"multinomial",
-                                     "cycle","Matrix is one of the representative PWMs", "comment")
-)
+colnames(PWMs_metadata)=c("symbol",	"clone","family",	"experiment",
+                          "ligand",	"batch", "seed",	"multinomial",
+                          "cycle","representative", "comment")
 PWMs_metadata$organism="Homo_sapiens"
+PWMs_metadata$study="Yin2017"
+PWMs_metadata$short=NA
+PWMs_metadata$type=NA
 
+
+#symbol     clone family organism     study      experiment ligand        batch  seed               multinomial cycle representative short type              comment filename         
+
+PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
+                                     "ligand",	"batch", "seed",	"multinomial",
+                                     "cycle","representative", "short", "type","comment")
+)
+
+
+#remove / from family names
 PWMs_metadata=PWMs_metadata %>% 
-  mutate(families = gsub("/|\\.\\d+[A-Za-z]+", "_aka_", families))
-
-
+  mutate(family = gsub("/|\\.\\d+[A-Za-z]+", "_aka_", family))
 
 PWMs_metadata %>%
   count(symbol) 
+
+PWMs_metadata$filename=NA
 
 
 PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
@@ -60,10 +69,16 @@ for(m in 1:length(PWMs_list)){
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Yin2017/pwms/","Homo_sapiens","/", 
                           paste0(PWMs_metadata[m,
-                          -which(colnames(PWMs_metadata)%in% c("organism", "comment"))], collapse="_"),
+                          -which(colnames(PWMs_metadata)%in% c("organism", "study","comment", "short", "type", "filename"))], collapse="_"),
                           ".pfm"))
+  
+  PWMs_metadata$filename[m]=paste0("PWMs/Yin2017/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
+                                              -which(colnames(PWMs_metadata)%in% c("organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
+  
 }
 
+write.table(PWMs_metadata, file="../../PWMs/Yin2017/metadata.csv", row.names = FALSE)
+saveRDS(PWMs_metadata, file="data/Yin2017.Rds")
 
 
 

@@ -6,6 +6,7 @@ library(tidyverse)
 library(readxl)
 #all_table <- read_excel("useful/tidyverse_notes/utility/multiple_tables_sheet.xlsx", col_names=FALSE)
 
+source("code/read_excel_tables.R")
 #  his table contains background subtracted PWMs for all factors analyzed.  First line for each factor contains information as follows:	
 # symbol:	HGNC symbol (gene name); Human is all caps, in mouse constructs, only the first initial is capitalized
 # family:	TF structural family
@@ -27,23 +28,68 @@ library(readxl)
 oranges=which(seq(18, 4228,5) %in% seq(4118,4168,5)) #11
 greens=which(seq(18, 4228,5) %in% seq(4173,4228,5)) #12
 
-all_table <- read_excel("/home/osmalama/Dropbox/Taipale-lab/TFBS/PWMs/Jolma2013/mmc3.xls", col_names=FALSE, skip=17)
+all_table <- read_excel("../../PWMs/Jolma2013/mmc3.xls", sheet="Table S3 - PWM models", col_names=FALSE, skip=17, col_types=c(rep("text",11), rep("numeric",13)))
 
 PWMs=split_df(all_table)[[1]]
 
 PWMs_metadata=do.call(rbind,lapply(seq(1,nrow(PWMs),5), function(i) PWMs[i,]))
 
 #Jolma2013
-colnames(PWMs_metadata)=c("symbol",	"family",	"clone type",
-                          "ligand sequence",	"batch", "Seed",	"multinomial",
-                          "cycle", "site type",	"comment","Matrix is  one of the representative PWMs")
+colnames(PWMs_metadata)=c("symbol",	"family",	"clone",
+                          "ligand",	"batch", "seed",	"multinomial",
+                          "cycle", "type",	"comment","representative")
+
+PWMs_metadata=select(PWMs_metadata, c("symbol",	"family",	"clone",
+                                      "ligand",	"batch", "seed",	"multinomial",
+                                      "cycle", "type",	"comment","representative"))
 
 
-PWMs_metadata=select(PWMs_metadata, c("symbol",	"family",	"clone type",
-                                      "ligand sequence",	"batch", "Seed",	"multinomial",
-                                      "cycle", "site type",	"comment","Matrix is  one of the representative PWMs"))
+##Add organism info
+
+PWMs_metadata =PWMs_metadata %>%
+  mutate(
+    organism = if_else(
+      condition = str_detect(symbol, '[:upper:]') & !str_detect(symbol, '[:lower:]'), 
+      true      = "Homo_sapiens", 
+      false     = "Mus_musculus"
+    )
+  )
+
+PWMs_metadata$study="Jolma2013"
+PWMs_metadata$experiment="HT-SELEX"
+PWMs_metadata$short=NA
+PWMs_metadata$filename=NA
+
+PWMs_metadata$representative=toupper(PWMs_metadata$representative)
+
+PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
+                                     "ligand",	"batch", "seed",	"multinomial",
+                                     "cycle","representative", "short", "type","comment", "filename"))
 
 
+
+PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
+                   select_if(~ !any(is.na(.))) )
+
+
+dir.create(paste0("../../PWMs/Jolma2013/pwms/Homo_sapiens"), recursive=TRUE)
+dir.create(paste0("../../PWMs/Jolma2013/pwms/Mus_musculus"), recursive=TRUE)
+for(m in 1:length(PWMs_list)){
+  
+  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
+                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"))
+  
+  PWMs_metadata$filename[m]=paste0("PWMs/Jolma2013/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
+                                                                                             -which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
+  
+}
+
+write.table(PWMs_metadata, file="../../PWMs/Jolma2013/metadata.csv", row.names = FALSE)
+saveRDS(PWMs_metadata, file="data/Jolma2013.Rds")
+
+
+stop()
 
 
 
@@ -137,14 +183,6 @@ PWMs_metadata %>%
 #representative 137
 #nonrepresentative 303
 
-PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
-                   select_if(~ !any(is.na(.))) )
-
-for(m in 1:length(PWMs_list)){
-  
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("comment", "organism"))], collapse="_"),".pfm"))
-}
 
 
 
