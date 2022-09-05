@@ -68,6 +68,9 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
                    select_if(~ !any(is.na(.))) )
 
 dir.create(paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens"), recursive=TRUE)
+
+append=FALSE
+
 for(m in 1:length(PWMs_list)){
   
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
@@ -75,6 +78,16 @@ for(m in 1:length(PWMs_list)){
                           paste0(PWMs_metadata[m,
                           -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
                           ".pfm"))
+  
+  PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
+  rownames(PWM)=c("A", "C", "G", "T")
+  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type","representative", "filename"))], collapse="_")),   
+              append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Nitta2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+  append=TRUE
+  
+  write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Nitta2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
   
   PWMs_metadata$filename[m]=paste0("PWMs/Nitta2015/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
                                                                                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),".pfm")

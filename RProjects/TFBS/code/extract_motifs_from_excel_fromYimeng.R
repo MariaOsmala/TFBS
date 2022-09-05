@@ -27,7 +27,7 @@ dir("../../PWMs/fromYimeng/pfm_from_newData/pfm_composite_new/")
 datas=tibble()
   
 for(t in types){
-  data=as.tibble(do.call(rbind,strsplit(dir(paste0(path, t, "/")),"_")))
+  data=as_tibble(do.call(rbind,strsplit(dir(paste0(path, t, "/")),"_")))
   data$V8=gsub(".pfm", "",as.character(data$V8))
   data$symbol=paste(data$V1, data$V2,sep="_")
   data=data[,-c(1,2)]
@@ -49,12 +49,30 @@ datas=datas[, c("symbol",	"clone","family",	"organism","study","experiment",
                 "ligand",	"batch", "seed",	"multinomial",
                 "cycle","representative", "short","type","comment","filename")]
 
-datas$multinomial=gsub("m", "",as.character(datas$multinomial))
-datas$cycle=gsub("c", "",as.character(datas$cycle))
+#datas$multinomial=gsub("m", "",as.character(datas$multinomial))
+#datas$cycle=gsub("c", "",as.character(datas$cycle))
 
 write.table(datas, file="../../PWMs/fromYimeng/metadata.csv", row.names = FALSE)
 saveRDS(datas, file="data/fromYimeng.Rds")
 
+
+#write pwms as .cspd
+
+append=FALSE
+
+for(m in 1:nrow(datas)){
+  f=datas$filename[m]
+  PWM=read.table(paste0("../../", f))
+  rownames(PWM)=c("A", "C", "G", "T")
+  write.table(paste0(">",  paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])),   
+              append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/fromYimeng/Homo_sapiens_all", ".scpd"))
+  append=TRUE
+  
+  write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/fromYimeng/Homo_sapiens_all", ".scpd"))
+  
+}
 
 #display_table_shape(all_table)
 

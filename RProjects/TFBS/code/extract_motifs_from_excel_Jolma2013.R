@@ -25,6 +25,7 @@ source("code/read_excel_tables.R")
 # Models indicated in orange were removed from network representation of data (Figure 3 and supplementary figures) 
 # due to reason indicated in the comment field. Models marked green are technical replicates used in counting of error bar in figure 1D.	
 # 
+#Remove these from the models
 oranges=which(seq(18, 4228,5) %in% seq(4118,4168,5)) #11
 greens=which(seq(18, 4228,5) %in% seq(4173,4228,5)) #12
 
@@ -74,16 +75,41 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
 
 dir.create(paste0("../../PWMs/Jolma2013/pwms/Homo_sapiens"), recursive=TRUE)
 dir.create(paste0("../../PWMs/Jolma2013/pwms/Mus_musculus"), recursive=TRUE)
+
+append=FALSE #write all motifs into a single file as .scpd format
+
+file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
+                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
+
 for(m in 1:length(PWMs_list)){
   
+  #Write pfm
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
                           paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"))
+  
+  PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
+  rownames(PWM)=c("A", "C", "G", "T")
+  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")),   
+              append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2013/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+  append=TRUE
+  
+  write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2013/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+  
   
   PWMs_metadata$filename[m]=paste0("PWMs/Jolma2013/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
                                                                                              -which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
   
 }
+
+#convert to .scpd format (this can be converted to meme format)
+# >BCL6B_1
+# A	0	3	0	0	0	0	0	0	280	0	0	289	290	0	0	113	183
+# C	19	0	367	0	0	0	384	12	0	0	0	0	0	2	16	243	146
+# G	0	186	0	0	0	2	0	34	0	173	171	2	0	0	0	9	7
+# T	207	1	2	212	213	212	0	214	0	0	0	0	0	215	211	0	0
 
 write.table(PWMs_metadata, file="../../PWMs/Jolma2013/metadata.csv", row.names = FALSE)
 saveRDS(PWMs_metadata, file="data/Jolma2013.Rds")
