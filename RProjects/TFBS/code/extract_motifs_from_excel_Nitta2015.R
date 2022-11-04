@@ -4,6 +4,7 @@
 
 library(tidyverse)
 library(readxl)
+rm(list=ls())
 
 #This table contains background subtracted PWMs for all factors analyzed.  First line for each factor contains information as follows:	
 # Symbol:	Fly (Blue colored); Fly gene symbols based on Flybase.org
@@ -81,7 +82,7 @@ for(m in 1:length(PWMs_list)){
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")
-  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type","representative", "filename"))], collapse="_")),   
+  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Nitta2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
   append=TRUE
@@ -96,7 +97,7 @@ for(m in 1:length(PWMs_list)){
 }
 
 
-write.table(PWMs_metadata, file="../../PWMs/Nitta2015/metadata.csv", row.names = FALSE)
+write.table(PWMs_metadata, file="../../PWMs/Nitta2015/metadata.csv", row.names = FALSE, sep="\t")
 saveRDS(PWMs_metadata, file="data/Nitta2015.Rds")
 
 

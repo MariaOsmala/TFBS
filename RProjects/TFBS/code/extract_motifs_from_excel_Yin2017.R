@@ -5,6 +5,7 @@
 library(tidyverse)
 library(readxl)
 
+rm(list=ls())
 
 source("code/read_excel_tables.R")
 
@@ -90,7 +91,7 @@ for(m in 1:length(PWMs_list)){
   
 }
 
-write.table(PWMs_metadata, file="../../PWMs/Yin2017/metadata.csv", row.names = FALSE)
+write.table(PWMs_metadata, file="../../PWMs/Yin2017/metadata.csv", row.names = FALSE,sep="\t")
 saveRDS(PWMs_metadata, file="data/Yin2017.Rds")
 
 

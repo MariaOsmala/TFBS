@@ -3,7 +3,7 @@
 #############Read excel tables################
 
 library(tidyverse)
-
+rm(list=ls())
 # This table contains background subtracted PWMs for all of the TF pairs and individual TFs analyzed.  First line for each factor contains information as follows:	
 # Base:	A, C, G or T
 # symbol(s):	HGNC symbol (gene names)
@@ -52,7 +52,7 @@ datas=datas[, c("symbol",	"clone","family",	"organism","study","experiment",
 #datas$multinomial=gsub("m", "",as.character(datas$multinomial))
 #datas$cycle=gsub("c", "",as.character(datas$cycle))
 
-write.table(datas, file="../../PWMs/fromYimeng/metadata.csv", row.names = FALSE)
+write.table(datas, file="../../PWMs/fromYimeng/metadata.csv", row.names = FALSE,sep="\t")
 saveRDS(datas, file="data/fromYimeng.Rds")
 
 

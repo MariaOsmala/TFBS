@@ -119,7 +119,7 @@ for(m in 1:length(PWMs_list)){
   append=TRUE
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma201/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+              file=paste0("../../PWMs/Jolma2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
   
   
   PWMs_metadata$filename[m]=paste0("PWMs/Jolma2015/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
@@ -127,7 +127,12 @@ for(m in 1:length(PWMs_list)){
   
 }
 
-write.table(PWMs_metadata, file="../../PWMs/Jolma2015/metadata.csv", row.names = FALSE)
+#there are some PWMs twice in the metadata table, the PWM for the latter occurrence is used
+PWMs_metadata[which( duplicated(PWMs_metadata$filename)==TRUE),"filename"]
+
+PWMs_metadata[ which(PWMs_metadata$filename %in% as.vector(PWMs_metadata[which( duplicated(PWMs_metadata$filename)==TRUE),]$filename)), ]
+
+write.table(PWMs_metadata, file="../../PWMs/Jolma2015/metadata.csv", row.names = FALSE, sep="\t")
 saveRDS(PWMs_metadata, file="data/Jolma2015.Rds")
 
 stop()

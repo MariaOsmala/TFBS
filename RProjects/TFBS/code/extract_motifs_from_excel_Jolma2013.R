@@ -111,7 +111,7 @@ for(m in 1:length(PWMs_list)){
 # G	0	186	0	0	0	2	0	34	0	173	171	2	0	0	0	9	7
 # T	207	1	2	212	213	212	0	214	0	0	0	0	0	215	211	0	0
 
-write.table(PWMs_metadata, file="../../PWMs/Jolma2013/metadata.csv", row.names = FALSE)
+write.table(PWMs_metadata, file="../../PWMs/Jolma2013/metadata.csv", row.names = FALSE, sep="\t")
 saveRDS(PWMs_metadata, file="data/Jolma2013.Rds")
 
 
