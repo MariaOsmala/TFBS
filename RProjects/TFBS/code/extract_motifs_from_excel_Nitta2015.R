@@ -78,7 +78,7 @@ for(m in 1:length(PWMs_list)){
               file=paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens","/", 
                           paste0(PWMs_metadata[m,
                           -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
-                          ".pfm"))
+                          ".pfm"), sep="\t")
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")

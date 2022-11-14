@@ -86,7 +86,7 @@ for(m in 1:length(PWMs_list)){
   #Write pfm
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
-                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"))
+                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"),sep="\t")
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")
