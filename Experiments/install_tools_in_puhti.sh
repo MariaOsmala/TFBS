@@ -8,6 +8,18 @@ conda-containerize new --mamba --prefix conda_envs/MOODS MOODS.yml
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
+conda-containerize new --mamba --prefix ./conda_envs/motif-clustering-Vierstra /scratch/project_2006203/motif-clustering-Viestra-private/motif-clustering-Vierstra.yml
+
+export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
+
+
+conda-containerize new --mamba --prefix ./conda_envs/CRISPR /scratch/project_2006203/CRISPR/CRISPR.yml
+
+export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
+
+export PATH="/scratch/project_2006472/SNPenrich/conda_envs/SNPenrichR/bin:$PATH"
+
+
 
 
 #when moods installed somewhere else
@@ -17,7 +29,7 @@ export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 #This builds the MOODS extensions and puts everything necessary under the MOODS/ directory. However, this does not install MOODS to Python library path (see below), so Python will not find the library unless MOODS/ directory is in the script path or you explicitly add it to sys.path. To use the example scripts under scripts/ directory, for instance, you can symlink the library there:
 
 #cd scripts/
-#ln -s ../MOODS/  
+#ln -s ../MOODS/
 
 
 cd /scratch/project_2006203/TFBS/Experiments
