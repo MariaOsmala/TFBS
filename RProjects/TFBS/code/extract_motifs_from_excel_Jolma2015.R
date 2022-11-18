@@ -100,6 +100,7 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
 PWMs_list=PWMs_list[-browns]
 
 dir.create(paste0("../../PWMs/Jolma2015/pwms/","Homo_sapiens"), recursive = TRUE)
+dir.create(paste0("../../PWMs/Jolma2015/pwms_space/","Homo_sapiens"), recursive = TRUE)
 
 append=FALSE
 
@@ -110,6 +111,12 @@ for(m in 1:length(PWMs_list)){
                           paste0(PWMs_metadata[m,
                                                -which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),
                           ".pfm"), sep="\t")
+  
+  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2015/pwms_space/",PWMs_metadata[m,"organism"],"/", 
+                          paste0(PWMs_metadata[m,
+                                               -which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),
+                          ".pfm"), sep=" ")
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")

@@ -76,10 +76,13 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
 dir.create(paste0("../../PWMs/Jolma2013/pwms/Homo_sapiens"), recursive=TRUE)
 dir.create(paste0("../../PWMs/Jolma2013/pwms/Mus_musculus"), recursive=TRUE)
 
+dir.create(paste0("../../PWMs/Jolma2013/pwms_space/Homo_sapiens"), recursive=TRUE)
+dir.create(paste0("../../PWMs/Jolma2013/pwms_space/Mus_musculus"), recursive=TRUE)
+
 append=FALSE #write all motifs into a single file as .scpd format
 
-file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
-                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
+#file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
+#                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
 
 for(m in 1:length(PWMs_list)){
   
@@ -87,6 +90,10 @@ for(m in 1:length(PWMs_list)){
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
                           paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"),sep="\t")
+  
+  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/Jolma2013/pwms_space/",PWMs_metadata[m,"organism"],"/", 
+                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"),sep=" ")
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")
@@ -99,7 +106,7 @@ for(m in 1:length(PWMs_list)){
               file=paste0("../../PWMs/Jolma2013/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
   
   
-  PWMs_metadata$filename[m]=paste0("PWMs/Jolma2013/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
+  PWMs_metadata$filename[m]=paste0("PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", paste0(PWMs_metadata[m,
                                                                                              -which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
   
 }

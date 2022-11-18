@@ -55,14 +55,27 @@ datas=datas[, c("symbol",	"clone","family",	"organism","study","experiment",
 write.table(datas, file="../../PWMs/fromYimeng/metadata.csv", row.names = FALSE,sep="\t")
 saveRDS(datas, file="data/fromYimeng.Rds")
 
+dir.create(paste0("../../PWMs/fromYimeng/pwms_space/pfm_composite_new/"), recursive=TRUE)
+dir.create(paste0("../../PWMs/fromYimeng/pwms_space/pfm_spacing_new/"), recursive=TRUE)
 
 #write pwms as .cspd
+
+#write pwms as space separated
 
 append=FALSE
 
 for(m in 1:nrow(datas)){
   f=datas$filename[m]
   PWM=read.table(paste0("../../", f))
+  
+  
+  
+  
+  #paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])
+  write.table(PWM,row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs/fromYimeng/pwms_space/",paste0(strsplit(f, "/")[[1]][-c(1,2,3)],collapse="/")) ,sep=" ")
+  
+  
   rownames(PWM)=c("A", "C", "G", "T")
   write.table(paste0(">",  paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
