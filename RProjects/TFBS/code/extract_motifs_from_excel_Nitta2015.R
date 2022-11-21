@@ -4,6 +4,7 @@
 
 library(tidyverse)
 library(readxl)
+library(universalmotif)
 rm(list=ls())
 
 #This table contains background subtracted PWMs for all factors analyzed.  First line for each factor contains information as follows:	
@@ -70,6 +71,7 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
 
 dir.create(paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens"), recursive=TRUE)
 dir.create(paste0("../../PWMs/Nitta2015/pwms_space/","Homo_sapiens"), recursive=TRUE)
+dir.create(paste0("../../PWMs/Nitta2015/transfac/","Homo_sapiens"), recursive=TRUE)
 
 append=FALSE
 
@@ -80,6 +82,24 @@ for(m in 1:length(PWMs_list)){
                           paste0(PWMs_metadata[m,
                           -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
                           ".pfm"), sep="\t")
+  
+  file=paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens","/", 
+              paste0(PWMs_metadata[m,
+                                   -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
+              ".pfm")
+  
+  motif=universalmotif::read_matrix(file=file, sep="\t", header=FALSE)
+  motif@name=paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "representative","filename"))], collapse="_")
+  
+  transfac=paste0("../../PWMs/Nitta2015/transfac/",PWMs_metadata[m,"organism"],"/", 
+                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","representative","filename"))], collapse="_"),".pfm")
+  
+  
+  write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
+  
+  
+  
+  
   
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Nitta2015/pwms_space/","Homo_sapiens","/", 

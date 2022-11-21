@@ -4,6 +4,7 @@
 
 library(tidyverse)
 library(readxl)
+library(universalmotif)
 #all_table <- read_excel("useful/tidyverse_notes/utility/multiple_tables_sheet.xlsx", col_names=FALSE)
 
 
@@ -101,6 +102,7 @@ PWMs_list=PWMs_list[-browns]
 
 dir.create(paste0("../../PWMs/Jolma2015/pwms/","Homo_sapiens"), recursive = TRUE)
 dir.create(paste0("../../PWMs/Jolma2015/pwms_space/","Homo_sapiens"), recursive = TRUE)
+dir.create(paste0("../../PWMs/Jolma2015/transfac/","Homo_sapiens"), recursive = TRUE)
 
 append=FALSE
 
@@ -111,6 +113,22 @@ for(m in 1:length(PWMs_list)){
                           paste0(PWMs_metadata[m,
                                                -which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),
                           ".pfm"), sep="\t")
+  
+  file=paste0("../../PWMs/Jolma2015/pwms/",PWMs_metadata[m,"organism"],"/", 
+              paste0(PWMs_metadata[m,
+                                   -which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),
+              ".pfm")
+  
+  motif=universalmotif::read_matrix(file=file, sep="\t", header=FALSE)
+  motif@name=paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")
+  
+  transfac=paste0("../../PWMs/Jolma2015/transfac/",PWMs_metadata[m,"organism"],"/", 
+                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
+  
+  
+  write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
+  
+  
   
   write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/Jolma2015/pwms_space/",PWMs_metadata[m,"organism"],"/", 

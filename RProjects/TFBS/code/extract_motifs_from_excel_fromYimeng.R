@@ -3,6 +3,7 @@
 #############Read excel tables################
 
 library(tidyverse)
+library(universalmotif)
 rm(list=ls())
 # This table contains background subtracted PWMs for all of the TF pairs and individual TFs analyzed.  First line for each factor contains information as follows:	
 # Base:	A, C, G or T
@@ -58,6 +59,10 @@ saveRDS(datas, file="data/fromYimeng.Rds")
 dir.create(paste0("../../PWMs/fromYimeng/pwms_space/pfm_composite_new/"), recursive=TRUE)
 dir.create(paste0("../../PWMs/fromYimeng/pwms_space/pfm_spacing_new/"), recursive=TRUE)
 
+
+dir.create(paste0("../../PWMs/fromYimeng/transfac/pfm_composite_new/"), recursive=TRUE)
+dir.create(paste0("../../PWMs/fromYimeng/transfac/pfm_spacing_new/"), recursive=TRUE)
+
 #write pwms as .cspd
 
 #write pwms as space separated
@@ -74,6 +79,14 @@ for(m in 1:nrow(datas)){
   #paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])
   write.table(PWM,row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0("../../PWMs/fromYimeng/pwms_space/",paste0(strsplit(f, "/")[[1]][-c(1,2,3)],collapse="/")) ,sep=" ")
+  
+  file=paste0("../../PWMs/fromYimeng/pwms_space/",paste0(strsplit(f, "/")[[1]][-c(1,2,3)],collapse="/"))
+  
+  motif=universalmotif::read_matrix(file=file, sep=" ", header=FALSE)
+  motif@name=paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])
+
+  transfac=file=paste0("../../PWMs/fromYimeng/transfac/",paste0(strsplit(f, "/")[[1]][-c(1,2,3)],collapse="/"))
+  write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
   
   rownames(PWM)=c("A", "C", "G", "T")
