@@ -44,3 +44,7 @@ JOB0=$(sbatch --export=ALL --parsable \
 	--job-name=tomtom.chunk \
 	${base_dir}/slurm.tomtom)
 echo $JOB0
+
+#-dist allr|ed|kullback|pearson|sandelin|blic1|blic5|llr1|llr5
+#                   Distance metric for scoring alignments;
+#                    default: ed
