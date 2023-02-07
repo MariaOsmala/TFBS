@@ -33,5 +33,5 @@ Loading required package: IRanges
 Loading required package: GenomeInfoDb
 Error: 
 Execution halted
-srun: error: r06c61: task 0: Exited with exit code 1
-srun: launch/slurm: _step_signal: Terminating StepId=14924852.0
+srun: error: r14c48: task 0: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=15139064.0

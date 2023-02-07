@@ -1,6 +1,7 @@
 library("rtracklayer")
 library("dbplyr")
 library("dplyr")
+library("tidyverse")
 
 #short names for TFs
 
@@ -15,13 +16,15 @@ rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
 
 length(unique(rep_motifs))
 
-which(representatives$ID %in% rownames(p_matrix))
-
-shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol)
-table(shorter_names)
 
 #These are log_10(p-values)
 p_matrix=readRDS(  file = paste0( "../RData/Vierstra_p_matrix_human_cell_type_restricted.Rds")) #
+
+which(representatives$ID %in% rownames(p_matrix))
+
+shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, new_representative, Lambert2018.families)
+#table(shorter_names)
+
 
 #FDR correction for the p-values?
 
@@ -137,6 +140,101 @@ plot(silhouette(cutree(ehc3,9),ed))
 plot(silhouette(cutree(ehc3,10),ed))
 
 
+
+
+#Figure 3E in paper
+
+#setwd("/scratch/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2")
+#system("gunzip 2E_Accessibility_score.tsv.gz")
+#setwd("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RProject")
+library(readr)
+Accessibility_scores=read_tsv(file="../CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2/2E_Accessibility_score.tsv")
+
+coordinates=Accessibility_scores$...1
+cell_lines=names(Accessibility_scores)
+
+mat=as.matrix(Accessibility_scores[,-1])
+rownames(mat)=coordinates
+
+library("ComplexHeatmap")
+library("viridis")
+pdf(output_hs, width=8.0, height=7)
+hm <- Heatmap( mat,
+               col=viridis(99),
+               cluster_rows=T, cluster_columns=T,
+               clustering_distance_rows = "euclidean",
+               clustering_method_rows = "ward.D",
+               clustering_distance_columns = "euclidean",
+               clustering_method_columns = "ward.D",
+               show_row_names=F,
+               show_column_names=T, column_names_side="top",
+               column_names_gp = gpar(fontsize=5),
+               heatmap_legend_param = list(
+                 title = "mean(log(1+acc.))",
+                 title_gp = gpar(fontsize = 6),
+                 title_position = "leftcenter-rot",
+                 labels_gp = gpar(fontsize = 5)
+               )
+)
+draw(hm)
+
+
+
+
+# tableFl <- lookupConfig "accessibility" "/projects/ps-renlab/kai/project/Atlas/output/SCATACSeq/Feature/Peak/Cluster/relative_accessibility_scores.tsv"
+# dir <- lookupConfig "output_dir" "output/"
+# orderFl <- lookupConfig "cluster_order" "../Cluster/output/phylo.txt"
+# annoFl <- lookupConfig "cluster_annotation" "/projects/ren-transposon/home/kai/Atlas/annotation.tsv" 
+# let output = dir <> "/restricted_peaks.pdf"
+# liftIO $ do
+# orders <- reverse . T.lines <$> T.readFile orderFl
+# anno <- readAnno annoFl
+# peaks <- forM input $ \(_, peakFl) ->
+# map (T.pack . B.unpack . showBed) <$> (readBed peakFl :: IO [BED3])
+# print $ length $ nubSort $ concat peaks
+# peaks' <- create >>= sampling' 5000 peaks
+# df <- DF.map (logBase 2 . (+1)) . (`DF.csub` orders) <$> DF.readTable tableFl
+# plotRestrictedPeaks output $ changeName anno $
+# DF.rbind $ diagonize' average $ 
+#   map (DF.map (min 6) . (df `DF.rsub`)) peaks'
+#                               {-
+#                                   let tables = V.fromList $ parMap rdeepseq (getSignal df) peaks
+#                                   (names, vecs) = unzip $ flatten $ hclust Ward tables (euclidean `on` snd)
+#                                   df' = DF.mkDataFrame names (DF.colNames df) $ map V.toList vecs
+#                 num_peak = map (\(x,y) -> (x, length y)) peaks
+# 
+#             plotRestrictedPeaks (dir <> "/restricted_peaks.pdf") num_peak $ df' `DF.csub` names
+#                                   
+#                                   DF.writeTable output (T.pack . show) $ df' `DF.csub` names
+#             return (output, num_peak)
+#             -}
+#         |] $ return ()
+
+hclust Ward tables (euclidean `on` 
+
+plotRestrictedPeaks output df = R.runRegion $ do
+mat <- toRMatrix df
+
+library("ComplexHeatmap")
+library("viridis")
+pdf(output_hs, width=8.0, height=7)
+hm <- Heatmap( mat_hs,
+                 col=viridis(99),
+                 cluster_rows=F, cluster_columns=F,
+                 show_row_names=F,
+                 show_column_names=T, column_names_side="top",
+                 column_names_gp = gpar(fontsize=5),
+                 heatmap_legend_param = list(
+                   title = "mean(log(1+acc.))",
+                   title_gp = gpar(fontsize = 6),
+                   title_position = "leftcenter-rot",
+                   labels_gp = gpar(fontsize = 5)
+                 )
+)
+draw(hm)
+dev.off()
+
+
 #Display the results by a heatmap. Use the R function pheatmap for your subset of 1,500 genes with the most variance from Task 2.1. 
 #Add annotations of the first four mutations found in the clinical data. 
 #Use "complete" as the clustering method. Include the optimal number of clusters found in Task 2.3. 
@@ -145,7 +243,8 @@ plot(silhouette(cutree(ehc3,10),ed))
 # generate an annotation data.frame to visualize the first four mutations
 #anno <- data.frame(clinic[,27:30]) #176 x 90
 
-# plot heatmap with sample annotation. Heat map produces both clustering info and gene expression info. The colors correspond to the gene expression levels. Additional annotation allows to see certain genes' mutation status in patients.
+# plot heatmap with sample annotation. Heat map produces both clustering info and gene expression info. 
+#The colors correspond to the gene expression levels. Additional annotation allows to see certain genes' mutation status in patients.
 
 min(p_matrix_depleted)
 max(p_matrix_depleted)
@@ -161,12 +260,79 @@ color = colorRampPalette(rev(brewer.pal(n = 7, name =
 myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
               seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
 
-pdf(file = "../Figures/adult-cCREs-heatmap.pdf", width=7, height=15 )
-pheatmap(t(p_matrix_depleted), color=color,clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+rownames(p_matrix_depleted)=shorter_names$symbol
+
+#CAP-selex motifs for which both TFs from the same protein family
+
+CAP_index=which(shorter_names$experiment=="CAP-SELEX")
+
+tmp=shorter_names[CAP_index, "Lambert2018.families"]
+
+res = strsplit(tmp, "_")
+str(res)  
+
+res=do.call(rbind, res)
+
+CAP_index=CAP_index[which( res[,1]==res[,2])] #120
+
+shorter_names <- shorter_names %>% mutate(family_alt=Lambert2018.families)
+
+shorter_names[CAP_index, "family_alt"]=res[ res[,1]==res[,2],1]
+
+tmp=shorter_names %>% count(family_alt, sort=TRUE)
+rm=unique( c( grep("_", tmp[[1]]), grep(";", tmp[[1]])) )
+
+tmp=tmp[-rm,]
+#choose only first 10
+tmp=tmp[1:10,"family_alt"]
+anno=shorter_names
+  
+#remove those family_alts that do not match tmp
+length(which( !(anno$family_alt %in% tmp))) #676
+
+anno$family_alt[!(anno$family_alt %in% tmp)]=NA
+
+annos=data.frame(family_alt=anno$family_alt)
+rownames(annos)=shorter_names$ID
+
+# Specify colors
+library("RColorBrewer")
+anno_cols=c("blue", "#FF7F00", "#66A61E",
+            "#E41A1C", "purple", "brown", 
+            "#E7298A", "gray", "#FFE528", "cyan", "white")
+
+names(anno_cols)=c(tmp, NA)
+
+ann_colors = list(family_alt=anno_cols)
+
+
+pdf(file = "../Figures/adult-cCREs-heatmap.pdf", width=150, height=15 )
+pheatmap(t(p_matrix_depleted), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
          drop_levels=TRUE,show_rownames=TRUE,
-         show_colnames=FALSE,legend=TRUE, breaks= myBreaks, cutree_rows=6, 
-          )
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+
 dev.off()
+
+pdf(file = "../Figures/adult-cCREs-heatmap_euclidean_ward.pdf", width=50, height=150 )
+pheatmap(p_matrix_depleted, color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE, annotation_row=annos, 
+         annotation_colors=ann_colors,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+
+dev.off()
+
+pdf(file = "../Figures/adult-cCREs-heatmap_correlation_ward.pdf", width=50, height=150 )
+pheatmap(p_matrix_depleted, color=color,clustering_distance_rows = "correlation",
+         clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE,annotation_row=annos, 
+         annotation_colors=ann_colors,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+
+dev.off()
+
+
 
 #cutree_cols=2)
 

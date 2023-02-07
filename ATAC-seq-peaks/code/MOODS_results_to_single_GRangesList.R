@@ -7,19 +7,24 @@ library(GenomicRanges)
 #dir("../../Results/MOODS_RDS/")
 
 #files=list.files("../../Results/MOODS_RDS/",pattern = "_smaller") #399
-files=list.files("../../Results/MOODS_Vierstra_processed/MOODS_Vierstra_RDS/") #399
+#files=list.files("../../Results/MOODS_Vierstra_processed/MOODS_Vierstra_RDS/") #399
+
+files=list.files("../../Results/MOODS_Teemu_processed/MOODS_RDS/") #399
+files=files[grep("top", files)]
 
 GR_list=GRangesList()
 
 for(file in files){
   print(file)
   #GR_list=c(GR_list, readRDS(paste0("../../Results/MOODS_RDS/",file)) )
-  GR_list=c(GR_list, readRDS(paste0("../../Results/MOODS_Vierstra_processed/MOODS_Vierstra_RDS/",file)) )
+  #GR_list=c(GR_list, readRDS(paste0("../../Results/MOODS_Vierstra_processed/MOODS_Vierstra_RDS/",file)) )
+  GR_list=c(GR_list, readRDS(paste0("../../Results/MOODS_Teemu_processed/MOODS_RDS/",file)) )
   
 }
 
 #saveRDS(GR_list,  file = paste0( "../RData/all_motif_matches_sbatch.Rds")) #
-saveRDS(GR_list,  file = paste0( "../RData/all_motif_matches_Vierstra.Rds")) #
+#saveRDS(GR_list,  file = paste0( "../RData/all_motif_matches_Vierstra.Rds")) #
+saveRDS(GR_list,  file = paste0( "../RData/top_motif_matches_Teemu.Rds")) #
 
 stop()
 
