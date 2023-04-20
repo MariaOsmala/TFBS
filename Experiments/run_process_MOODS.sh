@@ -4,12 +4,25 @@
 #SBATCH --output=outs/process_MOODS_%j_%a.txt
 #SBATCH --error=errs/process_MOODS_%j_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=02-00:00:00
+#SBATCH --time=1-12:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=4
-#SBATCH --mem-per-cpu=10G #3G with database
-#SBATCH --array=0 # #0-39
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=60G #3G with database
+#SBATCH --array=0 # #0-39 0-10
+
+
+#with 1 CPU required 1-04:33:39
+#Memory Utilized: 55.83 GB 55.83% of 100.00 GB
+
+#a-put tar command, you can see what is inside the compressed file a-find, where is your tar file
+
+#sacct -o jobname,jobid,reqmem,maxrss,timelimit,elapsed,state --units=[KMGTP] -j <jobid> make some alias on this
+#Add the current working directory to $PATH:
+#export PATH=$PWD:$PATH
+
+#To add paths automatically, you can add the export command to your $HOME/.bashrc file. Instead of $PWD, use the full path:
+#export PATH=/projappl/<project>/$USER/gcta-1.94.1-linux-kernel-3-x86_64:$PATH   # replace <project> with your CSC project, e.g. project_2001234
 
 # Load r-env
 module load r-env

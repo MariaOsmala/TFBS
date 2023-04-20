@@ -17,7 +17,35 @@ n=300000 #the number of best hits
 outfile="/scratch/project_2006203/TFBS/Results/MOODS_Teemu/MOODS_"$array".csv.gz"
 #outfile=../Results/MOODS/MOODS_"$array".csv"
 
+#rename Yimengs motifs, add 
+
+#filenames=($(ls ../PWMs/fromYimeng/pwms_space/pfm_composite_new/*.pfm))
+#for filename in "${filenames[@]}"
+#do
+#   newname=${filename%.pfm}"_composite.pfm"
+#   echo $newname
+#   mv $filename $newname
+   
+#done
+
+#filenames=($(ls ../PWMs/fromYimeng/pwms_space/pfm_spacing_new/*.pfm))
+#for filename in "${filenames[@]}"
+#do
+#   newname=${filename%.pfm}"_spacing.pfm"
+#   echo $newname
+#   mv $filename $newname
+   
+#done
+
+
+
 pwms=($(ls ../PWMs/*/pwms_space/*/*.pfm)) #3982
+
+
+
+
+#echo "${pwms[3]##*/}"
+
 #echo "${#pwms[@]}"
 #echo "${pwms[@]}"
 

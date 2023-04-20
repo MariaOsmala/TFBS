@@ -5,22 +5,29 @@ library("tidyverse")
 
 #short names for TFs
 
+
+scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
+
 representatives=read.table("../../../motif-clustering-Viestra-private/metadata/new_representatives.tsv", sep="\t", header=TRUE)
 test=gsub(".pfm", "", do.call(rbind, strsplit(representatives$filename,"/"))[,5])
 rep_motifs=test[which(representatives$new_representative=="YES")]
 
-#remove _pfm_composite_new and _pfm_spacing_new
+rep_dimers=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX")] #591
 
-rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
-rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
+rep_Yimeng=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX"& representatives$study=="fromYimeng")] #238
+
+#remove _pfm_composite_new and _pfm_spacing_new
+#rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
+#rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
 
 length(unique(rep_motifs))
 
 
 #These are log_10(p-values)
-p_matrix=readRDS(  file = paste0( "../RData/Vierstra_p_matrix_human_cell_type_restricted.Rds")) #
+p_matrix=readRDS(  file = paste0(scratch, "RData/Vierstra_p_matrix_human_cell_type_restricted.Rds")) #
 
-which(representatives$ID %in% rownames(p_matrix))
+#length(which(rep_dimers %in% rownames(p_matrix))) #595
+#length(which(rep_Yimeng %in% rownames(p_matrix))) #239
 
 shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, new_representative, Lambert2018.families)
 #table(shorter_names)
@@ -29,7 +36,7 @@ shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% selec
 #FDR correction for the p-values?
 
 #These are log2( (k / n) / (m / N) )
-e_matrix=readRDS(  file = paste0( "../RData/Vierstra_e_matrix_human_cell_type_restricted.Rds")) #
+e_matrix=readRDS(  file = paste0(scratch, "RData/Vierstra_e_matrix_human_cell_type_restricted.Rds")) #
 
 #Heatmaps showing Gene Ontology TF motifs with maximal enrichment in cell-type-restricted cCREs of selected cell types. 
 #Only the most enriched TF motif in each of the previously identified motif archetypes (Vierstra et al., 2020) was selected as the representative and 
@@ -260,6 +267,7 @@ color = colorRampPalette(rev(brewer.pal(n = 7, name =
 myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
               seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
 
+
 rownames(p_matrix_depleted)=shorter_names$symbol
 
 #CAP-selex motifs for which both TFs from the same protein family
@@ -306,17 +314,84 @@ names(anno_cols)=c(tmp, NA)
 ann_colors = list(family_alt=anno_cols)
 
 
-pdf(file = "../Figures/adult-cCREs-heatmap.pdf", width=150, height=15 )
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-euclidean-ward.pdf"), width=150, height=15 )
 pheatmap(t(p_matrix_depleted), color=color,clustering_distance_rows = "euclidean",
          clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
          drop_levels=TRUE,show_rownames=TRUE,
          show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
-
 dev.off()
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-euclidean-complete.pdf"), width=150, height=15 )
+pheatmap(t(p_matrix_depleted), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="complete", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+p_matrix_dimers=p_matrix_depleted[which(rownames(p_matrix) %in% rep_dimers),]
+p_matrix_Yimeng=p_matrix_depleted[which(rownames(p_matrix) %in% rep_Yimeng),]
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-dimers-euclidean-ward.pdf"), width=100, height=20 )
+pheatmap(t(p_matrix_dimers), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE, col_names_side = "top", col_hclust_side = "top",
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-Yimeng-euclidean-ward.pdf"), width=50, height=20 )
+pheatmap(t(p_matrix_Yimeng), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-dimers-euclidean-complete.pdf"), width=100, height=20 )
+pheatmap(t(p_matrix_dimers), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="complete", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE, col_names_side = "top", col_hclust_side = "top",
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-Yimeng-euclidean-complete.pdf"), width=50, height=20 )
+pheatmap(t(p_matrix_Yimeng), color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="complete", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-dimers-correlation-ward.pdf"), width=100, height=20 )
+pheatmap(t(p_matrix_dimers), color=color,clustering_distance_rows = "correlation",
+         clustering_distance_cols = "correlation",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE, col_names_side = "top", col_hclust_side = "top",
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+pdf(file = paste0(scratch,"/Figures/adult-cCREs-heatmap-Yimeng-correlation-ward.pdf"), width=50, height=20 )
+pheatmap(t(p_matrix_Yimeng), color=color,clustering_distance_rows = "correlation",
+         clustering_distance_cols = "correlation",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+dev.off()
+
+
+
+
+
+
 
 pdf(file = "../Figures/adult-cCREs-heatmap_euclidean_ward.pdf", width=50, height=150 )
 pheatmap(p_matrix_depleted, color=color,clustering_distance_rows = "euclidean",
          clustering_distance_cols = "euclidean",clustering_method="ward.D", #annotation=anno one could add protein family names, dimers vs monomers
+         drop_levels=TRUE,show_rownames=TRUE, annotation_row=annos, 
+         annotation_colors=ann_colors,
+         show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )
+
+dev.off()
+
+pdf(file = "../Figures/adult-cCREs-heatmap_euclidean_complete.pdf", width=50, height=150 )
+pheatmap(p_matrix_depleted, color=color,clustering_distance_rows = "euclidean",
+         clustering_distance_cols = "euclidean",clustering_method="complete", #annotation=anno one could add protein family names, dimers vs monomers
          drop_levels=TRUE,show_rownames=TRUE, annotation_row=annos, 
          annotation_colors=ann_colors,
          show_colnames=TRUE,legend=TRUE, breaks= myBreaks) #, cutree_rows=6, )

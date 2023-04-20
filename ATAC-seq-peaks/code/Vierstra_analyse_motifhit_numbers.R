@@ -4,11 +4,6 @@ library("dplyr")
 
 
 
-
-
-
-
-
 #Which are representative motifs
 
 representatives=read.table("../../../motif-clustering-Viestra-private/metadata/new_representatives.tsv", sep="\t", header=TRUE)
@@ -71,6 +66,8 @@ widths=lapply(cCREs_list, width)
 lapply(widths, table)
 
 match_numbers=lapply(representative_motif_matches_Vierstra, length)
+match_numbers=readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Vierstra.Rds")
+
 
 df2=data.frame(match_nro=unlist(match_numbers))
 
@@ -79,11 +76,11 @@ min(df2$match_nro) #21108
 
 
 # Change the width of bins
-pdf(file = "../Figures/Vierstra-representative-motif-hit-nros.pdf" )
+pdf(file = "/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/Vierstra-representative-motif-hit-nros.pdf" )
 #width, height, onefile, family, title, fonts, version,
 #paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
 #useDingbats, useKerning, fillOddEven, compress)
-ggplot(df2, aes(x=match_nro)) + geom_histogram(binwidth=10000)
+ggplot(df2, aes(x=match_nro)) + geom_histogram(binwidth=20000)
 dev.off()
 
 mean(df2$match_nro) #307578

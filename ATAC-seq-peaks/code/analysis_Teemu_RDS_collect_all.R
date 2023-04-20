@@ -1,9 +1,11 @@
 library("rtracklayer")
 library("dbplyr")
 library("dplyr")
-library("motifStack")
-library("universalmotif")
-library(ggplot2)
+#library("motifStack")
+#library("universalmotif")
+library("ggplot2")
+library(ggbreak)
+#install.packages("ggbreak")
 
 
 #Database stuff
@@ -29,56 +31,73 @@ rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
 length(unique(rep_motifs))
 #1062
 
-#the filenames need to be changed, are the IDs unique?
+#Interesting motifs for Yimen's paper, choose the representative ones, missing?
 
-#This file contains the ~300,000 top and all with threshold 5 
-#Study the correlation with the match numbers and
-# motif length
-# information content
-# monomer vs multimer
-# average/median/quantiles of affinity scores
+#interesting=c("PTF1A_NKX6.1",
+#"OLIG2_OTP",
+#"OLIG2_EVX2",
+#"NEUROG2_EVX2",
+#"ATOH1_EVX2",
+# "BHLHE22_EVX2",
+# "NHLH1_EVX2",
+# "OLIG2_HOXB5",
+# "OLIG2_NKX6.1",
+# "ATOH1_EVX2",
+# "NHLH1_HOXD8",
+# "PROX1_HOXB2")
 
-match_numbers=read.table("/scratch/project_2006203/TFBS/Results/Teemu_5_motif_match_numbers.csv", header=TRUE)
-
-##remove _pfm and _new from representatives$ID
-
-representatives$ID_match_numbers=representatives$ID
-
-representatives$ID_match_numbers=gsub("short_pfm_composite_new", "short_composite" ,representatives$ID_match_numbers)
-representatives$ID_match_numbers=gsub("short_pfm_spacing_new", "short_spacing" ,representatives$ID_match_numbers)
-
-#test=match( representatives$ID_match_numbers, match_numbers$motif)
-test=match(  match_numbers$motif,representatives$ID_match_numbers)
-length(which(is.na(test)==TRUE)) #10
-
-match_numbers$motif[which(is.na(test)==TRUE)]=paste0(match_numbers$motif[which(is.na(test)==TRUE)], "_NA")
-length(which(is.na(test)==TRUE)) #0
-
-test=match(  representatives$ID_match_numbers,match_numbers$motif)
-length(which(is.na(test)==TRUE)) #0
-tmp=data.frame(head(representatives$ID,20), head(match_numbers$motif[test],20) )
-
-representatives$all_five=match_numbers$all[test]
-representatives$top_five=match_numbers$top[test]
-
-library(ggplot2)
-ggplot(representatives, aes(x=as.factor(length), y=top_five))+ geom_violin()+geom_violin(trim=FALSE)+geom_dotplot(binaxis='y', stackdir='center', dotsize=0.01)
-ggplot(representatives, aes(x=as.factor(length), y=log10(top_five)))+geom_violin(trim=FALSE)+geom_dotplot(binaxis='y', stackdir='center', dotsize=0.01)
-ggplot(representatives, aes(x=IC, y=top_five))+geom_point()
-ggplot(representatives, aes(x=IC, y=log10(top_five)))+geom_point()
-
-ggplot(representatives, aes(x=as.factor(length), y=all_five))+geom_violin()+geom_violin(trim=FALSE)+geom_dotplot(binaxis='y', stackdir='center', dotsize=0.01)
-ggplot(representatives, aes(x=as.factor(length), y=log10(all_five)))+geom_violin()+geom_violin(trim=FALSE)+geom_dotplot(binaxis='y', stackdir='center', dotsize=0.01)
-ggplot(representatives, aes(x=IC, y=log10(all_five)))+geom_point()
+# representatives$symbol[grep("PTF1A", representatives$symbol)]
+# representatives$symbol[grep("NKX6", representatives$symbol)]
+# representatives$symbol[grep("OLIG2", representatives$symbol)]
+# representatives$symbol[grep("OTP", representatives$symbol)]
+# representatives$symbol[grep("NEUROG2", representatives$symbol)]
+# representatives$symbol[grep("EVX2", representatives$symbol)]
+# representatives$symbol[grep("ATOH1", representatives$symbol)]
+# representatives$symbol[grep("BHLHE22", representatives$symbol)]
+# representatives$symbol[grep("NHLH1", representatives$symbol)]
+# representatives$symbol[grep("OLIG2", representatives$symbol)]
+# representatives$symbol[grep("HOXB5", representatives$symbol)]
+# representatives$symbol[grep("ATOH1", representatives$symbol)]
+# representatives$symbol[grep("NHLH1", representatives$symbol)]
+# representatives$symbol[grep("HOXD8", representatives$symbol)]
+# representatives$symbol[grep("PROX1_HOXB2", representatives$symbol)]
+# 
+# interesting_df=representatives[which(representatives$symbol %in% interesting),]
 
 
-all_motif_matches_Teemu <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_Teemu.Rds")
+all_motif_matches_Teemu <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_Teemu.Rds") #50 GB
+
 length(names(all_motif_matches_Teemu)) #3982
 length(unique(names(all_motif_matches_Teemu))) #3982
+#match_numbers=unlist(lapply(all_motif_matches_Teemu, length))
+#saveRDS(match_numbers,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu.Rds")
+match_numbers <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu.Rds")
 
-#scores = unlist(all_motif_matches_Teemu)$score
-#scoresList = relist(scores, all_motif_matches_Teemu)
-#score_summaries=lapply(scoresList, summary)
+df=data.frame(match_nro=match_numbers)
+max(df$match_nro) # Teemu: 758738
+min(df$match_nro) # Teemu: 216
+
+#THese are only the top, that's why sharp break around 300000
+pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu_motif-hit-nros.pdf" ))
+#width, height, onefile, family, title, fonts, version,
+#paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
+#useDingbats, useKerning, fillOddEven, compress)
+ggplot(df, aes(x=match_nro)) + geom_histogram(aes(y = after_stat(count / sum(count))),binwidth=20000)+
+  scale_y_continuous(labels = scales::percent)+ 
+  scale_y_cut(breaks=c(0.1), which=c(1,2), scales=c(0.5,0.5))+ylim(0,0.8)+#xlim(c(280000,325000))
+  #scale_y_break(c(0.0225, 0.93 ))
+  #geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+  labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers with threshold 5, binwidth 20000')
+dev.off()
+
+
+#Remove those with not enought matches
+
+rerun=which(match_numbers < 300000) #1024  CTCF: 51136
+
+all_motif_matches_Teemu=all_motif_matches_Teemu[-rerun]
+
+match_numbers=match_numbers[-rerun]
 
 #relaxed affinity threshold
 motif_matches_4_Teemu <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_4_Teemu.Rds") #1025
@@ -87,118 +106,164 @@ which(table(names(motif_matches_4_Teemu))!=1)
 
 motif_matches_4_Teemu=motif_matches_4_Teemu[-grep("ETS1_HT-SELEX_TGTACC30NCAG_AI_NCCGGAWRYRYWTCCGGN_1_3_YES", names(motif_matches_4_Teemu))[2]]
 #all_motif_matches_Teemu[grep("ETS1_HT-SELEX_TGTACC30NCAG_AI_NCCGGAWRYRYWTCCGGN_1_3_YES", names(all_motif_matches_Teemu))] it is not twice in the original data
+#match_numbers_4=unlist(lapply(motif_matches_4_Teemu, length))
+#saveRDS(match_numbers_4,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_4_Teemu.Rds")
+match_numbers_4 <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_4_Teemu.Rds")
 
-#
+all_motif_matches_Teemu=c(all_motif_matches_Teemu, motif_matches_4_Teemu)
+length(all_motif_matches_Teemu)
 
-#There are some motifs which occur multiple times
+match_numbers=c(match_numbers, match_numbers_4)
+
+save(all_motif_matches_Teemu,match_numbers, file="/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/all_motif_matches_5_4_Teemu.RData") #1025
+#load("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/all_motif_matches_5_4_Teemu.RData") #1025
+
+#update match_numbers
+
+
+
+#width, height, onefile, family, title, fonts, version,
+#paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
+#useDingbats, useKerning, fillOddEven, compress)
+df=data.frame(match_nro=match_numbers)
+max(df$match_nro) # Teemu: 758738
+min(df$match_nro) # Teemu: 337
+
+pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-motif-hit-nros-added-4.pdf" ))
+ggplot(df, aes(x=match_nro)) + geom_histogram(aes(y = after_stat(count / sum(count))),binwidth=20000)+
+  scale_y_continuous(labels = scales::percent)+ 
+  scale_y_cut(breaks=c(0.1), which=c(1,2), scales=c(0.5,0.5)) + ylim(0, 0.8) + #xlim(c(280000,325000)) 
+#scale_y_break(c(0.0225, 0.93 ))
+#geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers with threshold 5, 4, binwidth 20000')
+dev.off()
+
+
+
 motif_matches_3_Teemu <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_3_Teemu.Rds") #762
 length(names(motif_matches_3_Teemu)) #762
 length(unique(names(motif_matches_3_Teemu))) #761
 which(table(names(motif_matches_3_Teemu))!=1)
+
 motif_matches_3_Teemu=motif_matches_3_Teemu[-grep("ELK1_PAX5_CAP-SELEX_TCAGTT40NTTG_AAA_RSCGGAACYACGCWYSANTG_2_2_YES", names(motif_matches_3_Teemu))[2]]
 
-
-motifs=names(all_motif_matches_Teemu) #3892
-motifs_4=names(motif_matches_4_Teemu) #1024
-motifs_3=names(motif_matches_3_Teemu) #763
-length(unique(motifs_3)) #761
-which(table(motifs_3)>1)
-
-match_numbers=unlist(lapply(all_motif_matches_Teemu, length))
-match_numbers_4=unlist(lapply(motif_matches_4_Teemu, length))
-match_numbers_3=unlist(lapply(motif_matches_3_Teemu, length))
-
-#saveRDS(match_numbers,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu.Rds")
-#saveRDS(match_numbers_4,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_4_Teemu.Rds")
+#match_numbers_3=unlist(lapply(motif_matches_3_Teemu, length))
 #saveRDS(match_numbers_3,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_3_Teemu.Rds")
-match_numbers <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu.Rds")
-match_numbers_4 <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu_4.Rds")
 match_numbers_3 <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_Teemu.Rds")
 
+length(match_numbers)
+hist(match_numbers)
+length(all_motif_matches_Teemu)
+length(match_numbers_3)
+hist(match_numbers_3)
+length(motif_matches_3_Teemu)
 
-# Basic histogram
+
+
+rerun=which(match_numbers < 300000) #761
+
+#all_motif_matches_Teemu=
+tmp=all_motif_matches_Teemu[-rerun]
+length(tmp)
+#match_numbers=match_numbers[-rerun]
+tmp_match_numbers=match_numbers[-rerun]
+length(tmp_match_numbers)
+#hist(tmp_match_numbers)
+
+
+#update matches
+all_motif_matches_Teemu=c(tmp, motif_matches_3_Teemu)
+
+length(unique(names(all_motif_matches_Teemu)))
+
+#update match_numbers
+#match_numbers=c(match_numbers, match_numbers_3)
+hist(tmp_match_numbers)
+hist(match_numbers_3)
+match_numbers=c(tmp_match_numbers, match_numbers_3)
+hist(match_numbers)
+
+rm(tmp)
+rm(motif_matches_3_Teemu)
+rm(match_numbers_3)
+gc()
 
 df=data.frame(match_nro=match_numbers)
-max(df$match_nro) #Vierstra: 4063189 Teemu: 758738
-min(df$match_nro) #Vierstra: 15846 Teemu: 216
 
-pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu_motif-hit-nros.pdf" ))
+
+max(df$match_nro) # Teemu: 758738
+min(df$match_nro) # Teemu: 480
+
+match_numbers[grep("CTCF", names(match_numbers))] #117589
+
+
 #width, height, onefile, family, title, fonts, version,
 #paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
 #useDingbats, useKerning, fillOddEven, compress)
-ggplot(df, aes(x=match_nro)) + geom_histogram(binwidth=5000)+ylim(c(0,300))
+
+pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-motif-hit-nros-added-3.pdf" ))
+ggplot(df, aes(x=match_nro)) + geom_histogram(aes(y = after_stat(count / sum(count))),binwidth=20000)+
+  scale_y_continuous(labels = scales::percent)+ 
+  scale_y_cut(breaks=c(0.1), which=c(1,2), scales=c(0.5,0.5)) + ylim(c(0, 0.8)) + #xlim(c(280000,325000))
+  #scale_y_break(c(0.0225, 0.93 ))
+  #geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+  labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers with threshold 5, 4, 3, binwidth 20000')
 dev.off()
 
-df=data.frame(match_nro=match_numbers_4)
-max(df$match_nro) #Vierstra: 4063189 Teemu: 758738 Teemu_4 358533
-min(df$match_nro) #Vierstra: 15846 Teemu: 216 Teemu_4 337
 
-pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu_4_motif-hit-nros.pdf" ))
+motif_matches_2_Teemu <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_2_Teemu.Rds") #762
+length(names(motif_matches_2_Teemu)) #579
+length(unique(names(motif_matches_2_Teemu))) #578
+which(table(names(motif_matches_2_Teemu))!=1)
+
+
+motif_matches_2_Teemu=motif_matches_2_Teemu[-grep("RFX3_SREBF2_CAP-SELEX_TAAAGG40NGAC_AY_NNRGYAACNTCACGTGAY_1_3_YES", 
+                                                  names(motif_matches_2_Teemu))[2]]
+match_numbers_2=unlist(lapply(motif_matches_2_Teemu, length))
+
+saveRDS(match_numbers_2,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_2_Teemu.Rds")
+
+match_numbers_2=readRDS(match_numbers_2,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_2_Teemu.Rds")
+
+
+rerun=which(match_numbers < 300000) #576
+tmp=all_motif_matches_Teemu
+
+all_motif_matches_Teemu=all_motif_matches_Teemu[-rerun]
+
+match_numbers_tmp=match_numbers
+match_numbers=match_numbers[-rerun]
+
+all_motif_matches_Teemu=c(all_motif_matches_Teemu, motif_matches_2_Teemu)
+length(unique(names(all_motif_matches_Teemu)))
+
+#update match_numbers
+match_numbers=c(match_numbers, match_numbers_2)
+
+match_numbers[grep("CTCF", names(match_numbers))] #177144
+
+save(all_motif_matches_Teemu,match_numbers, file="/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/all_motif_matches_5_4_3_2_Teemu.RData") #1025
+
+
+pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-motif-hit-nros-added-2.pdf" ))
 #width, height, onefile, family, title, fonts, version,
 #paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
 #useDingbats, useKerning, fillOddEven, compress)
-ggplot(df, aes(x=match_nro)) + geom_histogram(binwidth=5000)
-dev.off()
-
-df=data.frame(match_nro=match_numbers_3)
-max(df$match_nro) #Vierstra: 4063189 Teemu: 758738 Teemu_4 358533 Teemu_3 304471
-min(df$match_nro) #Vierstra: 15846 Teemu: 216 Teemu_4 337 Teemu_3 480
-
-pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu_3_motif-hit-nros.pdf" ))
-#width, height, onefile, family, title, fonts, version,
-#paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
-#useDingbats, useKerning, fillOddEven, compress)
-ggplot(df, aes(x=match_nro)) + geom_histogram(binwidth=20000)
+df=data.frame(match_nro=match_numbers)
+ggplot(df, aes(x=match_nro)) + geom_histogram(aes(y = after_stat(count / sum(count))),binwidth=20000)+
+  scale_y_continuous(labels = scales::percent)+ 
+  scale_y_cut(breaks=c(0.1), which=c(1,2), scales=c(0.5,0.5)) + ylim(c(0, 0.9))+#xlim(c(280000,325000))
+  #scale_y_break(c(0.0225, 0.93 ))
+  #geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+  labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers with threshold 5, 4, 3, 2, binwidth 20000')
 dev.off()
 
 
-#For which motifs the length of matches is less than 300 000
 
 
-rerun=which(match_numbers < 300000) #1024  CTCF: 51136 
-rerun4=which(match_numbers_4 < 300000) #761 CTCF: 77283
-rerun3=which(match_numbers_3 < 300000) #578 CTCF 117589
+rerun=which(match_numbers < 300000) #454
 
-hist(match_numbers[rerun])
-hist(match_numbers[rerun4])
-hist(match_numbers_3[rerun3])
-
-
-
-write.table(names(rerun), "../../Experiments/rerunMOODS_lower_threshold.txt")
-write.table(names(rerun4), "../../Experiments/rerunMOODS_lower_threshold_4.txt")
-write.table(names(rerun3), "../../Experiments/rerunMOODS_lower_threshold_3.txt")
-
-#hist(unlist(lapply(all_motif_matches_Vierstra, length)))
-
-
-
-
-
-#How many of the rerun are representatives
-#There are some duplicates in the motif matches
-length(unique(names(rerun3))) #578
-length(names(rerun3)) #580
-
-which(table(names(rerun3))!=1)
-#ETS1_HT-SELEX_TGTACC30NCAG_AI_NCCGGAWRYRYWTCCGGN_1_3_YES 
-#FLI1_CEBPB_CAP-SELEX_TTCGGG40NGAG_AAC_RNCGGANNTTGCGCAAN_1_3_NO 
-#which(representatives$ID=="ETS1_HT-SELEX_TGTACC30NCAG_AI_NCCGGAWRYRYWTCCGGN_1_3_YES") 
-#which(representatives$ID=="FLI1_CEBPB_CAP-SELEX_TTCGGG40NGAG_AAC_RNCGGANNTTGCGCAAN_1_3_NO") 
-
-rerun3[which(names(rerun3)=="ETS1_HT-SELEX_TGTACC30NCAG_AI_NCCGGAWRYRYWTCCGGN_1_3_YES")]
-rerun3[which(names(rerun3)=="FLI1_CEBPB_CAP-SELEX_TTCGGG40NGAG_AAC_RNCGGANNTTGCGCAAN_1_3_NO")]
-
-
-length(which(names(rerun) %in% rep_motifs))
-length(which(names(rerun4) %in% rep_motifs))
-length(which(names(rerun3) %in% rep_motifs)) #182
-length(which( rep_motifs %in% names(rerun3))) #181
-
-head(representatives$ID)
-representatives$match_numbers=match_numbers[match( test,names(match_numbers),)]
-  
-#head(names(match_numbers[match( test,names(match_numbers),)]))
+representatives$match_numbers=match_numbers
 
 representatives$enoughHits="YES"
 representatives$enoughHits[representatives$match_numbers< 300000]="NO"
@@ -217,9 +282,13 @@ representatives[mm | cap_selex, "motif_type"]="multimer"
 library("ggplot2")
 
 pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-motif-hit-nros-monomer-multimer.pdf" ))
-ggplot(representatives, aes(x=match_numbers, color=motif_type)) + geom_histogram(fill="white",binwidth=10000,aes(y=..density..))+ 
+ggplot(representatives, aes(x=match_numbers, color=motif_type)) + 
+  geom_histogram(fill="white",binwidth=20000,aes(y=after_stat(count / sum(count))))+ 
+  scale_y_continuous(labels = scales::percent)+
   xlim(0, 1e6)+
-  theme_classic()
+  scale_y_cut(breaks=c(0.05), which=c(1,2), scales=c(0.5,0.5)) + #ylim(c(0, 0.9))+
+  theme_classic()+
+labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers')
 dev.off()
 
 pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-motif-hit-ICs.pdf" ))
@@ -255,10 +324,16 @@ ggplot(representatives, aes( x=norm_IC,y=match_numbers))+geom_point()
 
 #Extract the metadata for these motifs, list the number of motif matches with threshold 3 and motif lengths
 
+rerun=which(representatives$match_numbers< 300000)
+
 rep_ind=which( rep_motifs %in%  names(rerun))
 
 representatives_problem=representatives[which(representatives$new_representative=="YES"),]
 representatives_problem=representatives_problem[rep_ind,]
+
+#Now there are no representative in those which do not have enought hits
+
+ggplot( (representatives %>% filter(new_representative=="YES") %>% select(match_numbers)), aes(x=match_numbers))+geom_histogram(binwidth = 20000)
 
 #Are the motif lengths or information contents somehow different for motifs for which we obtain at least 300,000 matches 
 #vs motifs for which we obtain less
