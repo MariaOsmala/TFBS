@@ -27,10 +27,12 @@ source("code/read_excel_tables.R")
 # due to reason indicated in the comment field. Models marked green are technical replicates used in counting of error bar in figure 1D.	
 # 
 #Remove these from the models
-oranges=which(seq(18, 4228,5) %in% seq(4118,4168,5)) #11
-greens=which(seq(18, 4228,5) %in% seq(4173,4228,5)) #12
+#oranges=which(seq(18, 4228,5) %in% seq(4118,4168,5)) #11
+#greens=which(seq(18, 4228,5) %in% seq(4173,4228,5)) #12
 
-all_table <- read_excel("../../PWMs/Jolma2013/mmc3.xls", sheet="Table S3 - PWM models", col_names=FALSE, skip=17, col_types=c(rep("text",11), rep("numeric",13)))
+all_table <- read_excel("../../Results/motifsimilarity/result_0.out", col_names=FALSE)
+
+#skip=17, col_types=c(rep("text",11), rep("numeric",13)))
 
 PWMs=split_df(all_table)[[1]]
 
