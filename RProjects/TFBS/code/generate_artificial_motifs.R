@@ -25,48 +25,109 @@ library("readr")
 
 #df_motif_info <- read_tsv("../metadata/df_motif_info.tsv", col_names=TRUE)
 #representatives <- read_tsv("../metadata/new_representatives.tsv", col_names=TRUE)
-representatives <- read_tsv("../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length.tsv", col_names=TRUE)
-
-#Write motifs as pwms
+representatives <- read_tsv("../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length_Morgunova.tsv", col_names=TRUE)
 
 for(i in 1:nrow(representatives)){
+  #i=1
   print(i)
   pcm=as.matrix( read.table(paste0("../../", representatives$filename[i]), header=FALSE) )
-  dimnames(pcm)=list(c("A", "C", "G", "T"))
-  #A 1294  802 6919 6919    0  156 6919 1801
-  #C 6919 3055 1044  249   41 1461  493 2373
-  #G 3132  905  938   56    0  536 1133 1625
-  #T 2804 3864  657    0 6919 6919  462 1120
+  length=ncol(pcm)
+  
+  #In how many different combinations you can have #length columns
+  factorial(length) #40320
+  
+  #Generate all permutations
+  install.packages("DescTools")
+  library("DescTools")
+  
+  perms <- permutations(ncol(pcm), ncol(pcm))
+  pairings <- expand.grid(1:nrow(perms), 1:nrow(perms))
+  
+  all.perms <- lapply(1:nrow(pairings), function(x) pcm[perms[pairings[x,1],], perms[pairings[x,2],]])
+  
+  all.unique.perms <- unique(perms)
+  length(all.unique.perms)
   
   
-  pcm_class <- TFBSTools::PFMatrix(ID=representatives$ID[i], name=representatives$symbol[i], 
-                                   #matrixClass="Zipper-Type", 
-                                   strand="+", 
-                                   bg=c(A=0.25, C=0.25, G=0.25, T=0.25), 
-                                   tags=list(family=representatives$Lambert2018.families[i], 
-                                             species=representatives$organism[i] 
-                                             #tax_group="vertebrates", 
-                                             #medline="7592839", 
-                                             #type="SELEX", 
-                                             #ACC="P53762", 
-                                             #pazar_tf_id="TF0000003",
-                                             #TFBSshape_ID="11", 
-                                             #TFencyclopedia_ID="580"
-                                   ),
-                                   profileMatrix=pcm
-  )
+  perms=Permn(1:length)
+  perms=perms[-1,] #the original not wanted
+  
+  motif_perms=pcm[,perms[1,]]
+  
+  #For creating the whole dataset of the permutations, there’s the function DescTools::CombSet(), which has
+  #an argument m for defining the size of the subset to be drawn and where the replacement and order
+  #arguments can be set. 
+  #CombN(1:length, 4, repl=FALSE, ord=FALSE) 
+
+  #Sample two or three columns at a time
+  
+  #How many two column parts?
+  
+  #length(which((representatives$length %% 2) == 0)) #even 4218
+  #length(which((representatives$length %% 2) != 0)) #odd 1565
+  
+  if(length %% 2==0){ #even
+    
+    parts=length/2 #length is even
+    
+    ind=as.matrix(data.frame(first=seq(1,(length-1),2), second=seq(2,length,2)))
+    colnames(ind)=NULL
+    ind.list <- split(ind, seq(nrow(ind)))
+    
+    ind2=as.matrix(data.frame(first=seq(2,length,2), second=c( seq(3,length-1,2),1) ))
+    colnames(ind2)=NULL
+    ind2.list <- split(ind2, seq(nrow(ind2)))
+    
+  }else{ #odd
+    
+    parts=ceiling(length/2)
+    
+    #first position alone
+    ind=as.matrix(data.frame(first=c(1, seq(2,(length-1),2)), second=c(NA,seq(3,length,2))) )
+    colnames(ind)=NULL
+    ind.list <- split(ind, seq(nrow(ind)))
+    ind.list[[1]]=1
+    
+    #last position alone
+    ind2=as.matrix(data.frame(first=c(seq(1,length-2,2),length), second=c( seq(2,length-1,2),length) ))
+    colnames(ind2)=NULL
+    ind2.list <- split(ind2, seq(nrow(ind2)))
+    ind2.list[[parts]]=length
+    
+  }
+  
+  #How many combinations of parts
+  perms=Permn(1:parts)
+  perms=perms[-1,] #the original not wanted
+  
+  #all possible motif permutations
   
   
+
   
+  #reverse complements
   
-  pwm_class <- TFBSTools::toPWM(pcm_class, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
- 
-  write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_space/",representatives$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-  write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_tab/",representatives$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+  #handle cap-selex motifs
+  
 
 }
 
-
+# x <- letters[1:4]
+# n <- length(x)
+# m <- 2
+# factorial(n) #24
+# Permn(x) 
+# CombN(n, m, repl=FALSE, ord=TRUE) #12
+# CombSet(x, m, repl=FALSE, ord=TRUE) #All combinations of two letters, the letter can not occur twice, the order matters
+# 
+# CombN(n, m, repl=TRUE, ord=TRUE) #16
+# CombSet(x, m, repl=TRUE, ord=TRUE) #All combinations of two letters, the letter can not occur twice, the order matters
+# 
+# CombN(n, m, repl=TRUE, ord=FALSE) #10
+# CombSet(x, m, repl=TRUE, ord=FALSE) #All combinations of two letters, the letter can occur twice, the order does not matter
+# 
+# CombN(n, m, repl=FALSE, ord=FALSE) #6
+# CombSet(x, m, repl=FALSE, ord=FALSE) #All combinations of two letters, the letter can not occur twice, the order does not matter
 
 
 
