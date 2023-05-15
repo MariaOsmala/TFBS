@@ -9,7 +9,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=60G #3G with database
-#SBATCH --array=0 # #0-39 0-10
+#SBATCH --array=0 #
 
 
 #with 1 CPU required 1-04:33:39
@@ -37,6 +37,7 @@ echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 
 # Run the R script
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/collect_MOODS_results.R $SLURM_ARRAY_TASK_ID
-srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID
+#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID
+srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database_mouse.R $SLURM_ARRAY_TASK_ID
 
 seff $SLURM_JOBID

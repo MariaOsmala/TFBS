@@ -60,11 +60,15 @@ match_with_ID=gsub("\\.pfm", "", match_with_ID)
 
 match_ind=match( match_with_ID,representatives$ID)
 representatives$ID[match_ind]=gsub(".pfm", "", filenames2)
-
+#write.table(representatives, 
+#file="/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames.tsv", 
+#      quote=FALSE, sep="\t", row.names=FALSE)
 #test=gsub(".pfm", "", do.call(rbind, strsplit(representatives$filename,"/"))[,5])
 
 
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
+
+#grep("CTCF",rep_motifs) CTCF is in representative motif
 
 #remove _pfm_composite_new and _pfm_spacing_new
 #rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
@@ -122,7 +126,23 @@ rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 
 representative_motif_matches <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/representative_motif_matches_Teemu.Rds")
+#match_numbers=unlist(lapply(representative_motif_matches, length))
 
+pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/Teemu-match-number-distribution-representatives.pdf" ))
+#width, height, onefile, family, title, fonts, version,
+#paper, encoding, bg, fg, pointsize, pagecentre, colormodel,
+#useDingbats, useKerning, fillOddEven, compress)
+df=data.frame(match_nro=match_numbers)
+ggplot(df, aes(x=match_nro)) + geom_histogram(color="black", fill="white",aes(y = after_stat(count / sum(count))),binwidth=20000)+
+  scale_y_cut(breaks=c(0.03), which=c(1,2), scales=c(0.5,0.5)) + ylim(c(0, 1))+#xlim(c(280000,325000))
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1L))+   xlim(0, 6e5)+ scale_x_continuous(labels = scales::comma)+
+  #scale_y_break(c(0.0225, 0.93 ))
+  #geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+  labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers, top 300000 with threshold 2, binwidth 20000')+ theme_minimal()
+dev.off()
+
+
+#match_numbers[grep("CTCF", names(match_numbers))] #177144
 
 
 motifs=names(representative_motif_matches)

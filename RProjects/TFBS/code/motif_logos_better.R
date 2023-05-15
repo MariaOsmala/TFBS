@@ -7,17 +7,44 @@ library("ggplot2")
 
 #Promoter core motifs: TATA box, Initiator, CCAAT-box, GC-box, BRE, MTE, DEP, BANP Ref 31,32,33
 
+#setwd("/projappl/project_2006203/TFBS/RProjects/TFBS/Experiments")
 
-representatives=read.table("../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length.tsv", sep="\t", header=TRUE)
+representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_Morgunova.tsv", sep="\t", header=TRUE)
 
-#Write this as pfm
+#make directories
+
+data_path="/scratch/project_2006203/TFBS"
+
+dir.create(file.path("/scratch/project_2006203/TFBS", "Logos"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos", "pdf"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos", "png"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/pdf", "barcode"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/pdf", "ic"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/pdf", "prob"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/png", "barcode"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/png", "ic"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos/png", "prob"), showWarnings = FALSE)
+
+dir.create(file.path("/scratch/project_2006203/TFBS", "Logos2"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2", "pdf"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2", "png"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/pdf", "barcode"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/pdf", "ic"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/pdf", "prob"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/png", "barcode"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/png", "ic"), showWarnings = FALSE)
+dir.create(file.path("/scratch/project_2006203/TFBS/Logos2/png", "prob"), showWarnings = FALSE)
+
+
+
+
 
 pcm_list<-TFBSTools::PFMatrixList()
 pwm_list<-TFBSTools::PWMatrixList()
 
 for(i in 1:nrow(representatives)){
   print(i)
-  pcm=as.matrix( read.table(paste0("../../", representatives$filename[i]), header=FALSE) )
+  pcm=as.matrix( read.table(paste0(data_path,"/", representatives$filename[i]), header=FALSE) )
   dimnames(pcm)=list(c("A", "C", "G", "T"))
   #A 1294  802 6919 6919    0  156 6919 1801
   #C 6919 3055 1044  249   41 1461  493 2373
@@ -74,17 +101,17 @@ for(i in 1:nrow(representatives)){
   #motifStack::plotMotifLogo(pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = TRUE, font="mono,Courier", fontface = "light")
   
   #Probability matrices
-  png(paste0("../../Logos2/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
+  png(paste0(data_path,"/Logos2/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
   print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = FALSE, 
                              ylab="probability", font="mono,Courier", fontface = "bold"))
   dev.off()
   
-  pdf(paste0("../../Logos2/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
+  pdf(paste0(data_path,"/Logos2/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
   print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = FALSE, 
                              ylab="probability", font="mono,Courier", fontface = "bold"))
   dev.off()
   
-  png(paste0("../../Logos/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
+  png(paste0(data_path,"/Logos/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
   print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
     ggseqlogo::theme_logo()  +
     labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -92,7 +119,7 @@ for(i in 1:nrow(representatives)){
   dev.off()
   
   
-  pdf(paste0("../../Logos/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
+  pdf(paste0(data_path,"/Logos/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
   print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
     ggseqlogo::theme_logo()  +
     labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -101,17 +128,17 @@ for(i in 1:nrow(representatives)){
   #Information content matrices
   
   
-  png(paste0("../../Logos2/png/ic/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
+  png(paste0(data_path,"/Logos2/png/ic/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
   print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = TRUE, 
                              ylab="bits", font="mono,Courier", fontface = "bold"))
   dev.off()
   
-  pdf(paste0("../../Logos2/pdf/ic/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
+  pdf(paste0(data_path,"/Logos2/pdf/ic/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
   print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = TRUE, 
                              ylab="bits", font="mono,Courier", fontface = "bold"))
   dev.off()
   
-  png(paste0("../../Logos/png/ic/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
+  png(paste0(data_path,"/Logos/png/ic/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
   print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
     ggseqlogo::theme_logo()  +
     labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -119,7 +146,7 @@ for(i in 1:nrow(representatives)){
   dev.off()
   
   
-  pdf(paste0("../../Logos/pdf/ic/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
+  pdf(paste0(data_path,"/Logos/pdf/ic/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
   print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
     ggseqlogo::theme_logo()  +
     labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -129,8 +156,8 @@ for(i in 1:nrow(representatives)){
   
 }
 
-saveRDS(pcm_list, file="pcm_list.Rds")
-saveRDS(pwm_list, file="pwm_list.Rds")
+saveRDS(pcm_list, file=paste0("/scratch/project_2006203/TFBS/RProjects/TFBS/RData/pcm_list.Rds")
+saveRDS(pwm_list, file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/pwm_list.Rds")
 
 
 #change the x-axis labels

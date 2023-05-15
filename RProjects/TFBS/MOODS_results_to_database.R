@@ -20,7 +20,8 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3_processed/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2_processed/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -44,20 +45,27 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2/"
+
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 
 
-
-
-for(arrays in 0:5){ #0:39 0:10 0:7 0:5
+for(arrays in 0:39){ #0:39 0:10 0:7 0:5
 
 start_ind=arrays*10 #100
 end_ind=(arrays+1)*10-1 #100
 len=10 #100
 
+#3982+15=3997
+
+#Old
 #if(end_ind>398){ # 398 
 #  end_ind=398
 #}
+
+if(end_ind>399){ # 398 
+  end_ind=399
+}
 
 #if(end_ind>102){ #  102
 #  end_ind=102
@@ -67,9 +75,9 @@ len=10 #100
 #  end_ind=76
 #}
 
-if(end_ind>57){ #  57
-  end_ind=57
-}
+#if(end_ind>57){ #  57
+#  end_ind=57
+#}
 
 
 #DBI::dbDisconnect(con)

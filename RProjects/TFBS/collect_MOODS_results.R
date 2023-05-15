@@ -23,7 +23,7 @@ print(detectCores(all.tests = FALSE, logical = TRUE))
 #saveRDS(gtf,"RProjects/TFBS/gtf.Rds")
 
 gtf<-readRDS("RProjects/TFBS/gtf.Rds")
-
+#/scratch/project_2006203/TFBS/RProjects/TFBS/gtf.Rds
 
 start_ind=arrays*10 #100
 end_ind=(arrays+1)*10-1 #100
