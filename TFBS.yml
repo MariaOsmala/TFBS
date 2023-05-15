@@ -14,7 +14,7 @@ dependencies:
   - r-dplyr
   - r-tidyverse
   - r-knitr
-  # - bioconductor-universalmotif=1.14.1
+  #- bioconductor-universalmotif=1.14.1
   # - bioconductor-motifdb
   - r-rtfbs
   - bedops
