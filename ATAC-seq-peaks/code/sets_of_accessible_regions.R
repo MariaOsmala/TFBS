@@ -1,6 +1,8 @@
 library(rtracklayer)
 
-setwd("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code")
+#setwd("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code")
+
+scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
 
 # Data from Zhang2021 A single cell atlas of chromatin accessibility in the human genome
 # * 30 adult and 15 fetal tissues, scATAC-seq
@@ -22,9 +24,9 @@ setwd("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code")
 # 7. CRE module: The ID of CRE module that the cCRE belongs to. 1-150
 
 #What is the definition of cCRE and CRE module
-cCRE_hg38=read.table("../CATLAS/cCRE_hg38.tsv.gz",sep="\t", header=FALSE)
+cCRE_hg38=read.table(paste0(scratch,"CATLAS/cCRE_hg38.tsv.gz"),sep="\t", header=FALSE)
 
-Cell_ontology=read.table("../CATLAS/Cell_ontology.tsv",sep="\t", header=TRUE)
+Cell_ontology=read.table(paste0(scratch,"CATLAS/Cell_ontology.tsv"),sep="\t", header=TRUE)
 
 #Cell_metadata.tsv.gz
 # ====================
@@ -38,15 +40,15 @@ Cell_ontology=read.table("../CATLAS/Cell_ontology.tsv",sep="\t", header=TRUE)
 # 5. cell type: The name of the cell type
 # 6. Life stage: Fetal or Adult
 
-Cell_metadata=read.table("../CATLAS/Cell_metadata.tsv.gz",sep="\t", header=TRUE)
+Cell_metadata=read.table(paste0(scratch, "CATLAS/Cell_metadata.tsv.gz"),sep="\t", header=TRUE)
 
-Celltypes=read.table("../CATLAS/celltypes.txt.gz",sep="\t", header=FALSE)
+Celltypes=read.table(paste0(scratch, "CATLAS/celltypes.txt.gz"),sep="\t", header=FALSE)
 
 # * 435,142 adult cCREs with restricted accessibility in one or a few cell types
 
 
 #From Mendeley database
-files=dir("../CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/")
+files=dir(paste0(scratch, "CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/"))
 
 ct_names=do.call(rbind,sapply(files, strsplit, ".bed.gz"))
 dimnames(ct_names)=NULL

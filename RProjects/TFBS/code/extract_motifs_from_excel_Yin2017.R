@@ -64,9 +64,14 @@ PWMs_metadata$filename=NA
 PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
                    select_if(~ !any(is.na(.))) )
 
-dir.create(paste0("../../PWMs/Yin2017/pwms/","Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Yin2017/pwms_space/","Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Yin2017/transfac/","Homo_sapiens"), recursive=TRUE)
+#dir.create(paste0("../../PWMs/Yin2017/pwms/","Homo_sapiens"), recursive=TRUE)
+#dir.create(paste0("../../PWMs/Yin2017/pwms_space/","Homo_sapiens"), recursive=TRUE)
+#dir.create(paste0("../../PWMs/Yin2017/transfac/","Homo_sapiens"), recursive=TRUE)
+
+dir.create(paste0("../../PWMs_final/Yin2017/pwms/","Homo_sapiens"), recursive=TRUE)
+dir.create(paste0("../../PWMs_final/Yin2017/pwms_space/","Homo_sapiens"), recursive=TRUE)
+dir.create(paste0("../../PWMs_final/Yin2017/transfac/","Homo_sapiens"), recursive=TRUE)
+
 append=FALSE
 
 
@@ -176,6 +181,33 @@ as.vector(unique(PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% sel
 
 Methyl_SELEX_metadata <- PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX")
 
+
+names(PWMs_metadata)
+
+
+methyl_metadata_names=c("methyl_symbol",
+  "methyl_clone",
+  "methyl_call",                              
+  "methyl-SELEX_call",
+  "bisulfite_call",
+  "methyl_comment",                           
+  "methyl_seed",
+"start_position_of_CG",
+"enrichment_of_mCG",                 
+"CG_frequency_cycle_3_normal_seq",
+"TG_frequency_cycle_3_normal_seq",  
+"CG_frequency_cycle_3_bisulfite_seq",
+"TG_frequency_cycle_3_bisulfite_seq",
+"CG_frequency_cycle_4_normal_seq",    "TG_frequency_cycle_4_normal_seq",   
+"CG_frequency_cycle_4_bisulfite_seq", "TG_frequency_cycle_4_bisulfite_seq")
+
+methyl_metadata=as.data.frame(matrix("", nrow(Methyl_SELEX_metadata), length(methyl_metadata_names)))
+names(methyl_metadata)=methyl_metadata_names
+
+Methyl_SELEX_metadata=cbind(Methyl_SELEX_metadata, methyl_metadata)
+
+TF=unique((PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% select(symbol))$symbol)[5]
+
 for(TF in unique((PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% select(symbol))$symbol)[1:5]){
   print("TF")
   print(TF)
@@ -191,6 +223,30 @@ for(TF in unique((PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% se
   print("TFs_without_bisulfite_data")
   print(TFs_without_bisulfite_data[which(TFs_without_bisulfite_data$symbol==TF),])
 #  print(TFs_without_bisulfite_data[which(TFs_without_bisulfite_data$symbol==TF),"seed"])
+  
+  #PROX1: seed matches with bisulfite selex
+  
+  tmp=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),] 
+  nrow(tmp)
+  seed1=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),"seed"] 
+  seed2=bisulfite_selex[which(bisulfite_selex$symbol==TF),"seed"]$seed 
+  if(seed1==seed2) #Seed does not match
+    
+    #MSX2
+    tmp=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),] 
+  nrow(tmp)
+  seed1=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),"seed"] #two
+  seed2=bisulfite_selex[which(bisulfite_selex$symbol==TF),"seed"]$seed #only one
+  if(seed1==seed2) #Seed does not match
+    
+    #MSX1
+    tmp=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),] 
+  nrow(tmp)
+  seed1=Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol==TF),"seed"] #two
+  tmp2=bisulfite_selex[which(bisulfite_selex$symbol==TF),]
+  seed2=bisulfite_selex[which(bisulfite_selex$symbol==TF),"seed"]$seed #only one
+  if(seed1==seed2) #Seed does not match
+  
 }
 
 PWMs_metadata[which(PWMs_metadata$symbol==as.vector(unique(PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% select(symbol)))$symbol[1]), ]
