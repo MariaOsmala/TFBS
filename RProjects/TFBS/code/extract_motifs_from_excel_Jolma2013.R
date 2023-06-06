@@ -62,6 +62,7 @@ PWMs_metadata$experiment="HT-SELEX"
 PWMs_metadata$short=NA
 PWMs_metadata$filename=NA
 
+
 PWMs_metadata$representative=toupper(PWMs_metadata$representative)
 
 PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
@@ -69,64 +70,117 @@ PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"st
                                      "cycle","representative", "short", "type","comment", "filename"))
 
 
+PWMs_metadata$ID=""
+PWMs_metadata$IC=NA
+PWMs_metadata$IC_universal=NA
+PWMs_metadata$length=NA
+PWMs_metadata$consensus=""
 
 PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
                    select_if(~ !any(is.na(.))) )
 
+PWMs_metadata=PWMs_metadata[-c(oranges, greens),]
+PWMs_list=PWMs_list[-c(oranges, greens)]
 
-dir.create(paste0("../../PWMs/Jolma2013/pwms/Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Jolma2013/pwms/Mus_musculus"), recursive=TRUE)
+pwms_human="../../PWMs_final/Jolma2013/pwms/Homo_sapiens"
+pwms_mouse="../../PWMs_final/Jolma2013/pwms/Mus_musculus"
 
-dir.create(paste0("../../PWMs/Jolma2013/transfac/Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Jolma2013/transfac/Mus_musculus"), recursive=TRUE)
+pwms_space_human="../../PWMs_final/Jolma2013/pwms_space/Homo_sapiens"
+pwms_space_mouse="../../PWMs_final/Jolma2013/pwms_space/Mus_musculus"
 
-dir.create(paste0("../../PWMs/Jolma2013/pwms_space/Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Jolma2013/pwms_space/Mus_musculus"), recursive=TRUE)
+transfac_human="../../PWMs_final/Jolma2013/transfac/Homo_sapiens"
+transfac_mouse="../../PWMs_final/Jolma2013/transfac/Mus_musculus"
 
-append=FALSE #write all motifs into a single file as .scpd format
+dir.create(pwms_human, recursive=TRUE)
+dir.create(pwms_space_human, recursive=TRUE)
+dir.create(transfac_human, recursive=TRUE)
+dir.create(pwms_mouse, recursive=TRUE)
+dir.create(pwms_space_mouse, recursive=TRUE)
+dir.create(transfac_mouse, recursive=TRUE)
 
-#file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
-#                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
+
+
+#Remove these from metadata
+remove=c()
+pwms=list("Homo_sapiens"=pwms_human, "Mus_musculus"=pwms_mouse)
+pwms_space=list("Homo_sapiens"=pwms_space_human, "Mus_musculus"=pwms_space_mouse)
+transfac_path=list("Homo_sapiens"=transfac_human, "Mus_musculus"=transfac_mouse)
+
+append=FALSE 
 
 
 
 for(m in 1:length(PWMs_list)){
   
-  #Write pfm
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
-                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"),sep="\t")
-  file=paste0("../../PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", 
-                   paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
   
-  motif=universalmotif::read_matrix(file=file, sep="\t", header=FALSE)
-  motif@name=paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")
+  #Empty matrix
+  if( ncol(PWMs_list[[m ]]) ==1 ) {
+    remove=c(remove, m)
+    print(m)
+    #Zero matrix
+  }else if( sum(as.numeric(as.matrix(PWMs_list[[ m ]][,-1]))) ==0 ){
+    remove=c(remove, m)    
+    print(m)
+  }else{
+    
+  # Write .pfm tab-separated
+  filename=paste0(pwms[[PWMs_metadata$organism[m]]],"/", 
+                    paste0(PWMs_metadata[m,
+                                         -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
+                                                                              "representative", "short", "type", "filename","ID", "IC", "IC_universal","length", "consensus"))], collapse="_"),
+                    ".pfm")
+  ID=paste0(PWMs_metadata[m,
+                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
+                                                                 "ID", "IC", "IC_universal","length", "consensus" ))], collapse="_")
+  #Filename and ID should be unique
+    if(filename %in% PWMs_metadata$filename){
+      print("Warning! Non-unique filenames and IDs")
+    }
+    
+    PWMs_metadata$filename[m]=filename
+    PWMs_metadata$ID[m]=ID
+    
   
-  transfac=paste0("../../PWMs/Jolma2013/transfac/",PWMs_metadata[m,"organism"],"/", 
-                paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm")
+    #Write pfm
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE, file=filename,sep="\t")
   
-  
-  write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
+    pcm=as.matrix( read.csv(filename, header=FALSE, sep="\t") )
+    colnames(pcm)=NULL
+    rownames(pcm)=c("A", "C", "G", "T")
+    
+    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                                profileMatrix=pcm
+    )
+    
+    #pwm <- TFBSTools::toPWM(pfm, type="log2probratio", pseudocounts=0.01)
+    icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
+    PWMs_metadata[m, "IC"]=sum(rowSums(icm)) #6.77892 # universalmotif computes this wrong?
+    
+    #motif length
+    PWMs_metadata[m, "length"]=length(pfm)
+    
+    
+    motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
+   
+    transfac=paste0(transfac_path[[ PWMs_metadata$organism[m] ]],"/",ID,".pfm")
+    write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
 
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2013/pwms_space/",PWMs_metadata[m,"organism"],"/", 
-                          paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","filename"))], collapse="_"),".pfm"),sep=" ")
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+                file=paste0( pwms_space[[PWMs_metadata$organism[m]]],"/",ID,
+                            ".pfm"),sep=" ")
   
-  PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
-  rownames(PWM)=c("A", "C", "G", "T")
-  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")),   
+    PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
+    rownames(PWM)=c("A", "C", "G", "T")
+    write.table(paste0(">",  ID),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2013/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
-  append=TRUE
+              file=paste0("../../PWMs_final/Jolma2013/all", ".scpd"))
+    append=TRUE
   
-  write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Jolma2013/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+    write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs_final/Jolma2013/","all", ".scpd"))
   
-  
-  PWMs_metadata$filename[m]=paste0("PWMs/Jolma2013/pwms/",PWMs_metadata[m,"organism"],"/", paste0(PWMs_metadata[m,
-                                                                                             -which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_"),".pfm")
-  
+  }
 }
 
 #convert to .scpd format (this can be converted to meme format)
@@ -136,8 +190,8 @@ for(m in 1:length(PWMs_list)){
 # G	0	186	0	0	0	2	0	34	0	173	171	2	0	0	0	9	7
 # T	207	1	2	212	213	212	0	214	0	0	0	0	0	215	211	0	0
 
-write.table(PWMs_metadata, file="../../PWMs/Jolma2013/metadata.csv", row.names = FALSE, sep="\t")
-saveRDS(PWMs_metadata, file="data/Jolma2013.Rds")
+write.table(PWMs_metadata, file="../../PWMs_final/Jolma2013/metadata.csv", row.names = FALSE, sep="\t")
+saveRDS(PWMs_metadata, file="Rdata/Jolma2013.Rds")
 
 
 stop()
