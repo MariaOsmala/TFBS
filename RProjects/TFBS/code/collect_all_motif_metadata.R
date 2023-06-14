@@ -134,11 +134,11 @@ for(i in 1:nrow(metadata)){
   }
 
 
-#save filenames 
+#save filenames, without "../../
 
-write.table(metadata$filename, file="filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(gsub("../../","",metadata$filename), file="../../PWMs_final/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
-write.table(metadata$ID, file="motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(metadata$ID, file="../../PWMs_final/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
 #save motifnames
 
