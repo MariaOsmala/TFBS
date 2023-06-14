@@ -134,3 +134,11 @@ for(i in 1:nrow(metadata)){
   }
 
 
+#save filenames 
+
+write.table(metadata$filename, file="filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+
+write.table(metadata$ID, file="motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+
+#save motifnames
+
