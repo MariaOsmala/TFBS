@@ -1,6 +1,6 @@
 library(readr)
 
-
+rm(list=ls())
 #Lambert families missing
 Jolma2013 <- read_delim("~/projects/TFBS/PWMs_final/Jolma2013/metadata.csv", 
                               delim = "\t", escape_double = FALSE, 

@@ -130,9 +130,16 @@ append=FALSE
 #[1] "Warning! Non-unique filenames and IDs"
 #[1] "POU2F1_GSC2_CAP-SELEX_TGCCAT40NACC_AS_NNGATTANNNATGCAWNNN_1_2"
 
+#last column zero 
+#zero_column=c(28, 87, 101, 151, 183, 201, 202, 203, 227, 268)
+
+#PWMs_metadata$symbol[zero_column]
+
 remove=c()
 
 for(m in 1:length(PWMs_list)){
+  
+  numeric_matrix <- matrix(as.numeric(as.vector(as.matrix(PWMs_list[[m ]][,-1]))), nrow = nrow(as.matrix(PWMs_list[[m ]][,-1])))
   
   if( ncol(PWMs_list[[m ]]) ==1 ) {
     remove=c(remove, m)
@@ -141,8 +148,22 @@ for(m in 1:length(PWMs_list)){
   }else if( sum(as.numeric(as.matrix(PWMs_list[[ m ]][,-1]))) ==0 ){
     remove=c(remove, m)    
     print(m)
-  }else{
-  
+   
+   }else{
+     #There are zero columns in the matrix, remove them
+    if(length(which(colSums(numeric_matrix)==0))>0){
+      # Assume 'char_matrix' is your character matrix
+      numeric_matrix <- matrix(as.numeric(as.vector(as.matrix(PWMs_list[[m ]][,-1]))), nrow = nrow(as.matrix(PWMs_list[[m ]][,-1])))
+      print(m)
+      #print(PWMs_list[[m ]])
+      #Remove the zero column, it is always the last
+      PWMs_list[[m ]]=PWMs_list[[m ]][,-ncol(PWMs_list[[m ]])]
+      
+    }
+    
+    
+    
+    
     # Write .pfm tab-separated
     filename=paste0(pwms,"/", 
                     paste0(PWMs_metadata[m,
