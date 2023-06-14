@@ -69,63 +69,103 @@ PWMs_metadata %>%
 PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
                    select_if(~ !any(is.na(.))) )
 
-dir.create(paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Nitta2015/pwms_space/","Homo_sapiens"), recursive=TRUE)
-dir.create(paste0("../../PWMs/Nitta2015/transfac/","Homo_sapiens"), recursive=TRUE)
+pwms="../../PWMs_final/Nitta2015/pwms/Homo_sapiens"
+pwms_space="../../PWMs_final/Nitta2015/pwms_space/Homo_sapiens"
+pwms_transfac="../../PWMs_final/Nitta2015/transfac/Homo_sapiens"
+
+dir.create(pwms, recursive=TRUE)
+dir.create(pwms_space, recursive=TRUE)
+dir.create(pwms_transfac, recursive=TRUE)
 
 append=FALSE
 
+#Remove these from metadata
+remove=c()
+
 for(m in 1:length(PWMs_list)){
   
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens","/", 
-                          paste0(PWMs_metadata[m,
-                          -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
-                          ".pfm"), sep="\t")
+  #Empty matrix
+  if( ncol(PWMs_list[[m ]]) ==1 ) {
+    remove=c(remove, m)
+    print(m)
+    #Zero matrix
+  }else if( sum(as.numeric(as.matrix(PWMs_list[[ m ]][,-1]))) ==0 ){
+    remove=c(remove, m)    
+    print(m)
+  }else{
+    
+    filename=paste0(pwms,"/", 
+                    paste0(PWMs_metadata[m,
+                                         -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
+                                                                              "representative", "short", "type", "filename","ID", "IC", "IC_universal","length", "consensus"))], collapse="_"),
+                    ".pfm")
+    ID=paste0(PWMs_metadata[m,
+                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
+                                                                 "ID", "IC", "IC_universal","length", "consensus" ))], collapse="_")
+    #Filename and ID should be unique
+    if(filename %in% PWMs_metadata$filename){
+      print("Warning! Non-unique filenames and IDs")
+    }
+    
+    PWMs_metadata$filename[m]=filename
+    PWMs_metadata$ID[m]=ID
   
-  file=paste0("../../PWMs/Nitta2015/pwms/","Homo_sapiens","/", 
-              paste0(PWMs_metadata[m,
-                                   -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
-              ".pfm")
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=filename, sep="\t")
   
-  motif=universalmotif::read_matrix(file=file, sep="\t", header=FALSE)
-  motif@name=paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "representative","filename"))], collapse="_")
+    pcm=as.matrix( read.csv(filename, header=FALSE, sep="\t") )
+    colnames(pcm)=NULL
+    rownames(pcm)=c("A", "C", "G", "T")
+    
+    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                                profileMatrix=pcm
+    )
+    
+    #pwm <- TFBSTools::toPWM(pfm, type="log2probratio", pseudocounts=0.01)
+    icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
+    PWMs_metadata[m, "IC"]=sum(rowSums(icm)) #6.77892 # universalmotif computes this wrong?
+    
+    #motif length
+    PWMs_metadata[m, "length"]=length(pfm)
+    motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
+    motif@name=ID
+    PWMs_metadata[m, "IC_universal"]=motif@icscore
+    PWMs_metadata[m, "consensus"]=motif@consensus
   
-  transfac=paste0("../../PWMs/Nitta2015/transfac/",PWMs_metadata[m,"organism"],"/", 
-                  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","short", "type","representative","filename"))], collapse="_"),".pfm")
+    transfac=paste0(pwms_transfac, "/", ID,".pfm")
+    write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
-  
-  write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
-  
-  
-  
-  
-  
-  write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Nitta2015/pwms_space/","Homo_sapiens","/", 
-                          paste0(PWMs_metadata[m,
-                                               -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),
-                          ".pfm"), sep=" ")
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0(pwms_space,"/", ID, ".pfm"), sep=" ")
   
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")
-  write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "short", "type", "filename"))], collapse="_")),   
+  write.table(paste0(">",  ID),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Nitta2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+              file=paste0("../../PWMs_final/Nitta2015/all", ".scpd"))
   append=TRUE
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs/Nitta2015/",PWMs_metadata[m,"organism"],"_all", ".scpd"))
+              file=paste0("../../PWMs_final/Nitta2015/all", ".scpd"))
   
-  PWMs_metadata$filename[m]=paste0("PWMs/Nitta2015/pwms/Homo_sapiens/", paste0(PWMs_metadata[m,
-                                                                                           -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "short", "type", "representative","filename"))], collapse="_"),".pfm")
-  
-  
+  }
 }
 
+TF_family_mappings <- read_csv("~/projects/motif-clustering-Viestra-private/HumanTFs-ccbr-TableS1.csv")
 
-write.table(PWMs_metadata, file="../../PWMs/Nitta2015/metadata.csv", row.names = FALSE, sep="\t")
-saveRDS(PWMs_metadata, file="data/Nitta2015.Rds")
+
+# Merge two data frames
+PWMs_metadata <- PWMs_metadata %>%
+  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID","DBD" ), by = 'symbol')
+
+PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = PWMs_metadata$DBD, .before = 4)
+PWMs_metadata$`Gene Information/ID`=NULL
+PWMs_metadata$DBD=NULL
+
+
+
+write.table(PWMs_metadata, file="../../PWMs_final/Nitta2015/metadata.csv", row.names = FALSE, sep="\t")
+saveRDS(PWMs_metadata, file="Rdata/Nitta2015.Rds")
 
 
 #display_table_shape(all_table)

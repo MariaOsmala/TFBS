@@ -191,11 +191,16 @@ for(m in 1:length(PWMs_list)){
     PWMs_metadata[m, "length"]=length(pfm)
   
     motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
+    motif@name=ID
+    
+    PWMs_metadata[m, "IC_universal"]=motif@icscore
+    PWMs_metadata[m, "consensus"]=motif@consensus
     
     transfac=paste0(pwms_transfac,"/", ID,".pfm")
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
-    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE, file=paste0(pwms_space,"/", ID, ".pfm"), sep=" ")
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE, 
+                file=paste0(pwms_space,"/", ID, ".pfm"), sep=" ")
   
     PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
     rownames(PWM)=c("A", "C", "G", "T")
@@ -227,15 +232,17 @@ TF_family_mappings <- read_delim("~/projects/motif-clustering-Viestra-private/Hu
 #commondf <- merge(datas, TF_family_mappings, by = 'symbol', all.x = TRUE)
 
 #There is no singles in this data
-#single <- datas$symbol[str_detect(datas$symbol, "_") == FALSE]
-#single_index <- which(datas$symbol %in% single)
-#Family_names <- rep("Unknown", nrow(datas))
-#Family_names[single_index] <- commondf$DBD[single_index]
+single <- PWMs_metadata$symbol[str_detect(PWMs_metadata$symbol, "_") == FALSE] #31
+single_index <- which(PWMs_metadata$symbol %in% single)
+Family_names <- rep(NA, nrow(PWMs_metadata))
+Family_names[single_index]=as.vector(PWMs_metadata[single_index,"symbol"] %>%
+  left_join(select(TF_family_mappings, "symbol", "DBD" ), by = 'symbol') %>% select("DBD"))$DBD
 
-#pair <- datas$symbol[str_detect(datas$symbol, "_") == TRUE]
-#pair_index <- which(datas$symbol %in% pair)
+
+pair <- PWMs_metadata$symbol[str_detect(PWMs_metadata$symbol, "_") == TRUE]
+pair_index <- which(PWMs_metadata$symbol %in% pair) #562
 #[pair_index]
-pairs <- as.data.frame(do.call(rbind, strsplit(PWMs_metadata$symbol, split="_")))
+pairs <- as.data.frame(do.call(rbind, strsplit(PWMs_metadata$symbol[pair_index], split="_")))
 colnames(pairs)=c("symbol", "symbol1")
 pairs$order=seq(nrow(pairs))
 
@@ -253,12 +260,18 @@ names(commondf_pairs2)=c("symbol0", "symbol1", "DBD0", "DBD1")
 
 pair_families <- paste(commondf_pairs2$DBD0,commondf_pairs2$DBD1, sep = "_")
 
-PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = pair_families, .before = 4)
+Family_names[pair_index]=pair_families
+
+
+PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = Family_names, .before = 4)
 unique_Lambertfamilies <- unique(PWMs_metadata$Lambert2018_families)
 
+#Is some of the Lamber2018_families missing
 
+which(is.na(PWMs_metadata$Lambert2018_families))
 
-
+PWMs_metadata[582, 1:5]
+PWMs_metadata$Lambert2018_families[582]=PWMs_metadata$family[582]
 
 write.table(PWMs_metadata, file="../../PWMs_final/Jolma2015/metadata.csv", row.names = FALSE, sep="\t")
 saveRDS(PWMs_metadata, file="Rdata/Jolma2015.Rds")

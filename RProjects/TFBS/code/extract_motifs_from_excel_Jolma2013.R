@@ -161,7 +161,11 @@ for(m in 1:length(PWMs_list)){
     
     
     motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
-   
+    motif@name=ID
+    
+    PWMs_metadata[m, "IC_universal"]=motif@icscore
+    PWMs_metadata[m, "consensus"]=motif@consensus
+     
     transfac=paste0(transfac_path[[ PWMs_metadata$organism[m] ]],"/",ID,".pfm")
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
@@ -189,6 +193,18 @@ for(m in 1:length(PWMs_list)){
 # C	19	0	367	0	0	0	384	12	0	0	0	0	0	2	16	243	146
 # G	0	186	0	0	0	2	0	34	0	173	171	2	0	0	0	9	7
 # T	207	1	2	212	213	212	0	214	0	0	0	0	0	215	211	0	0
+
+TF_family_mappings <- read_csv("~/projects/motif-clustering-Viestra-private/HumanTFs-ccbr-TableS1.csv")
+
+
+# Merge two data frames
+PWMs_metadata <- PWMs_metadata %>%
+  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID","DBD" ), by = 'symbol')
+
+PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = PWMs_metadata$DBD, .before = 4)
+
+PWMs_metadata$`Gene Information/ID`=NULL
+PWMs_metadata$DBD=NULL
 
 write.table(PWMs_metadata, file="../../PWMs_final/Jolma2013/metadata.csv", row.names = FALSE, sep="\t")
 saveRDS(PWMs_metadata, file="Rdata/Jolma2013.Rds")

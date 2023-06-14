@@ -114,12 +114,18 @@ print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", 
 dev.off()
 
 #Write pcm and pfm space and tab separated
+pwms="../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/"
+pwms_space="../../PWMs_final/Morgunova2015/pwms_space/Homo_sapiens/"
+pwms_transfac="../../PWMs_final/Morgunova2015/pwms_transfac/Homo_sapiens/"
+dir.create(pwms, recursive=TRUE)
+dir.create(pwms_space, recursive=TRUE)
+dir.create(pwms_transfac, recursive=TRUE)
 
 write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_space/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
 write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_tab/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
 
-write.table(pcm_class@profileMatrix, file=paste0("../../PWMs/Morgunova2015/pwms/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
-write.table(pcm_class@profileMatrix, file=paste0("../../PWMs/Morgunova2015/pwms_space/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+write.table(pcm_class@profileMatrix, file=paste0("../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+write.table(pcm_class@profileMatrix, file=paste0("../../PWMs_final/Morgunova2015/pwms_space/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
 
 
 
@@ -131,6 +137,12 @@ sum(TFBSTools::rowSums(icm)) #6.77892
 #motif length
 length(pcm_class)
 
+filename=paste0("../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/","E2F8_Morgunova2015", ".pfm")
+motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
+motif@name="E2F8_Morgunova2015"
+
+PWMs_metadata[m, "IC_universal"]=motif@icscore
+PWMs_metadata[m, "consensus"]=motif@consensus
 
 
 representatives <- read_tsv("../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length.tsv", col_names=TRUE)
@@ -149,15 +161,37 @@ tmp=data.frame(ID="E2F8_Morgunova2015",
                multinomial="",         
                cycle="", 
                representative=NA,
-               new_representative=NA,   
                short="", 
                type="",  
                comment="",
-               filename="PWMs/Morgunova2015/pwms/Homo_sapiens/E2F8_Morgunova2015.pfm",
+               filename="../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/E2F8_Morgunova2015.pfm",
                IC=sum(TFBSTools::rowSums(icm)),
-               length=length(pcm_class) 
+               length=length(pcm_class),
+               IC_universal=motif@icscore,
+               consensus=motif@consensus
 
 )
+
+write.table(tmp, file="../../PWMs_final/Morgunova2015/metadata.csv", row.names = FALSE, sep="\t")
+saveRDS(tmp, file="Rdata/Morgunova2015.Rds")
+
+transfac=paste0(pwms_transfac, "/", tmp$ID,".pfm")
+write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
+
+
+PWM=as.matrix(pcm, dimnames=NULL)
+rownames(PWM)=c("A", "C", "G", "T")
+write.table(paste0(">",  tmp$ID),   
+            append=FALSE, row.names = FALSE, col.names=FALSE, quote=FALSE,
+            file=paste0("../../PWMs_final/Morgunova2015/all", ".scpd"))
+append=TRUE
+
+write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+            file=paste0("../../PWMs_final/Morgunova2015/all", ".scpd"))
+
+
+
+
 
 #representatives
   

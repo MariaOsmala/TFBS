@@ -201,13 +201,56 @@ TF_family_mappings <- read_csv("~/projects/motif-clustering-Viestra-private/Huma
 
 # Merge two data frames
 PWMs_metadata <- PWMs_metadata %>%
-  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID","DBD" ), by = 'symbol')
+  left_join(select(TF_family_mappings, "symbol","DBD" ), by = 'symbol')
+
+PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = PWMs_metadata$DBD, .before = 4)
+PWMs_metadata$DBD=NULL
+
+table(PWMs_metadata$experiment)
+
+
+#PWMs_metadata=readRDS(file="RData/Yin2017.Rds")
+
+Methyl_SELEX_metadata <- PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") #923
+
+Methyl_SELEX_motif_categories=read_delim("tables/Methyl_SELEX_metadata_with_info.csv", 
+                                                                            delim = ";", 
+                                         escape_double = FALSE, trim_ws = TRUE)
+
+PWMs_metadata=PWMs_metadata %>%
+  left_join(select(Methyl_SELEX_motif_categories, "ID", "final suggestion" ), by = 'ID')
+
+colnames(PWMs_metadata)[23]="Methyl.SELEX.Motif.Category"
+
+table(PWMs_metadata$Methyl.SELEX.Motif.Category) #some typos
+
+PWMs_metadata$Methyl.SELEX.Motif.Category[PWMs_metadata$Methyl.SELEX.Motif.Category=="No GpG"]="No CpG"
+PWMs_metadata$Methyl.SELEX.Motif.Category[PWMs_metadata$Methyl.SELEX.Motif.Category=="Multiple Effects"]="Multiple effects"
+
+categories=table(PWMs_metadata$Methyl.SELEX.Motif.Category)
+
+pie(categories, 
+    main = "Proportions of different Methyl-SELEX motif categories", 
+    col = rainbow(length(categories)), 
+    labels = paste(names(categories), "\n", categories))
+
+remove=c("Little effect", "MethylMinus", "No CpG")
+
+PWMs_metadata=PWMs_metadata[-which(PWMs_metadata$Methyl.SELEX.Motif.Category %in% remove),]
+
+sum(table(PWMs_metadata$Methyl.SELEX.Motif.Category)) #297
+
+#HT-SELEX Methyl-HT-SELEX 
+#864             297 
 
 write.table(PWMs_metadata, file="../../PWMs_final/Yin2017/metadata.csv", row.names = FALSE,sep="\t")
 saveRDS(PWMs_metadata, file="RData/Yin2017.Rds")
 
 
+#The categories MethylMinus, MethylPlus, No CpG, Little effect, Multiple effects, Inconclusive were collected using the scripts below
+#and manual comparisons to the Yin et al 2017 Science aaj2239_yin_data_s2.pdf Database S2
 
+#From Methyl-selex motifs remove No CpG, MethylMinus and Little effect motifs
 
 #display_table_shape(all_table)
 
@@ -269,6 +312,7 @@ bisulfite_selex <- read_excel("../../PWMs/Yin2017/NIHMS1670407-supplement-Supple
 bisulfite_selex_replicate <- read_excel("../../PWMs/Yin2017/NIHMS1670407-supplement-Supplemental_tables_S1-6.xlsx", 
                                         sheet="S3 bisulfite-SELEX data", col_names=FALSE, skip=548, n_max=599-548,col_types=c(rep("text",7), rep("numeric",10)))
 
+
 colnames(bisulfite_selex)=colnames(bisulfite_selex_replicate)=c("symbol",
                                                                 "clone",
                                                                 "call",
@@ -287,30 +331,61 @@ colnames(bisulfite_selex)=colnames(bisulfite_selex_replicate)=c("symbol",
                                                                 "CG_frequency_cycle_4_bisulfite_seq",
                                                                 "TG_frequency_cycle_4_bisulfite_seq")
 
-naind=which(is.na(bisulfite_selex$symbol))
-test=naind[2:length(naind)]-naind[1:(length(naind)-1)]
-groups=list()
-group=c()
-j=1
-k=1
-for(i in 1:length(test)){
-  print(paste0("i: ",i))
-  group=c(group, i)
-  j=i
-while(test[j]==1){
-  print("1")
-  group=c(group, j)
-  j+1 
-  }
+naind=which(is.na(bisulfite_selex$symbol)) 
 
-groups[[k]]=group
-print(group)
-k=k+1
-group=c()
+# Create a helper function to identify breaks in sequences
+breaks <- c(1, diff(naind) != 1)
+
+group_ids <- cumsum(breaks) #146
+
+# Split the original vector by the group identifiers
+groups <- split(naind, group_ids)
+
+# Print the groups
+print(groups)
+
+for(g in groups){
+  #g=groups[[4]]
+  bisulfite_selex[g,"symbol"]=bisulfite_selex[g[1]-1,"symbol"]
   
 }
 
-which( naind[2:length(naind)]-naind[1:(length(naind)-1)]==1)
+naind=which(is.na(bisulfite_selex_replicate$symbol)) 
+
+# Create a helper function to identify breaks in sequences
+breaks <- c(1, diff(naind) != 1)
+
+group_ids <- cumsum(breaks) #146
+
+# Split the original vector by the group identifiers
+groups <- split(naind, group_ids)
+
+# Print the groups
+print(groups)
+
+for(g in groups){
+  #g=groups[[4]]
+  bisulfite_selex_replicate[g,"symbol"]=bisulfite_selex_replicate[g[1]-1,"symbol"]
+  
+}
+
+#which symbol has asterisk in its name
+
+asterisk_ind=grep("\\*", bisulfite_selex$symbol)
+bisulfite_selex$asterisk="NO"
+bisulfite_selex$asterisk[asterisk_ind]="YES"
+bisulfite_selex$symbol=gsub("\\*","", bisulfite_selex$symbol)
+
+asterisk_ind=grep("\\*", bisulfite_selex_replicate$symbol)
+bisulfite_selex_replicate$asterisk="NO"
+bisulfite_selex_replicate$asterisk[asterisk_ind]="YES"
+bisulfite_selex_replicate$symbol=gsub("\\*","", bisulfite_selex_replicate$symbol)
+
+bisulfite_selex$replicate="NO"
+bisulfite_selex_replicate$replicate="YES"
+
+bisulfite_selex_all=rbind(bisulfite_selex, bisulfite_selex_replicate)
+
 
 #section c: TFs for which bisulfite data was not obtained
 #TF_name		call	methyl-SELEX_call		comment	seed for methyl-SELEX
@@ -319,7 +394,36 @@ TFs_without_bisulfite_data <- read_excel("../../PWMs/Yin2017/NIHMS1670407-supple
                                          sheet="S3 bisulfite-SELEX data", col_names=FALSE, skip=605, n_max=703-605,col_types=c(rep("text",7)))
 
 TFs_without_bisulfite_data =TFs_without_bisulfite_data[,-c(2,5)]
-colnames(TFs_without_bisulfite_data) <- c("symbol", "call", "methyl-SELEX_call", "bisulfite_call", "comment", "seed_methyl-SELEX")
+colnames(TFs_without_bisulfite_data) <- c("symbol", "call", "methyl-SELEX_call", "comment", "seed") #seed_methyl-SELEX
+
+naind=which(is.na(TFs_without_bisulfite_data$symbol)) 
+
+# Create a helper function to identify breaks in sequences
+breaks <- c(1, diff(naind) != 1)
+
+group_ids <- cumsum(breaks) #146
+
+# Split the original vector by the group identifiers
+groups <- split(naind, group_ids)
+
+# Print the groups
+print(groups)
+
+for(g in groups){
+  #g=groups[[4]]
+  TFs_without_bisulfite_data[g,"symbol"]=TFs_without_bisulfite_data[g[1]-1,"symbol"]
+  
+}
+
+
+
+
+
+Methyl_SELEX_metadata <- PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX")
+#Match seeds in TFs_without_bisulfite_data and Methyl_SELEX_metadata
+Methyl_SELEX_metadata <- Methyl_SELEX_metadata %>%
+  left_join(select(TFs_without_bisulfite_data, "symbol", "call","methyl-SELEX_call", "comment", "seed" ), by = c('symbol','seed'))
+
 
 #All possible outcomes
 #Table S5 - Contingency table describing the combined effect of the methyl-preference of a TF, 
@@ -337,13 +441,212 @@ possible_outcomes <- read_excel("../../PWMs/Yin2017/NIHMS1670407-supplement-Supp
                                 sheet="S5 All possible outcomes", col_names=FALSE, skip=8, n_max=32-8,col_types=c(rep("text",5)))
 colnames(possible_outcomes)=c("TFs_preference", "state", "binding", "effect_on_C", "outcome")
 
-#match metadata and methylation info
+#Is the methyl plus/minus info unique for each TF
+TFs_unique=unique(bisulfite_selex_all$symbol) #289
 
+methyl_info<-list()
+
+#All methylation info for each TF protein
+for(TF in TFs_unique){
+  #TF=TFs_unique[1]
+  methyl_info[[TF]]=unique(bisulfite_selex_all$call[which(bisulfite_selex_all$symbol==TF)])
+  
+}
+
+max_length <- max(sapply(methyl_info, length))
+
+# Pad the shorter vectors with NA values
+lst_padded <- lapply(methyl_info, function(v) {
+  length(v) <- max_length
+  return(v)
+})
+
+# Combine the vectors by row
+result <- do.call(rbind, lst_padded)
+
+#which motifs have unique methylation status or na
+na_counts <- apply(result, 1, function(row) sum(is.na(row)))
+
+which(na_counts==3)
+
+df_methyl_info=data.frame(call=result[which(na_counts==3),1])
+df_methyl_info$symbol=rownames(df_methyl_info)
+
+Methyl_SELEX_metadata <- Methyl_SELEX_metadata %>%
+  left_join(select(df_methyl_info, "symbol", "call", ), by = c('symbol'))
+
+
+which(na_counts==2)
+#KLF17    RFX5    BCL6   BCL6B CREB3L1    E2F2    HSF5     YY1 
+#64     114     155     156     162     167     200     232 
+
+which(na_counts==1)
+#PAX3 PAX7 
+#94   96 
+which(na_counts==4)
+#empty
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="KLF17"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="KLF17",c("symbol", "clone", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="KLF17",c("call.y")]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="KLF17")[2:1],"call"] 
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="RFX5"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="RFX5",c("symbol", "clone", "seed", "call.y")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="RFX5", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="RFX5")[c(1,3)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="BCL6"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="BCL6",c("symbol", "clone", "seed", "call.y")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="BCL6", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="BCL6")[c(1,2)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="BCL6B"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="BCL6B",c("symbol", "clone", "seed", "call.y")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="BCL6B", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="BCL6B")[c(1,2)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="CREB3L1"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="CREB3L1",c("symbol", "clone", "seed", "call.y")]
+
+library(DECIPHER)
+library(Biostrings)
+
+collect_match_ind=list()
+
+bisulfite= DNAStringSet(bisulfite_selex_all[which(bisulfite_selex_all$symbol=="CREB3L1"),c("seed")]$seed)
+methyl_selex= DNAStringSet(Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="CREB3L1",c("seed")]$seed)
+
+for(i in 1:length(methyl_selex)){
+  test=pairwiseAlignment(bisulfite, methyl_selex[i])
+  collect_match_ind[[i]]=which(test@score==max(test@score))
+}
+for(i in 1:length(methyl_selex)){
+  Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol=="CREB3L1")[i], "call.y"]=unique(bisulfite_selex_all[which(bisulfite_selex_all$symbol=="CREB3L1"),"call"][collect_match_ind[[i]],"call"])
+}
+
+# getOption("digits")
+# options(digits = 22)
+# 
+# pairwiseAlignment(bisulfite, methyl_selex[2])
+# pairwiseAlignment(bisulfite, methyl_selex[1])
+# pairwiseAlignment(bisulfite, methyl_selex[1])
+# pairwiseAlignment(bisulfite, methyl_selex[1])
+# pairwiseAlignment(bisulfite, methyl_selex[1])
+# 
+# 
+# query = DNAStringSet( as.vector(concordant %>% filter(symbol==concordant_TF) %>% dplyr::select(seed))$seed)
+# target = DNAStringSet(as.vector(Methyl_SELEX_metadata$seed) )
+# names(target)=paste0(Methyl_SELEX_metadata$symbol,"_", Methyl_SELEX_metadata$clone)
+# 
+# Methyl_SELEX_metadata[which(Methyl_SELEX_metadata$symbol == concordant_TF),]
+# 
+# alignment=pairwiseAlignment(target, query[1])
+# scores=alignment@score
+# names(scores)=Methyl_SELEX_metadata$symbol
+# 
+# 
+# scores_order=order(scores, decreasing=TRUE)
+# scores_sorted=sort(scores, decreasing=TRUE)
+
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="E2F2"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="E2F2",c("symbol", "clone", "seed", "call.y")]
+
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="E2F2", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="E2F2")[c(5,1)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="HSF5"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="HSF5",c("symbol", "clone", "seed", "call.y")]
+
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="HSF5", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="HSF5")[c(2,1)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="YY1"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="YY1",c("symbol", "clone", "seed", "call.y")]
+
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="YY1", "call.y"]=bisulfite_selex_all[which(bisulfite_selex_all$symbol=="YY1")[c(2,1)],"call"]
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="PAX3"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX3",c("symbol", "clone", "seed", "call.y")]
+
+collect_match_ind=list()
+
+bisulfite= DNAStringSet(bisulfite_selex_all[which(bisulfite_selex_all$symbol=="PAX3"),c("seed")]$seed)
+methyl_selex= DNAStringSet(Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX3",c("seed")]$seed)
+
+for(i in 1:length(methyl_selex)){
+  test=pairwiseAlignment(bisulfite, methyl_selex[i])
+  collect_match_ind[[i]]=which(test@score==max(test@score))
+}
+
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX3", "call.y"]=c("Multiple effects", "MethylPlus", "MethylMinus")
+
+
+bisulfite_selex_all[which(bisulfite_selex_all$symbol=="PAX7"),c("symbol", "clone","call", "seed")]
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX7",c("symbol", "clone", "seed", "call.y")]
+
+collect_match_ind=list()
+
+bisulfite= DNAStringSet(bisulfite_selex_all[which(bisulfite_selex_all$symbol=="PAX7"),c("seed")]$seed)
+methyl_selex= DNAStringSet(Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX7",c("seed")]$seed)
+
+for(i in 1:length(methyl_selex)){
+  test=pairwiseAlignment(bisulfite, methyl_selex[i])
+  collect_match_ind[[i]]=which(test@score==max(test@score))
+}
+
+Methyl_SELEX_metadata[Methyl_SELEX_metadata$symbol=="PAX7", "call.y"]=c("MethylMinus", "Multiple Effects",  
+"MethylPlus",
+"MethylMinus",  
+"Multiple Effects",  
+"MethylPlus")
+
+#Test which motifs do not have CpG
+
+Methyl_SELEX_metadata$no_cpg=""
+
+
+dinucleotides <- c("CG", "YG", "MG", "SG", "CK", "CR", "CS")
+                #   "YK", "YR", "YS", "MK", "MR", "MS", "SK", "SR", "SS")
+
+# Function to check for dinucleotides
+check_dinucleotides <- function(sequence, dinucleotides) {
+  result=FALSE
+  for (dinucleotide in dinucleotides) {
+    positions <- gregexpr(pattern = dinucleotide, sequence)[[1]]
+    if (positions[1] != -1) {
+      #print(paste("Dinucleotide", dinucleotide, "found at positions:", paste(positions, collapse=", ")))
+      result=TRUE
+      
+    }
+  }
+  result
+}
+
+cpg_sites=sapply(as.list(Methyl_SELEX_metadata$consensus), check_dinucleotides, dinucleotides=dinucleotides)
+
+Methyl_SELEX_metadata$no_cpg[which(cpg_sites==FALSE)]="No CpG"
+
+
+
+write.table(Methyl_SELEX_metadata,file="tables/Methyl_SELEX_metadata_with_info.tsv",sep="\t", row.names = FALSE)
+
+
+
+#Below this some trials, not used
+stop()
+
+
+#Are the TFs in the replicate table subset of the main table
+TFs_unique_replicate=unique(bisulfite_selex_replicate$symbol) #30
+length(which(TFs_unique_replicate %in% TFs_unique)) #28
+
+TFs_unique_replicate[which(!(TFs_unique_replicate %in% TFs_unique))] #all are included, note the asterisk
+
+#Are the TFs in the TFs_without_bisulfite_data missing from the bisulfite selex table
+TFs_unique_without_bisulfite_data=unique(TFs_without_bisulfite_data$symbol) #82
+length(which(TFs_unique_without_bisulfite_data %in% TFs_unique)) #0
+
+#match metadata and methylation info
 as.vector(unique(PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX") %>% select(symbol)))$symbol[1] #541
 
 Methyl_SELEX_metadata <- PWMs_metadata %>% filter(experiment=="Methyl-HT-SELEX")
 write.table(Methyl_SELEX_metadata, file="tables/Methyl_SELEX_metadata.tsv",sep="\t", row.names = FALSE)
-
 write.table(bisulfite_selex,file="tables/bisulfite_selex.tsv",sep="\t", row.names = FALSE)
 write.table(bisulfite_selex_replicate,file="tables/bisulfite_selex_replicate.tsv",sep="\t", row.names = FALSE)
 write.table(TFs_without_bisulfite_data,file="tables/TFs_without_bisulfite_data.tsv",sep="\t", row.names = FALSE)

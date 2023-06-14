@@ -1,0 +1,2 @@
+"ID"	"symbol"	"clone"	"family"	"Lambert2018.families"	"organism"	"study"	"experiment"	"ligand"	"batch"	"seed"	"multinomial"	"cycle"	"representative"	"short"	"type"	"comment"	"filename"	"IC"	"length"	"IC_universal"	"consensus"
+"E2F8_Morgunova2015"	"E2F8"	""	"E2F"	"E2F"	"Homo_sapiens"	"Morgunova2015"	"HT-SELEX"	""	""	""	""	""	NA	""	""	""	"../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/E2F8_Morgunova2015.pfm"	12.2415810631755	14	12.2062143127814	"NNNTGGCGGGAANN"
