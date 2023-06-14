@@ -22,7 +22,9 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_4/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_4/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_3/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_2/"
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -49,15 +51,16 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2/"
 
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/"
-
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/"
 chrom_lengths=read.table("/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/mm39.chrom.sizes")
 seqlengths=chrom_lengths[,2]
 names(seqlengths)=chrom_lengths[,1]
 seqlengths=seqlengths[paste0("chr", c(as.character(seq(1,19,1)), "X", "Y"))]
 
 
-for(arrays in 0:10){ #0:39 0:10 0:7 0:5
+for(arrays in 0:5){ #0:39 0:10 0:7 0:5  - all 4 3 2
 
 start_ind=arrays*10 #100
 end_ind=(arrays+1)*10-1 #100
@@ -74,17 +77,17 @@ len=10 #100
 #  end_ind=399
 #}
 
-if(end_ind>100){ #  102
-  end_ind=100
+#if(end_ind>100){ #  102
+#  end_ind=100
+#}
+
+#if(end_ind>73){ #  76
+#  end_ind=73
+#}
+
+if(end_ind>56){ #  57
+  end_ind=56
 }
-
-#if(end_ind>76){ #  76
-#  end_ind=76
-#}
-
-#if(end_ind>57){ #  57
-#  end_ind=57
-#}
 
 
 #DBI::dbDisconnect(con)

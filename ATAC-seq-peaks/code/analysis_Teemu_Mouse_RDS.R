@@ -15,7 +15,6 @@ data_path="/scratch/project_2006203/TFBS/"
 
 gtf<-readRDS(paste0(data_path,"RProjects/TFBS/gtf.Rds"))
 
-
 all_motif_matches_mouse <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_Mouse.Rds")
 length(names(all_motif_matches_mouse)) #3997
 length(unique(names(all_motif_matches_mouse))) #3997
@@ -30,23 +29,53 @@ hist(match_numbers[rerun])
 write.table(names(rerun), "../../Experiments/rerunMOODS_mouse_lower_threshold.txt")
 
 all_motif_matches_mouse_4 <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_Mouse_4.Rds")
-length(names(all_motif_matches_mouse_4)) #3997
-length(unique(names(all_motif_matches_mouse_4))) #3997
+
+length(names(all_motif_matches_mouse_4)) #1002
+
+which(table(names(all_motif_matches_mouse_4))!=1)
+
+
+
+all_motif_matches_mouse_4=all_motif_matches_mouse_4[-grep("HES7_HT-SELEX_AATTC14N_U_NGGCACGTGCCN_1_4_NO", 
+                                                          names(all_motif_matches_mouse_4))[2]]
 
 match_numbers_4=unlist(lapply(all_motif_matches_mouse_4, length))
+
 saveRDS(match_numbers_4,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_mouse_4.Rds")
+#match_numbers_4=readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_mouse_4.Rds")
+
+which(names(match_numbers_4) %in% names(rerun)==FALSE)
+
+rerun4=which(match_numbers_4 < 300000) #736 CTCF: 81565
 
 
-rerun4=which(match_numbers_4 < 300000) #761 CTCF: 77283
-rerun3=which(match_numbers_3 < 300000) #578 CTCF 117589
+hist(match_numbers_4[rerun4])
+
+write.table(names(rerun4), "../../Experiments/rerunMOODS_mouse_lower_threshold_4.txt")
+
+all_motif_matches_mouse_3 <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_Mouse_3.Rds")
+length(names(all_motif_matches_mouse_3)) #737
+length(unique(names(all_motif_matches_mouse_3))) #736
+
+which(table(names(all_motif_matches_mouse_3))!=1)
+
+#all_motif_matches_mouse_3=all_motif_matches_mouse_3[-which(table(names(all_motif_matches_mouse_3))==2)]
+
+all_motif_matches_mouse_3=all_motif_matches_mouse_3[-grep("ELK1_TBX21_CAP-SELEX_TCCTAT40NAGA_AAA_RAGGTSRNNNNNNNNNNNNNNNNCGGAAGYN_2_2_NO", 
+                                                          names(all_motif_matches_mouse_3))[2]]
 
 
-hist(match_numbers[rerun4])
+match_numbers_3=unlist(lapply(all_motif_matches_mouse_3, length))
+
+saveRDS(match_numbers_3,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_mouse_3.Rds")
+#match_numbers_3=readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_mouse_3.Rds")
+
+rerun3=which(match_numbers_3 < 300000) #568 CTCF 122691
+
+
 hist(match_numbers_3[rerun3])
 
-
-
-write.table(names(rerun), "../../Experiments/rerunMOODS_mouse_lower_threshold.txt")
+write.table(names(rerun3), "../../Experiments/rerunMOODS_mouse_lower_threshold_3.txt")
 
 #scores = unlist(all_motif_matches_Teemu)$score
 #scoresList = relist(scores, all_motif_matches_Teemu)

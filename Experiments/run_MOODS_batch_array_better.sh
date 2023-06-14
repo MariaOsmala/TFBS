@@ -9,7 +9,7 @@
 #SBATCH --mem-per-cpu=5G #
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=nvme:50
-#SBATCH --array=1-100 #0-57 #1-102# 0-399 #399 0-102 0-76 0-57
+#SBATCH --array=0-56 #0-57 #1-102# 0-399 #399 0-102 0-76 0-57
 
 
 #Request local storage using the --gres flag in the job submission:
@@ -34,5 +34,5 @@
 #srun MOODS_Teemu_Morgunova2015_bHLH_HOMEOBOXYimeng.sh ${SLURM_ARRAY_TASK_ID}
 #MOODS_Teemu_Morgunova2015_bHLH_HOMEOBOXYimeng.sh
 #srun MOODS_mouse.sh ${SLURM_ARRAY_TASK_ID}
-srun MOODS_mouse_lower_threshold.sh ${SLURM_ARRAY_TASK_ID} #0-100
+srun MOODS_mouse_lower_threshold.sh ${SLURM_ARRAY_TASK_ID} #0-100 0-73 0-56
 seff $SLURM_JOBID

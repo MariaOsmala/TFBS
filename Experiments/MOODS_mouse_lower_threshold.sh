@@ -3,7 +3,7 @@
 #!/bin/bash
 array=$1 #this varies between 0 and 399
 
-files=($(awk -F '"' '{print $4}' rerunMOODS_mouse_lower_threshold.txt)) #1001
+files=($(awk -F '"' '{print $4}' rerunMOODS_mouse_lower_threshold_3.txt)) #1001 736
 
 #echo ${files[0]}
 #ELK1_TBX21_TACTCT40NAAC_YYI_NAGGTGTTACTTCCGGYN_m2_c3b0u_short_composite
@@ -15,7 +15,9 @@ export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
 
 S=/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/chr_sequences.fa #This is repeat masked (hard), contains only chromsomes chr1-22, X, Y
-mkdir /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4
+#mkdir /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4
+#mkdir /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3
+mkdir /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2
 
 n=300000 #the number of best hits
 
@@ -60,9 +62,11 @@ fi
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
-moods-dna.py -m ${pwms_new[@]:$start_ind:$length} --threshold 4 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"$array".csv.gz"
+moods-dna.py -m ${pwms_new[@]:$start_ind:$length} --threshold 2 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"$array".csv.gz"
 
 cd $LOCAL_SCRATCH
-cp MOODS_"$array".csv.gz /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/
+#cp MOODS_"$array".csv.gz /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/
+#cp MOODS_"$array".csv.gz /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3/
+cp MOODS_"$array".csv.gz /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/
 
 
