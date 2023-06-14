@@ -52,10 +52,7 @@ datas=datas[, c("symbol",	"clone","family",	"organism","study","experiment",
 #write.table(datas, file="../../PWMs/fromYimeng/metadata.csv", row.names = FALSE,sep="\t")
 #saveRDS(datas, file="data/fromYimeng.Rds")
 
-dir.create(paste0("../../PWMs_final/fromYimeng/pwms_space/pfm_composite_new/"), recursive=TRUE)
-dir.create(paste0("../../PWMs_final/fromYimeng/pwms_space/pfm_spacing_new/"), recursive=TRUE)
-dir.create(paste0("../../PWMs/fromYimeng/transfac/pfm_composite_new/"), recursive=TRUE)
-dir.create(paste0("../../PWMs/fromYimeng/transfac/pfm_spacing_new/"), recursive=TRUE)
+
 
 pwms=paste0("../../PWMs_final/fromYimeng/pwms/Homo_sapiens/")
 pwms_space=paste0("../../PWMs_final/fromYimeng/pwms_space/Homo_sapiens/")
@@ -128,7 +125,7 @@ for(m in 1:nrow(datas)){
   
     filename=paste0(strsplit(f, "/")[[1]][-c(1,2,3,4)],collapse="/")
     #add extension
-    filename_final=paste0("_",datas$type[m] ,".pfm",filename)
+    filename_final=paste0(gsub(".pfm", "", filename) ,"_", gsub("pfm_","", datas$type[m]) ,".pfm")
     
     
     if(paste0(pwms,filename_final) %in% datas$filename_final){
@@ -182,7 +179,7 @@ for(m in 1:nrow(datas)){
     #file=paste0("../../PWMs/fromYimeng/pwms_space/",paste0(strsplit(f, "/")[[1]][-c(1,2,3)],collapse="/"))
     
     motif=universalmotif::read_matrix(file=paste0(pwms_space,filename_final), sep=" ", header=FALSE)
-    motif@name=paste0( strsplit( strsplit(f, "/")[[1]][5], ".pfm")[[1]], "_",datas$type[m])
+    motif@name=ID
   
     transfac_file=paste0(transfac_path,filename_final)
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)

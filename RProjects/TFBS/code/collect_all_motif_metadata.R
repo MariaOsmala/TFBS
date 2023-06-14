@@ -89,3 +89,48 @@ files=system('ls ../../PWMs_final/*/pwms/*/*.pfm', intern=TRUE)
 rm_list=which(!(files %in% metadata$filename))
 
 file.remove(files[rm_list])
+
+#Remove also from pwms_space and transfac
+
+
+files=system('ls ../../PWMs_final/*/pwms_space/*/*.pfm', intern=TRUE)
+
+IDs=gsub(".pfm", "", do.call(rbind, strsplit(files, "/"))[,7])
+
+#length(which(!(files %in% metadata$filename)))
+#3920-626
+
+rm_list=which(!(IDs %in% metadata$ID))
+
+file.remove(files[rm_list])
+
+files=system('ls ../../PWMs_final/*/transfac/*/*.pfm', intern=TRUE) #3919?
+
+IDs=gsub(".pfm", "", do.call(rbind, strsplit(files, "/"))[,7]) #3919
+
+rm_list=which(!(IDs %in% metadata$ID))
+
+file.remove(files[rm_list])
+
+#Create scdc files from all
+
+#Write .scpd format, all into a single file
+
+append=FALSE
+
+for(i in 1:nrow(metadata)){
+  
+  PWM=read.table(paste0( metadata$filename[i]))
+  PWM=as.matrix(PWM, dimnames=NULL)
+  rownames(PWM)=c("A", "C", "G", "T")
+  
+  write.table(paste0(">",  metadata$ID[i]),   
+              append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs_final/all", ".scpd"))
+  append=TRUE
+  
+  write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
+              file=paste0("../../PWMs_final/all", ".scpd"))
+  }
+
+
