@@ -77,4 +77,15 @@ metadata[which(is.na(metadata$Lambert2018_families)), "Lambert2018_families"]=me
 
 write.table(metadata, file="../../PWMs_final/metadata.csv", row.names = FALSE, sep="\t")
 
+#Remove .pfm files which are not in the metadata
 
+#dir("../../PWMs_final/*/pwms/*/")
+
+files=system('ls ../../PWMs_final/*/pwms/*/*.pfm', intern=TRUE)
+
+#length(which(!(files %in% metadata$filename)))
+#3920-626
+
+rm_list=which(!(files %in% metadata$filename))
+
+file.remove(files[rm_list])
