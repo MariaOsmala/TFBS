@@ -11,9 +11,9 @@ export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 S=/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/chr_sequences.fa #This is repeat masked (hard), contains only chromsomes chr1-22, X, Y
 
 
+outfolder=/scratch/project_2006203/TFBS/Results/MOODS_moouse_mm39_final/
+mkdir $outfolder
 
-outfile="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/MOODS_"$array".csv.gz"
-mkdir /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39
 
 n=300000 #the number of best hits
 
@@ -39,9 +39,12 @@ fi
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
-moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 5 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"$array".csv.gz"
+
+
+
+moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"$array".csv.gz"
 
 cd $LOCAL_SCRATCH
-cp MOODS_"$array".csv.gz /scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/
+cp MOODS_"$array".csv.gz $outfolder
 
 

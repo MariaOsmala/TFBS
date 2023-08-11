@@ -1,56 +1,241 @@
+#lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE)
+
+
 library("rtracklayer")
 library("dbplyr")
 library("dplyr")
 library("tidyverse")
 library("pheatmap")
 library("cluster")
+library("readr")
+library("grid")
+library("RColorBrewer")
+library("heatmaply")
+
+source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
+
 
 #short names for TFs
 
 #Cell type names mapping
 
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
-                                      +     delim = ";", escape_double = FALSE, trim_ws = TRUE)
+                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+#typo
+Adult_Celltypes_mapping$`Cell type`[grep("Alverolar Type 2,Immune", Adult_Celltypes_mapping$`Cell type`)]="Alveolar Type 2,Immune"
+
+
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
 
 data_path="/scratch/project_2006203/"
 
-representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", sep="\t", header=TRUE)
+#representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", sep="\t", header=TRUE)
+representatives=read.table( "../../PWMs_final/metadata_representatives_match_numbers_thresholds.tsv",sep="\t", header=TRUE) #3294 the order differs!
+
+#representatives2=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+
+
+
+#These are log_10(p-values)
+#p_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_p_matrix_human_cell_type_restricted.Rds")) #
+
+p_matrix=readRDS(file = paste0(scratch,"RData/final_p_matrix_human_cell_type_restricted.Rds")) #
+
+
+#sort the representatives table according to the rownames of p_matrix
+
+representatives <- representatives[order(match(representatives$ID, rownames(p_matrix))), ]
 
 #test=gsub(".pfm", "", do.call(rbind, strsplit(representatives$filename,"/"))[,5])
 test=representatives$ID
 rep_motifs=test[which(representatives$new_representative=="YES")]
-
-rep_dimers=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX")] #591
-
-rep_Yimeng=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX"& representatives$study=="fromYimeng")] #238
-
+#rep_dimers=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX")] #591
+#rep_Yimeng=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX"& representatives$study=="fromYimeng")] #238
+length(which(rep_motifs %in% rownames(p_matrix))) #1031
 
 
 #remove _pfm_composite_new and _pfm_spacing_new
 #rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
 #rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
 
-length(unique(rep_motifs))
+length(unique(rep_motifs)) #1031
 
-#These are log_10(p-values)
-p_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_p_matrix_human_cell_type_restricted.Rds")) #
 
-length(which(rep_motifs %in% rownames(p_matrix))) #1062
 
-#dim(p_matrix) 1062 x 11
+#dim(p_matrix) 1062 x 111
 #length(which(rep_dimers %in% rownames(p_matrix))) #595
 #length(which(rep_Yimeng %in% rownames(p_matrix))) #238
 
-shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, new_representative, Lambert2018.families)
+shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, 
+                                              new_representative, Lambert2018_families)
 #table(shorter_names)
 
 
 #FDR correction for the p-values?
 
 #These are log2( (k / n) / (m / N) )
-e_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_e_matrix_human_cell_type_restricted.Rds")) #
+#e_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_e_matrix_human_cell_type_restricted.Rds")) #
+e_matrix=readRDS(  file = paste0(scratch, "RData/final_e_matrix_human_cell_type_restricted.Rds")) #
+
+#dimnames(e_matrix)[[2]] #What column in Adult_Celltypes_mapping correspond to there
+#dimnames(e_matrix)[[2]] %in% Adult_Celltypes_mapping$celltype
+
+
+
+#Cell type groups from Zhang et al. Figure 1
+
+cell_type_groups<-list()
+cell_type_groups[["Epithelial 1"]]=c("Parietal Cell",
+                                     "Chief Cell",
+                                     "Pancreatic Acinar Cell",
+                                     "Ductal Cell (Pancreatic)",
+                                     "Gastric Neuroendocrine Cell",
+                                     "Foveolar Cell",
+                                     "Hepatocyte")
+cell_type_groups[["Stromal"]]=c("Mesothelial Cell",
+                                "Adipocyte",
+                                "Luteal Cell (Ovarian)",
+                                "Schwann Cell (General)",
+                                "Pericyte (General) 1",
+                                "Fibroblast (Peripheral Nerve)",
+                                "Smooth Muscle (Uterine)",
+                                "Smooth Muscle (General)",
+                                "Vascular Smooth Muscle 2",
+                                "Vascular Smooth Muscle 1",
+                                "Pericyte (General) 2",
+                                "Melanocyte",
+                                "Smooth Muscle (Esophageal Muscularis) 3",
+                                "Fibroblast (Gastrointestinal)",
+                                "Cardiac Fibroblasts",
+                                "Fibroblast (General)",
+                                "Fibroblast (Epithelial)",
+                                "Fibroblast (Sk Muscle Associated)",
+                                "Peripheral Nerve Stromal",
+                                "Satellite Cell")
+
+cell_type_groups[["Smooth Muscle"]]=c("Smooth Muscle (Esophageal Muscularis) 2",
+                                      "Smooth Muscle (Esophageal Muscularis) 1",
+                                      "Smooth Muscle (GE Junction)",
+                                      "Smooth Muscle (Colon) 2",
+                                      "Smooth Muscle (Colon) 1",
+                                      "Smooth Muscle (General Gastrointestinal)",
+                                      "Smooth Muscle (Esophageal Mucosal)",
+                                      "Smooth Muscle (Vaginal)")
+
+cell_type_groups[["Myocyte"]]=c("Atrial Cardiomyocyte",
+                                "Ventricular Cardiomyocyte",
+                                "Type II Skeletal Myocyte",
+                                "Type I Skeletal Myocyte")
+
+cell_type_groups[["Mural"]]=c("Pericyte (General) 3",
+                              "Cardiac Pericyte 1",
+                              "Pericyte (Esophageal Muscularis)",
+                              "Cardiac Pericyte 2",
+                              "Pericyte (General) 4",
+                              "Cardiac Pericyte 3",
+                              "Fibroblast (Liver Adrenal)",
+                              "Cardiac Pericyte 4"
+)
+
+cell_type_groups[["Adrenal Cortical"]]=c("Zona Fasciculata Cortical Cell",
+                                       "Transitional Zone Cortical Cell",
+                                       "Zona Glomerulosa Cortical Cell",
+                                       "Cortical Epithelial-like"
+)
+
+cell_type_groups[["Immune Lymp"]]=c("Mast Cell",
+                                    "Naive T cell",
+                                    "T lymphocyte 2 (CD4+)",
+                                    "T Lymphocyte 1 (CD8+)",
+                                    "Natural Killer T Cell",
+                                    "Memory B Cell",
+                                    "Plasma Cell"
+)
+
+cell_type_groups[["Immune Myelo"]]=c("Macrophage (General,Alveolar)",
+                                     "Macrophage (General)",
+                                     "Microglia")
+
+cell_type_groups[["Endothelial"]]=c("Endothelial Cell (Myocardial)",
+                                    "Endothelial Cell (General) 1",
+                                    "Endothelial Cell (General) 2",
+                                    "Lymphatic Endothelial Cell",
+                                    "Alveolar Capillary Endothelial Cell",
+                                    "Endocardial Cell",
+                                    "Endothelial (Exocrine Tissues)",
+                                    "Endothelial Cell (General) 3",
+                                    "Blood Brain Barrier Endothelial Cell")
+
+cell_type_groups[["Brain glia"]]=c("Oligodendrocyte",
+                                   "Oligodendrocyte Precursor",
+                                   "Astrocyte 1",
+                                   "CNS,Enteric Neuron",
+                                   "Astrocyte 2"
+)
+
+cell_type_groups[["Brain neuron"]]=c("GABAergic Neuron 2",
+                                     "GABAergic Neuron 1",
+                                     "Glutamatergic Neuron 2",
+                                     "Glutamatergic Neuron 1")
+
+cell_type_groups[["Islet"]]=c("Pancreatic Alpha Cell 2",
+                              "Pancreatic Beta Cell 2",
+                              "Pancreatic Delta,Gamma cell",
+                              "Pancreatic Beta Cell 1",
+                              "Pancreatic Alpha Cell 1")
+
+
+
+cell_type_groups[["Epithelial 2"]]=c("Alveolar Type 1 (AT1) Cell",
+                                     "Alveolar Type 2 (AT2) Cell",
+                                     "Alveolar Type 2,Immune",
+                                     "Club Cell",
+                                     "Thyroid Follicular Cell",
+                                     "Cilliated Cell")
+
+cell_type_groups[["Epithelial 3"]]=c("Keratinocyte 1",
+                                     "Esophageal Epithelial Cell",
+                                     "Keratinocyte 2",
+                                     "Basal Epidermal (Skin)",
+                                     "Airway Goblet Cell",
+                                     "Eccrine Epidermal (Skin)",
+                                     "Mammary Epithelial",
+                                     "Basal Epithelial (Mammary)",
+                                     "Granular Epidermal (Skin)",
+                                     "Mammary Luminal Epithelial Cell 2",
+                                     "Mammary Luminal Epithelial Cell 1",
+                                     "Myoepithelial (Skin)")
+
+
+cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
+                                      "Enterochromaffin Cell",
+                                      "Tuft Cell",
+                                      "Small Intestinal Goblet Cell",
+                                      "Small Intestinal Enterocyte",
+                                      "Colonic Goblet Cell",
+                                      "Colon Epithelial Cell 1",
+                                      "Colon Epithelial Cell 2",
+                                      "Colon Epithelial Cell 3")
+
+
+
+as.vector(unlist(cell_type_groups))[which(as.vector(unlist(cell_type_groups)) %in% Adult_Celltypes_mapping$`Cell type`==FALSE)]
+
+
+#unlist(cell_type_groups) %in% Adult_Celltypes_mapping$`Cell type` all are contained
+
+#Adult_Celltypes_mapping$`Cell type`[which(Adult_Celltypes_mapping$`Cell type` %in% unlist(cell_type_groups) ==FALSE)] # are all contained
+
+
+#rename e_matrix and p_matrix
+
+#v=match(dimnames(e_matrix)[[2]], Adult_Celltypes_mapping$celltype)
+#test=data.frame(dimnames(e_matrix)[[2]], Adult_Celltypes_mapping$celltype[v], Adult_Celltypes_mapping$`Cell type`[v])
+
+colnames(e_matrix)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(e_matrix), Adult_Celltypes_mapping$celltype) ]
+colnames(p_matrix)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(p_matrix), Adult_Celltypes_mapping$celltype) ]
 
 #Heatmaps showing Gene Ontology TF motifs with maximal enrichment in cell-type-restricted cCREs of selected cell types. 
 #Only the most enriched TF motif in each of the previously identified motif archetypes (Vierstra et al., 2020) was selected as the representative and 
@@ -59,9 +244,7 @@ e_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_e_matrix_human_cell_type_
 #which are enriched 
 
 infinites=which(is.infinite(e_matrix))
-
 e_matrix[infinites]=NA
-
 enriched=which(e_matrix>0) #1062*111=117882
 #52050
 
@@ -83,13 +266,312 @@ max(depletions, na.rm=TRUE) #-1.704847e-06
 #exactly zero?
 #equal=which(e_matrix==0) empty
 
-
 #Convert the depleted -log_10 p-values to negative
 str(depleted)
-p_matrix_depleted=-p_matrix
-p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
-#plot heatmap
+
+
+for( ct_group in names(cell_type_groups) ){
+  print(ct_group)
+   #ct_group="Epithelial 1"
+  #Epithelial
+  #Visualise the Hepatocyte, Acinar, Parietal, Chief, Foveolar, G. Neuroendo, Ductal, 
+  p_matrix_depleted=-p_matrix
+  p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
+   p_matrix_depleted_orig=p_matrix_depleted
+   rownames(p_matrix_depleted)=shorter_names$symbol
+   rownames(e_matrix)=shorter_names$symbol
+   
+   p_cell_group_matrix=p_matrix_depleted[, which( colnames(p_matrix_depleted) %in% cell_type_groups[[ct_group]] )]
+
+   e_cell_group_matrix=e_matrix[, which( colnames(e_matrix) %in% cell_type_groups[[ct_group]] )]
+
+   p_cell_group_matrix_orig=p_matrix_depleted_orig[, which( colnames(p_matrix_depleted_orig) %in% cell_type_groups[[ct_group]]  )]
+
+   #what are the 10 most enriched motifs for these cell lines       
+
+   most_enriched<-list()
+   most_enriched_orig<-list()
+   
+   #Choosing the ten most enriched for each cell type maybe not sensible, as there 
+   #are many more for some cell lines, try volcano plots and predictive analysis
+   
+   for(c in colnames(p_cell_group_matrix)){
+  
+     most_enriched[[c]]=names(sort(p_cell_group_matrix[,c], decreasing = TRUE)[1:10])
+     most_enriched_orig[[c]]=names(sort(p_cell_group_matrix_orig[,c], decreasing = TRUE)[1:10])
+   }
+
+   
+    length(unlist(most_enriched)) #70
+    most_enriched=unique(unlist(most_enriched)) #37
+
+    length(unlist(most_enriched_orig)) #70
+    most_enriched_orig=unique(unlist(most_enriched_orig)) #44
+
+    #index
+    index=which(rownames(p_cell_group_matrix_orig) %in% unlist(most_enriched_orig))
+
+    p_cell_group_matrix=p_cell_group_matrix[index,] 
+    e_cell_group_matrix=e_cell_group_matrix[index,] 
+    p_cell_group_matrix_orig=p_cell_group_matrix_orig[index,] 
+
+    
+    # name_order=c("Hepatocyte",
+    #              "Pancreatic Acinar Cell",
+    #              "Parietal Cell",  
+    #              "Chief Cell",
+    #              "Foveolar Cell",
+    #              "Gastric Neuroendocrine Cell",     
+    # "Ductal Cell (Pancreatic)")
+    # 
+    # p_cell_group_matrix=p_cell_group_matrix[,name_order]
+    # e_cell_group_matrix=e_cell_group_matrix[,name_order]
+    # p_cell_group_matrix_orig=p_cell_group_matrix_orig[,name_order]
+
+#epithelial=epithelial[order(rownames(epithelial)),]
+
+#Vierstra
+#epithelial=epithelial[c("HNF1A","HNF4A","ESRRA","GATA2","GATA3","GATA5", "FOXA1", "FOXA2" , "FOXC2",  "FOXD2",  "ONECUT1",  "ONECUT2",  "NR2F1", "BARHL1_TEAD4", "CEBPB_FOXD2",
+#  "CEBPG",  "FIGLA",  "FOSL1", "GSC2_TEAD4", "HOXA10_TEAD4", "HOXB2_TCF3", "HOXD12_TEAD4", "ID4", "JUN", "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3",
+#"NR2C1", "OTX1_TEAD4", "POU4F1", "RARA","RFX1", "RFX3",  "RFX3_FIGLA", "TCF12", "TEAD2", "TFAP4_FLI1" ),]
+
+#epithelial=epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
+#                        "HOXB2_TCF3",  "ID4", "JUN",  
+#"LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3", "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
+
+#e_epithelial=e_epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
+#                        "HOXB2_TCF3",  "ID4", "JUN",  
+#                        "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3",
+#                        "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
+
+# tmp=c("HNF1A_HT-SELEX_TGAGCA20NCGA_W_NRTTAATNATTAACN_1_2_YES", 
+#       "HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGGTCRN_1_3_NO",
+#       "HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGTCCRN_1_3_NO" ,                        
+#       "HNF4A_HT-SELEX_TCCGTG40NTGC_AI_RRGGTCAAAGTCCRNN_1_3_YES",
+#       "HNF4A_Methyl-HT-SELEX_TTGTTT40NGGC_KO_NRGGTCAAAGGTCAN_1_3_NO"  ,
+#       "ESRRA_HT-SELEX_TAGACC40NAGT_KO_NYCAAGGTCAN_1_3_NO",
+#       "GATA2_HT-SELEX_TGAGGT40NTCC_KR_NYGATAASN_1_2_YES",
+#       "GATA2_Methyl-HT-SELEX_TATGCA40NGAG_KR_NWGATAASN_1_2_YES",
+#       "GATA3_HT-SELEX_TTCGTT40NGCC_KX_NGATAAGATCW_1_3_YES",
+#       "GATA5_Methyl-HT-SELEX_TTACTT40NTAT_KW_NWGATAASRN_1_2_NO" ,
+#       "FOXA1_HT-SELEX_TTCTAA40NAAT_KN_TRNGTAAACA_1_3b1_NA",                            
+#       "FOXA2_HT-SELEX_TAGCTG40NCTA_KT_NWNWGTMAATATTKRYNYWN_2_4_NO",
+#       "FOXC2_TCF3_TGACGT40NAGC_YIII_NCACCTGNRTAAAYAN_m1_c3b0u_short_composite",
+#       "FOXD2_HT-SELEX_TCGCCG40NTGC_KO_NYWANGTAAACAN_1_4_YES",
+#       "FOXD2_Methyl-HT-SELEX_TCATCT40NATT_KO_NYWANGTAAACAN_1_4_YES"   ,
+#       "ONECUT1_Methyl-HT-SELEX_TGGCCG40NGCT_KW_NTATTGATCSGN_1_4_NO",                   
+#       "ONECUT2_Methyl-HT-SELEX_TCCGGA40NGTC_KZ_NTATTGATTWN_1_2_NO" ,
+#       "CEBPB_FOXD2_TCCTCT40NGTC_YWI_NTTRYGTAAACAN_m1_c3b0_short_composite",
+#       "CEBPG_HT-SELEX_TAAAAT20NCG_AC_NTTRCGCAAY_1_2_NO",
+#       "FIGLA_HT-SELEX_AGATA14N_U_NNCACCTGNN_1_4_NO" ,
+#       "GSC2_TEAD4_TTTCTA40NCAT_YJII_NMRTTAACATTCCN_m1_c3b0_short_spacing" ,
+#       "HOXB2_TCF3_CAP-SELEX_TGAAGC40NCTA_AY_NCACCTGNNNNNMATTA_1_3_YES" ,
+#       "ID4_HT-SELEX_CTACA14N_U_NRCACCTGNN_1_4_YES"  ,
+#       "JUN_HT-SELEX_TCAGTG40NGAT_KAE_NATGACKCATN_1_3b0_NO",
+#       "LMX1A_BACH2_TTATTT40NCGT_YACIIII_TGASTCANNNNNNNNNNTAATTA_m1_c3b0_short_spacing",
+#       "MYBL1_FIGLA_CAP-SELEX_TCAGCC40NTTC_AX_NCASSTGNNNNNNNCSGTTR_1_3_YES" ,
+#       "NEUROG1_TCF3_TCGCAC40NCCT_YIII_NMCATCTGYYN_m1_c3b0u_short_composite",
+#       "NR2C1_HT-SELEX_TATTCA40NAGT_KT_NRRGGTCAN_1_4_YES",                              
+#       "NR2C1_Methyl-HT-SELEX_TACGGC40NAGT_KT_NRAGGTCAN_1_4_YES",
+#       "POU4F1_HT-SELEX_TACAAA20NAAC_Y_ATGMATAATTAATG_2_3_YES" , 
+#       "RARA_HT-SELEX_TGAACC40NCCA_KS_NRRGGTCANN_1_4_NO" ,  
+#       "RFX1_HT-SELEX_TTTAGG40NTCT_KS_NGTTRCCATGGYAACN_1_3_NO" ,
+#       "RFX3_HT-SELEX_TCCACC40NTTA_KS_NGTTGCCWAGCAACN_1_2_NO",
+#       "RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_TRGYAACNNNNCASSTGNN_1_3_YES",
+#       "RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_GTTGCYNNNNNNNNNNNNCASSTG_1_3_YES" ,
+#       "RFX7_HT-SELEX_TGAGTT40NCGG_KT_NGTTGCYAN_1_3_NO",
+#       "TCF12_HT-SELEX_TTTGAG40NATT_KS_NCACSTGN_1_3_NO",
+#       "TEAD1_HT-SELEX_TCTTAG20NATG_W_RCATTCCNNRCATWCCN_2_4_YES" ,
+#       "TEAD2_Methyl-HT-SELEX_TCGCAA40NTGT_KX_NRCATTCCWN_1_2_NO"  ,
+#       "ETV5_TCF3_CAP-SELEX_TCGTCC40NGCC_AY_RNCGGAAGNNNNNCASSTGN_1_2_YES",
+#       "CUX1_HT-SELEX_TTAGCG40NAGA_KP_NYATYGATYN_1_3_YES",        
+#       "CUX2_HT-SELEX_TCCACC40NTTA_KP_NTGATCGATYRN_1_3_NO",  
+#       "KLF12_Methyl-HT-SELEX_TAACTG40NGTA_KX_NRCCACGCCCW_1_3_YES",  "SOX10_HT-SELEX_TTGCCA40NGTG_KAF_AACAATNNNNNNATTGTT_1_3_YES")     
+
+
+
+#rownames(epithelial_orig)[match(tmp,rownames(epithelial_orig))]
+# p_cell_group_matrix=p_cell_group_matrix[match(tmp,rownames(p_cell_group_matrix_orig)),]
+# e_cell_group_matrix=e_cell_group_matrix[match(tmp,rownames(p_cell_group_matrix_orig)),]                      
+# p_cell_group_matrix_orig=p_cell_group_matrix_orig[match(tmp,rownames(p_cell_group_matrix_orig)),]                      
+
+
+#save.image(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
+#load(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
+
+
+
+
+
+paletteLength=100
+color = colorRampPalette(rev(brewer.pal(n = 7, name =
+                                          "RdBu")))(paletteLength)
+
+#color <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+# length(breaks) == length(paletteLength) + 1
+# use floor and ceiling to deal with even/odd length pallettelengths
+myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
+              seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
+
+
+pdf(file = paste0(scratch, "Figures/cell_group_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(t(p_cell_group_matrix))/44), height=4*nrow(t(p_cell_group_matrix))/7 )
+
+pheatmap(t(p_cell_group_matrix), color=color, clustering_method="complete",legend=TRUE,
+         cluster_rows = FALSE,
+         cluster_cols = FALSE,
+         breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
+dev.off()
+
+
+
+
+#Interactive heatmap
+
+
+#install.packages("heatmaply")
+p_cell_group_matrix_saturated=p_cell_group_matrix
+saturated_threshold=100
+p_cell_group_matrix_saturated[p_cell_group_matrix_saturated > saturated_threshold] <- saturated_threshold
+p_cell_group_matrix_saturated[p_cell_group_matrix_saturated < -saturated_threshold] <- -saturated_threshold
+
+#get the info for the TFs from metadata table
+
+metadata=representatives[match(rownames(p_cell_group_matrix_orig), representatives$ID),]
+#[1] "ID"                   "symbol"               "clone"                "family"               "Lambert2018.families"
+  #[6] "organism"             "study"                "experiment"           "ligand"               "batch"               
+  #[11] "seed"                 "multinomial"          "cycle"                "representative"       "new_representative"  
+  #[16] "short"                "type"                 "comment"              "filename"             "IC"                  
+  #[21] "length" "match_numbers", "MOODS_threshold"
+  
+  test=matrix(rep(metadata$ID,each=7), ncol=nrow(p_cell_group_matrix), byrow=FALSE)
+  
+  mat=t(p_cell_group_matrix_orig) #7 x 44 (63?)
+  mat[]<-paste("Motif: ", matrix(rep(metadata$ID,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE) ,
+               "\nFamily: ", matrix(rep(metadata$Lambert2018_families,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+               "\nStudy: ", matrix(rep(metadata$study,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+               "\n-log10 pvalue:", mat, 
+               "\nlog2FC: ", t(e_cell_group_matrix),
+               "\nIC: ", matrix(rep(metadata$IC,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+               "\nlength: ", matrix(rep(metadata$length,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+               "\nmatch numbers: ", matrix(rep(metadata$match_numbers,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+               "\nMOODS threshold: ", matrix(rep(metadata$threshold,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE)
+  )
+  
+  #mat[] <- 
+  #  
+  #  lapply( colnames(mat), function(colname) {
+  #  paste0("\nFamily ", metadata[ metadata$ID==colname, "Lambert2018.families"])} )
+  # Create heatmap with heatmaply
+  heatmaply(t(p_cell_group_matrix_saturated),
+            col=colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100),
+            legend=TRUE,
+            showticklabels = T,
+            ColSideColors = data.frame(Family=metadata$Lambert2018_families),
+            custom_hovertext=mat,
+            row_text_angle = 0,
+            plot_method="plotly",
+            column_text_angle = 45,
+            subplot_margin = 0,
+            cellnote = NULL,
+            cellnote_color = "auto",
+            cellnote_textposition = "middle right",
+            cellnote_size = 12,
+            margins = c(NA, NA, NA, NA),
+            scale = NULL, # Scale the data
+            symm = FALSE,  # Make the heatmap symmetric
+            dendrogram = "none",  # Show dendrograms on both rows and columns
+            k_row = 2,  # Show 2 clusters in row dendrogram
+            k_col = 2,  # Show 2 clusters in column dendrogram
+            cluster_row = FALSE,  # Cluster rows
+            cluster_col = FALSE,  # Cluster columns
+            xlab = "",  # X-axis label
+            ylab = "",  # Y-axis label
+            main = ct_group,  # Title of the plot
+            colorbar = TRUE,  # Show color bar
+            key.title = "-log10 p-value \n Negative (blue) indicates depletion",
+            colorbar_xanchor = "left",
+            colorbar_yanchor = "middle",
+            colorbar_xpos = 1.025,
+            colorbar_ypos = 0.25,
+            #colorbar_len = 0.4,
+            colorbar_thickness = 30,
+            fixed=FALSE,
+            fontsize_row = 14,
+            fontsize_col = 14,
+            side_color_colorbar_len = 0.5,
+            prefix="",
+            #width = NULL,
+            #height = NULL,
+            file=paste0("/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys/",ct_group,".html")
+  )
+  
+  
+  
+  #browseURL("/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys/epithelial.html")
+  #browseURL("/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys/",ct_group,".html")
+
+
+
+
+}
+
+
+#Volcano plots, separate figure for each cell type group
+
+# Sample data
+library("gridExtra")
+
+for( ct_group in names(cell_type_groups) ){
+
+  print(ct_group)
+  #ct_group="Epithelial 1"
+
+  #grid size
+  grid_size=ceiling(sqrt(length(cell_type_groups[[ct_group]])))
+
+  plots<-list()
+
+  for(ct in cell_type_groups[[ct_group]]){
+    #ct=cell_type_groups[[ct_group]][1] 
+    data <- data.frame(
+      name = rownames(e_matrix),
+      shorter_name=shorter_names$symbol,
+      log2FoldChange = e_matrix[,ct], # random log2 fold changes
+      minusLog10Pvalue  = -p_matrix[,ct]          # 
+    )
+    
+    data$pvalue <- 10^{-data$minusLog10Pvalue}
+    
+    # Thresholds
+    lfc_threshold <- 1
+    pvalue_threshold <- 0.01
+    
+    significant_motifs<- data[(data$log2FoldChange > lfc_threshold | data$log2FoldChange < -lfc_threshold) & data$pvalue < pvalue_threshold, ]
+    
+    
+    plots[[ct]]=ggplot(data, aes(x=log2FoldChange, y=minusLog10Pvalue)) +
+      geom_point(aes(color = (abs(log2FoldChange) > lfc_threshold & pvalue < pvalue_threshold)), 
+                 alpha = 0.6) +
+      scale_color_manual(values = c("FALSE"="grey", "TRUE"="red")) + 
+      geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
+      geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype="dashed") +
+      geom_text(data=significant_motifs, aes(label=shorter_name), vjust=-0.5, hjust=0.5, size=3.5, check_overlap = TRUE) +
+      theme_minimal() +
+      theme_minimal() +
+      labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value", color="Significant") 
+    
+    
+  }
+  
+  pdf(file = paste0(scratch, "Figures/cell_group_volcanoes/",ct_group,".pdf"), width=8*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots, ncol = grid_size))  
+  dev.off()
+    
+}
+
+
+
 
 
 #cluster the heatmap
@@ -326,399 +808,8 @@ dev.off()
 
 #cutree_cols=2)
 
-#Epithelial
-#Visualise the Hepatocyte, Acinar, Parietal, Chief, Foveolar, G. Neuroendo, Ductal, 
 
-#which are depleted 
-depleted=which(e_matrix<0)
-p_matrix_depleted=-p_matrix
-p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
-p_matrix_depleted_orig=p_matrix_depleted
-
-
-rownames(p_matrix_depleted)=shorter_names$symbol
-rownames(e_matrix)=shorter_names$symbol
-
-epithelial=p_matrix_depleted[, which( colnames(p_matrix_depleted) %in% 
-                                        c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal") )]
-e_epithelial=e_matrix[, which( colnames(e_matrix) %in% 
-                                          c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal") )]
-
-epithelial_orig=p_matrix_depleted_orig[, which( colnames(p_matrix_depleted_orig) %in% 
-                                        c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal") )]
-
-
-#Cell type groups from Zhang et al. Figure 1
-
-
-
-cell_type_groups<-list()
-
-
-cell_type_groups[["Epithelial 1"]]=c("Parietal Cell",
-                                     "Chief cell",
-                                     "Pancreatic Acinal Cell",
-                                     "Ductal Cell",
-                                     "Gastric Neuroendocrine",
-                                     "Foveolar Cell",
-                                     "Hepatocyte")
-
-
-
-
-cell_type_groups[["Stromal"]]=c("Mesothelial cell",
-                                "Adipocyte",
-                                "Luteal Cell (Ovarian)",
-                                "Schwann Cell (General)",
-                                "Pericyte (General) 1",
-                                "Fibroblast (Peripheral Nerve)",
-                                "Smooth Muscle (Uterine)",
-                                "Smooth Muschle (General)",
-                                "Vascular Smooth Muscle 2",
-                                "Vascular Smooth Muscle 1",
-                                "Pericyte (General 2)",
-                                "Melanocyte",
-                                "Smooth Muscle (Esophageal Muscularis) 3",
-                                "Fibroblast (Gastrointestinal)",
-                                "Cardiac Fibroblasts",
-                                "Fibroblast (General)",
-                                "Fibroblast (Epithelial)",
-                                "Fibroblast (Sk Muscle Associated)",
-                                "Peripheral Nerve Stromal",
-                                "Satellite Cell")
-
-cell_type_groups[["Smooth Muscle"]]=c("Smooth Muscle (Esophageal Muscularis) 2",
-                                      "Smooth Muscle (Esophageal Muscularis) 1",
-                                      "Smooth Muscle (GE Juction)",
-                                      "Smooth Muscle (Colon) 2",
-                                      "Smooth Muscle (Colon) 1",
-                                      "Smooth Muscle (General Gastrointestinal)",
-                                      "Smooth Muscle (Esophageal Mucosal)",
-                                      "Smooth Muscle (Vaginal)")
-
-cell_type_groups[["Myocyte"]]=c("Atrial Cardiomyocyte",
-                                "Ventricular Cardiomyocyte",
-                                "Type II Skeletal Myocyte",
-                                "Type I Skeletal Myocyte")
-
-cell_type_groups[["Mural"]]=c("Pericyte (General) 3",
-                              "Cardiac Pericyte 1",
-                              "Pericyte (Esophageal Muscularis",
-                              "Cardiac Pericyte 2",
-                              "Pericyte (General) 4",
-                              "Cardiac Pericyte 3",
-                              "Fibroblast (Liver Adrenal)",
-                              "Cardiac Pericyte 4"
-                              )
-
-cell_type_groups[["Adrenal Corted"]]=c("Zona Fasciculate Cortical Cell",
-                                       "Transitional Zone Cortical Cell",
-                                       "Zona Glomerulose Cortical Cell",
-                                       "Cortical Epithelial-like"
-                                       )
-
-cell_type_groups[["Immune Lymp"]]=c("Mast Cell",
-                                     "Naive T cell",
-                                     "T lymphocyte 2 (CD4+)",
-                                     "T lymphocyte 1 (CD8+)",
-                                     "Natural Killer T Cell",
-                                     "Memory B Cell",
-                                     "Plasma Cell"
-                                     )
-
-cell_type_groups[["Immune Myelo"]]=c("Macrophage (General / Alveolar)",
-                                    "Macrophage (General)",
-                                    "Microglia")
-
-cell_type_groups[["Endothelial"]]=c("Endothelial Cell (Myocardial)",
-                                    "Endothelial Cell (General) 1",
-                                    "Endothelial Cell (General) 2",
-                                    "Lymphatic Endothelial Cell",
-                                    "Alveolar Capillary Endothelial Cell",
-                                    "Endocardial Cell",
-                                    "Endothelial (Exocrine Tissues)",
-                                    "Endothelial Cell (General) 3",
-                                    "Blood Bran Barrier Endothelial Cell")
-  
-cell_type_groups[["Brain glia"]]=c("Oligodendrocyte",
-                                     "Oligodendrocyte precursor",
-                                     "Astrocyte 1",
-                                     "CNS / Enteric Neuron",
-                                     "Astrocyte 2"
-                                     )
-
-cell_type_groups[["Brain neuron"]]=c("GABAergic Neuron 2",
-                                     "GABAergic Neuron 1",
-                                     "Glutamatergic Neuron 2",
-                                     "Glutamatergic Neuron 1")
-
-cell_type_groups[["Islet"]]=c("Pancreatic Alpha Cell 2",
-                              "Pancreatic Beta Cell 2",
-                              "Pancreatic Delta / Gamma cell",
-                              "Pancreatic Beta Cell 1",
-                              "Pancreatic Alpha Cell 1")
-
-
-
-cell_type_groups[["Epithelial 2"]]=c("Alveolar Type 1 (AT1) Cell",
-                                     "Alveolar Type 2 (AT2) Cell",
-                                     "Alveolar Type 2 / Immune",
-                                     "Club Cell",
-                                     "Thyroid Follicular Cell",
-                                     "Ciliated Cell")
-
-cell_type_groups[["Epithelial 3"]]=c("Keratinocyte 1",
-                                     "Esophageal Epithelial Cell",
-                                     "Keratinocyte 2",
-                                     "Basal Epidermal (Skin)",
-                                     "Airway Goblet Cell",
-                                     "Eccrine Epidermal (Skin)",
-                                     "Mammary epithelial",
-                                     "Basal Epithelial (Mammary)",
-                                     "Granular Epithelial (Mammary)",
-                                     "Mammary Luminal Epithelial Cell 2",
-                                     "Mammary Luminal Epithelial Cell 1",
-                                     "Myoepithelial (Skin)",
-                                     )
-
-
-cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
-                                      "Enterochromaffin Cell",
-                                      "Tuft Cell",
-                                      "Small Intestinal Goblet Cell",
-                                      "Small Intestinal Enterocyte",
-                                      "Colonic Goblet Cell",
-                                      "Colon Epithelial Cell 1",
-                                      "Colon Epithelial Cell 2",
-                                      "Colon Epithelial Cell 3")
-
-
-
-
-
-
-       
-#what are the 10 most enriched motifs for these cell lines       
-
-most_enriched<-list()
-most_enriched_orig<-list()
-for(c in colnames(epithelial)){
-  
-  most_enriched[[c]]=names(sort(epithelial[,c], decreasing = TRUE)[1:10])
-  most_enriched_orig[[c]]=names(sort(epithelial_orig[,c], decreasing = TRUE)[1:10])
-  
-}
-
-length(unlist(most_enriched)) #70
-most_enriched=unique(unlist(most_enriched)) #33
-
-length(unlist(most_enriched_orig)) #70
-most_enriched_orig=unique(unlist(most_enriched_orig)) #44
-
-#index
-index=which(rownames(epithelial_orig) %in% unlist(most_enriched_orig))
-
-epithelial=epithelial[index,] 
-e_epithelial=e_epithelial[index,] 
-epithelial_orig=epithelial_orig[index,] 
-
-
-#epithelial[
-#  order( epithelial[,1], epithelial[,2],epithelial[,3],epithelial[,4],epithelial[,5],epithelial[,6] , decreasing=FALSE),
-#]
-
-#epithelial[
-#  with(epithelial, order("Foveolar", decreasing=FALSE)),
-#]
-
-#epithelial=epithelial[
-#  order( epithelial[,c( "Foveolar")] ),
-#]
-
-epithelial=epithelial[,c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal")]
-epithelial_orig=epithelial_orig[,c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal")]
-e_epithelial=e_epithelial[,c("Hepatocyte", "Acinar", "Parietal", "Chief", "Foveolar", "Gastric Neuroendocrine", "Ductal")]
-
-#epithelial=epithelial[order(rownames(epithelial)),]
-
-#Vierstra
-#epithelial=epithelial[c("HNF1A","HNF4A","ESRRA","GATA2","GATA3","GATA5", "FOXA1", "FOXA2" , "FOXC2",  "FOXD2",  "ONECUT1",  "ONECUT2",  "NR2F1", "BARHL1_TEAD4", "CEBPB_FOXD2",
-#  "CEBPG",  "FIGLA",  "FOSL1", "GSC2_TEAD4", "HOXA10_TEAD4", "HOXB2_TCF3", "HOXD12_TEAD4", "ID4", "JUN", "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3",
-#"NR2C1", "OTX1_TEAD4", "POU4F1", "RARA","RFX1", "RFX3",  "RFX3_FIGLA", "TCF12", "TEAD2", "TFAP4_FLI1" ),]
-
-#epithelial=epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
-#                        "HOXB2_TCF3",  "ID4", "JUN",  
-#"LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3", "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
-                        
-#e_epithelial=e_epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
-#                        "HOXB2_TCF3",  "ID4", "JUN",  
-#                        "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3",
-#                        "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
-
-tmp=c("HNF1A_HT-SELEX_TGAGCA20NCGA_W_NRTTAATNATTAACN_1_2_YES", 
-"HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGGTCRN_1_3_NO",
-"HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGTCCRN_1_3_NO" ,                        
-"HNF4A_HT-SELEX_TCCGTG40NTGC_AI_RRGGTCAAAGTCCRNN_1_3_YES",
-"HNF4A_Methyl-HT-SELEX_TTGTTT40NGGC_KO_NRGGTCAAAGGTCAN_1_3_NO"  ,
-"ESRRA_HT-SELEX_TAGACC40NAGT_KO_NYCAAGGTCAN_1_3_NO",
-"GATA2_HT-SELEX_TGAGGT40NTCC_KR_NYGATAASN_1_2_YES",
-"GATA2_Methyl-HT-SELEX_TATGCA40NGAG_KR_NWGATAASN_1_2_YES",
-"GATA3_HT-SELEX_TTCGTT40NGCC_KX_NGATAAGATCW_1_3_YES",
-"GATA5_Methyl-HT-SELEX_TTACTT40NTAT_KW_NWGATAASRN_1_2_NO" ,
-"FOXA1_HT-SELEX_TTCTAA40NAAT_KN_TRNGTAAACA_1_3b1_NA",                            
-"FOXA2_HT-SELEX_TAGCTG40NCTA_KT_NWNWGTMAATATTKRYNYWN_2_4_NO",
-"FOXC2_TCF3_TGACGT40NAGC_YIII_NCACCTGNRTAAAYAN_m1_c3b0u_short_composite",
-"FOXD2_HT-SELEX_TCGCCG40NTGC_KO_NYWANGTAAACAN_1_4_YES",
-"FOXD2_Methyl-HT-SELEX_TCATCT40NATT_KO_NYWANGTAAACAN_1_4_YES"   ,
-"ONECUT1_Methyl-HT-SELEX_TGGCCG40NGCT_KW_NTATTGATCSGN_1_4_NO",                   
-"ONECUT2_Methyl-HT-SELEX_TCCGGA40NGTC_KZ_NTATTGATTWN_1_2_NO" ,
-"CEBPB_FOXD2_TCCTCT40NGTC_YWI_NTTRYGTAAACAN_m1_c3b0_short_composite",
-"CEBPG_HT-SELEX_TAAAAT20NCG_AC_NTTRCGCAAY_1_2_NO",
-"FIGLA_HT-SELEX_AGATA14N_U_NNCACCTGNN_1_4_NO" ,
-"GSC2_TEAD4_TTTCTA40NCAT_YJII_NMRTTAACATTCCN_m1_c3b0_short_spacing" ,
-"HOXB2_TCF3_CAP-SELEX_TGAAGC40NCTA_AY_NCACCTGNNNNNMATTA_1_3_YES" ,
-"ID4_HT-SELEX_CTACA14N_U_NRCACCTGNN_1_4_YES"  ,
-"JUN_HT-SELEX_TCAGTG40NGAT_KAE_NATGACKCATN_1_3b0_NO",
-"LMX1A_BACH2_TTATTT40NCGT_YACIIII_TGASTCANNNNNNNNNNTAATTA_m1_c3b0_short_spacing",
-"MYBL1_FIGLA_CAP-SELEX_TCAGCC40NTTC_AX_NCASSTGNNNNNNNCSGTTR_1_3_YES" ,
-"NEUROG1_TCF3_TCGCAC40NCCT_YIII_NMCATCTGYYN_m1_c3b0u_short_composite",
-"NR2C1_HT-SELEX_TATTCA40NAGT_KT_NRRGGTCAN_1_4_YES",                              
-"NR2C1_Methyl-HT-SELEX_TACGGC40NAGT_KT_NRAGGTCAN_1_4_YES",
-"POU4F1_HT-SELEX_TACAAA20NAAC_Y_ATGMATAATTAATG_2_3_YES" , 
-"RARA_HT-SELEX_TGAACC40NCCA_KS_NRRGGTCANN_1_4_NO" ,  
-"RFX1_HT-SELEX_TTTAGG40NTCT_KS_NGTTRCCATGGYAACN_1_3_NO" ,
-"RFX3_HT-SELEX_TCCACC40NTTA_KS_NGTTGCCWAGCAACN_1_2_NO",
-"RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_TRGYAACNNNNCASSTGNN_1_3_YES",
-"RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_GTTGCYNNNNNNNNNNNNCASSTG_1_3_YES" ,
-"RFX7_HT-SELEX_TGAGTT40NCGG_KT_NGTTGCYAN_1_3_NO",
-"TCF12_HT-SELEX_TTTGAG40NATT_KS_NCACSTGN_1_3_NO",
-"TEAD1_HT-SELEX_TCTTAG20NATG_W_RCATTCCNNRCATWCCN_2_4_YES" ,
-"TEAD2_Methyl-HT-SELEX_TCGCAA40NTGT_KX_NRCATTCCWN_1_2_NO"  ,
-"ETV5_TCF3_CAP-SELEX_TCGTCC40NGCC_AY_RNCGGAAGNNNNNCASSTGN_1_2_YES",
-"CUX1_HT-SELEX_TTAGCG40NAGA_KP_NYATYGATYN_1_3_YES",        
-"CUX2_HT-SELEX_TCCACC40NTTA_KP_NTGATCGATYRN_1_3_NO",  
-"KLF12_Methyl-HT-SELEX_TAACTG40NGTA_KX_NRCCACGCCCW_1_3_YES",  "SOX10_HT-SELEX_TTGCCA40NGTG_KAF_AACAATNNNNNNATTGTT_1_3_YES")     
-
-                  
-
-#rownames(epithelial_orig)[match(tmp,rownames(epithelial_orig))]
-epithelial=epithelial[match(tmp,rownames(epithelial_orig)),]
-e_epithelial=e_epithelial[match(tmp,rownames(epithelial_orig)),]                      
-epithelial_orig=epithelial_orig[match(tmp,rownames(epithelial_orig)),]                      
-
-
-#save.image(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
-load(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
-
-
-library(grid)
-source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
-
-library("RColorBrewer")
-paletteLength=100
-color = colorRampPalette(rev(brewer.pal(n = 7, name =
-                                          "RdBu")))(paletteLength)
-
-#color <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
-# length(breaks) == length(paletteLength) + 1
-# use floor and ceiling to deal with even/odd length pallettelengths
-myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
-              seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
-
-library("pheatmap")
-pdf(file = paste0(scratch, "Figures/top300000/adult-epithelial-heatmap.pdf"), width=8, height=4 )
-
-pheatmap(t(epithelial), color=color, clustering_method="complete",legend=TRUE,
-         cluster_rows = FALSE,
-         cluster_cols = FALSE,
-         breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
-dev.off()
-
-#Interactive heatmap
-
-library(heatmaply)
-library(RColorBrewer)
-#install.packages("heatmaply")
-epithelial_saturated=epithelial
-saturated_threshold=100
-epithelial_saturated[epithelial_saturated > saturated_threshold] <- saturated_threshold
-epithelial_saturated[epithelial_saturated < -saturated_threshold] <- -saturated_threshold
-
-#get the info for the TFs from metadata table
-
-metadata=representatives[match(rownames(epithelial_orig), representatives$ID),]
-[#1] "ID"                   "symbol"               "clone"                "family"               "Lambert2018.families"
-#[6] "organism"             "study"                "experiment"           "ligand"               "batch"               
-#[11] "seed"                 "multinomial"          "cycle"                "representative"       "new_representative"  
-#[16] "short"                "type"                 "comment"              "filename"             "IC"                  
-#[21] "length" "match_numbers", "MOODS_threshold"
-  
-  test=matrix(rep(metadata$ID,each=7), ncol=44, byrow=FALSE)
-
-mat=t(epithelial_orig) #7 x 44
-mat[]<-paste("Motif: ", matrix(rep(metadata$ID,7), ncol = 44, byrow=TRUE) ,
-             "\nFamily: ", matrix(rep(metadata$Lambert2018.families,7), ncol = 44, byrow=TRUE),
-             "\nStudy: ", matrix(rep(metadata$study,7), ncol = 44, byrow=TRUE),
-             "\n-log10 pvalue:", mat, 
-             "\nlog2FC: ", t(e_epithelial),
-             "\nIC: ", matrix(rep(metadata$IC,7), ncol = 44, byrow=TRUE),
-             "\nlength: ", matrix(rep(metadata$length,7), ncol = 44, byrow=TRUE),
-             "\nmatch numbers: ", matrix(rep(metadata$match_numbers,7), ncol = 44, byrow=TRUE),
-             "\nMOODS threshold: ", matrix(rep(metadata$MOODS_threshold,7), ncol = 44, byrow=TRUE)
-             )
-
-#mat[] <- 
-#  
-#  lapply( colnames(mat), function(colname) {
-#  paste0("\nFamily ", metadata[ metadata$ID==colname, "Lambert2018.families"])} )
-# Create heatmap with heatmaply
-heatmaply(t(epithelial_saturated),
-          col=colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100),
-          legend=TRUE,
-          showticklabels = T,
-          ColSideColors = data.frame(Family=metadata$Lambert2018.families),
-          custom_hovertext=mat,
-          row_text_angle = 0,
-          plot_method="plotly",
-          column_text_angle = 45,
-          subplot_margin = 0,
-          cellnote = NULL,
-          cellnote_color = "auto",
-          cellnote_textposition = "middle right",
-          cellnote_size = 12,
-          margins = c(NA, NA, NA, NA),
-          scale = NULL, # Scale the data
-          symm = FALSE,  # Make the heatmap symmetric
-          dendrogram = "none",  # Show dendrograms on both rows and columns
-          k_row = 2,  # Show 2 clusters in row dendrogram
-          k_col = 2,  # Show 2 clusters in column dendrogram
-          cluster_row = FALSE,  # Cluster rows
-          cluster_col = FALSE,  # Cluster columns
-          xlab = "",  # X-axis label
-          ylab = "",  # Y-axis label
-          main = "Epithelial cells",  # Title of the plot
-          colorbar = TRUE,  # Show color bar
-          key.title = "-log10 p-value \n Negative (blue) indicates depletion",
-          colorbar_xanchor = "left",
-          colorbar_yanchor = "middle",
-          colorbar_xpos = 1.025,
-          colorbar_ypos = 0.25,
-          #colorbar_len = 0.4,
-          colorbar_thickness = 30,
-          fixed=FALSE,
-          fontsize_row = 14,
-          fontsize_col = 14,
-          side_color_colorbar_len = 0.5,
-          prefix="",
-          #width = NULL,
-          #height = NULL,
-          file="/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys/epithelial.html"
-)
-
-
-
-browseURL("/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys/epithelial.html")
 
 
 

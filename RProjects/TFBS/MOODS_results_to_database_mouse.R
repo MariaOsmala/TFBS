@@ -10,7 +10,7 @@ library("dbplyr")
 library("dplyr")
 
 
-#arrays <- as.numeric(commandArgs(trailingOnly = TRUE))
+arrays <- as.numeric(commandArgs(trailingOnly = TRUE))
 #arrays=0-39
 
 setwd("/scratch/project_2006203/TFBS/")
@@ -24,7 +24,8 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_4/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_3/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_2/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_2/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_moouse_mm39_final_processed/"
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -53,20 +54,26 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_moouse_mm39_final/"
 chrom_lengths=read.table("/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/mm39.chrom.sizes")
 seqlengths=chrom_lengths[,2]
 names(seqlengths)=chrom_lengths[,1]
 seqlengths=seqlengths[paste0("chr", c(as.character(seq(1,19,1)), "X", "Y"))]
 
 
-for(arrays in 0:5){ #0:39 0:10 0:7 0:5  - all 4 3 2
+#for(arrays in 0:5){ #0:39 0:10 0:7 0:5  - all 4 3 2
 
 start_ind=arrays*10 #100
 end_ind=(arrays+1)*10-1 #100
 len=10 #100
 
 #3982+15=3997
+
+
+if(end_ind>330){ # 398 
+  end_ind=330
+}
 
 #Old
 #if(end_ind>398){ # 398 
@@ -85,9 +92,9 @@ len=10 #100
 #  end_ind=73
 #}
 
-if(end_ind>56){ #  57
-  end_ind=56
-}
+#if(end_ind>56){ #  57
+#  end_ind=56
+#}
 
 
 #DBI::dbDisconnect(con)
@@ -178,21 +185,21 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
   
   
    #
-      motif_matches[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges
+   #   motif_matches[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges
       motif_matches_top[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges_top
    #
    #
-      export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
+   #   export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
       export.bed(tmp_GRanges_top, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
    #
    #
     }
    #
-    saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
+   # saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
     saveRDS(motif_matches_top, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds")) #1.5GB
 
 }
-} #0-39
+#} #0-39
 
 
 #DBI::dbDisconnect(con)

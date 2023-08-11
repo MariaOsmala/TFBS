@@ -1,7 +1,8 @@
 #!/bin/bash
 
 #!/bin/bash
-array=$1 #this varies between 0 and 399
+array=$1 #this varies between 0 and 399 when 3982 motifs
+#When 3294 motifs varies between 0 and 329
 
 
 
@@ -14,7 +15,8 @@ S=/projappl/project_2006203/Genomes/Homo_sapiens/chr_sequences.fa #What is this?
 
 n=300000 #the number of best hits
 
-outfile="/scratch/project_2006203/TFBS/Results/MOODS_Teemu/MOODS_"$array".csv.gz"
+outfolder=/scratch/project_2006203/TFBS/Results/MOODS_human_final/
+mkdir $outfolder
 #outfile=../Results/MOODS/MOODS_"$array".csv"
 
 #rename Yimengs motifs, add 
@@ -39,7 +41,7 @@ outfile="/scratch/project_2006203/TFBS/Results/MOODS_Teemu/MOODS_"$array".csv.gz
 
 
 
-pwms=($(ls ../PWMs/*/pwms_space/*/*.pfm)) #3982
+pwms=($(ls ../PWMs_final/*/pwms_space/*/*.pfm)) #3294
 
 
 
@@ -49,14 +51,16 @@ pwms=($(ls ../PWMs/*/pwms_space/*/*.pfm)) #3982
 #echo "${#pwms[@]}"
 #echo "${pwms[@]}"
 
-nro_pwms=${#pwms[@]}
+nro_pwms=${#pwms[@]} #3294
 
 
 start_ind=$(($array*10)) #100
 end_ind=$((($array+1)*10 -1)) #100
 length=10 #100
 
-if [[ $end_ind -gt $(($nro_pwms-1)) ]]
+#index is from 0 to 3293
+
+if [[ $end_ind -gt $(($nro_pwms-1)) ]] #3309 > 3293
 then
      echo $end_ind is greater than $(($nro_pwms-1))
      length=$(($nro_pwms-$start_ind+1))
@@ -143,7 +147,10 @@ export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 #joka generoi taustajakauman (en tosin ole biologi, joten en tiedä kannattaako minuun luottaa tässä.)
 
 
-moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 5 -s $S | gzip > $outfile #${array[@]:START:LENGTH}
+moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"$array".csv.gz" 
+
+cd $LOCAL_SCRATCH
+cp MOODS_"$array".csv.gz $outfolder 
 
 #gzip $outfile
 

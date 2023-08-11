@@ -1,3 +1,6 @@
+print(sessionInfo())
+print(.libPaths())
+
 library("GenomicRanges")
 library("readr")
 library("data.table")
@@ -9,10 +12,12 @@ library(rtracklayer)
 library("dbplyr")
 library("dplyr")
 
+print(sessionInfo())
+print(.libPaths())
 
-#arrays <- as.numeric(commandArgs(trailingOnly = TRUE))
+arrays <- as.numeric(commandArgs(trailingOnly = TRUE))
 #arrays=0-39
-
+print(arrays)
 setwd("/scratch/project_2006203/TFBS/")
 
 #results_path="/scratch/project_2006472/MOODS/"
@@ -21,7 +26,8 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3_processed/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2_processed/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final_processed/"
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -33,8 +39,21 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 
 #saveRDS(gtf,"RProjects/TFBS/gtf.Rds")
 
-
+#Is this the right genome version, YES, the genome lengths of gtf and bsg from Bsgenome are the same
 gtf<-readRDS("RProjects/TFBS/gtf.Rds")
+
+#1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16 
+#248956422 242193529 198295559 190214555 181538259 170805979 159345973 145138636 138394717 133797422 135086622 133275309 114364328 107043718 101991189  90338345 
+#17        18        19        20        21        22         X         Y 
+#83257441  80373285  58617616  64444167  46709983  50818468 156040895  57227415 
+
+#library(BSgenome.Hsapiens.UCSC.hg38)
+#bsg <- BSgenome.Hsapiens.UCSC.hg38
+#seq_len_GRCh38=seqlengths(bsg)[paste0("chr",c(as.character(seq(1,22,1)), "X", "Y"))]
+#chr1      chr2      chr3      chr4      chr5      chr6      chr7      chr8      chr9     chr10     chr11     chr12     chr13     chr14     chr15     chr16 
+#248956422 242193529 198295559 190214555 181538259 170805979 159345973 145138636 138394717 133797422 135086622 133275309 114364328 107043718 101991189  90338345 
+#chr17     chr18     chr19     chr20     chr21     chr22      chrX      chrY 
+#83257441  80373285  58617616  64444167  46709983  50818468 156040895  57227415 
 
 #Uncomment if writing to database
 #con <- DBI::dbConnect(RSQLite::SQLite(), "Results/MOODS_Vierstra_SQLite/motif-hits.sqlite")
@@ -46,11 +65,11 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 
-
-for(arrays in 0:39){ #0:39 0:10 0:7 0:5
+#for(arrays in 0:33){ #0:39 0:10 0:7 0:5
 
 start_ind=arrays*10 #100
 end_ind=(arrays+1)*10-1 #100
@@ -63,8 +82,14 @@ len=10 #100
 #  end_ind=398
 #}
 
-if(end_ind>399){ # 398 
-  end_ind=399
+#if(end_ind>399){ # 398 
+#  end_ind=399
+#}
+
+#3294 motifs
+
+if(end_ind>329){ # 398 
+  end_ind=329
 }
 
 #if(end_ind>102){ #  102
@@ -145,7 +170,7 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
   
   #MOODS output is 0-based, GRanges is 1-based
   
-  motif_matches<-GRangesList()
+  #motif_matches<-GRangesList()
    motif_matches_top<-GRangesList()
    
    for(pwm in PWMs){
@@ -185,21 +210,21 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
   
   
    #
-      motif_matches[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges
+      #motif_matches[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges
       motif_matches_top[[ strsplit(pwm, ".pfm")[[1]] ]]=tmp_GRanges_top
    #
    #
-      export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
+      #export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
       export.bed(tmp_GRanges_top, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
    #
    #
     }
    #
-    saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
+    #saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
     saveRDS(motif_matches_top, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds")) #1.5GB
 
 }
-} #0-39
+#} #0-39
 
 
 #DBI::dbDisconnect(con)

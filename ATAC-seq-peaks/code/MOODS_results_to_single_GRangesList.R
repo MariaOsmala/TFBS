@@ -18,9 +18,12 @@ data_path="/scratch/project_2006203/TFBS/"
 #files=list.files(paste0(data_path, "Results/MOODS_Mouse_processed/MOODS_RDS"))
 #files=list.files(paste0(data_path, "Results/MOODS_Mouse_processed_4/MOODS_RDS"))
 #files=list.files(paste0(data_path, "Results/MOODS_Mouse_processed_3/MOODS_RDS"))
-files=list.files(paste0(data_path, "Results/MOODS_Mouse_processed_2/MOODS_RDS"))
-files=files[grep("top", files)]
+#files=list.files(paste0(data_path, "Results/MOODS_Mouse_processed_2/MOODS_RDS"))
 
+files=list.files(paste0(data_path, "Results/MOODS_human_final_processed/MOODS_RDS"))
+
+#files=list.files(paste0(data_path, "Results/MOODS_moouse_mm39_final_processed/MOODS_RDS"))
+files=files[grep("top", files)]
 GR_list=GRangesList()
 
 for(file in files){
@@ -36,8 +39,10 @@ for(file in files){
   #GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_Mouse_processed/MOODS_RDS/",file)) )
   #GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_Mouse_processed_4/MOODS_RDS/",file)) )
   #GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_Mouse_processed_3/MOODS_RDS/",file)) )
-  GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_Mouse_processed_2/MOODS_RDS/",file)) )
+  #GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_Mouse_processed_2/MOODS_RDS/",file)) )
   
+  GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_human_final_processed/MOODS_RDS/",file)) )
+  #GR_list=c(GR_list, readRDS(paste0(data_path,"Results/MOODS_moouse_mm39_final_processed/MOODS_RDS/",file)) )
 }
 
 #saveRDS(GR_list,  file = paste0( "../RData/all_motif_matches_sbatch.Rds")) #
@@ -51,4 +56,6 @@ for(file in files){
 #saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_Mouse.Rds")) #
 #saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_Mouse_4.Rds")) #
 #saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_Mouse_3.Rds")) #
-saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_Mouse_2.Rds")) #
+
+saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_human_final.Rds")) #
+#saveRDS(GR_list,  file = paste0(data_path, "/ATAC-seq-peaks/RData/top_motif_matches_mouse_final.Rds")) #

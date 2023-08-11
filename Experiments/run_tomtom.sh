@@ -1,12 +1,14 @@
 #!/bin/bash
 
+#Before this you need to run code/run_scpd2meme.sh
+
 export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
 
 
-base_dir="../Results/tomtom"
+results_dir="/scratch/project_2006203/Results/tomtom_final"
 
 
-meme2meme ../PWMs/*/*.meme > ${base_dir}/all.dbs.meme
+#meme2meme ../PWMs/*/*.meme > ${base_dir}/all.dbs.meme
 
 #meme2meme \
 #	databases/jaspar2022/*.meme \
@@ -14,35 +16,40 @@ meme2meme ../PWMs/*/*.meme > ${base_dir}/all.dbs.meme
 #	databases/Grand2021/*.meme \
 #> ${base_dir}/all.dbs.meme
 
-rm -rf ${base_dir}/logs && mkdir -p ${base_dir}/logs
-rm -rf ${base_dir}/tomtom && mkdir -p ${base_dir}/tomtom
+#rm -rf ${results_dir}/logs && mkdir -p ${results_dir}/logs
+rm -rf ${results_dir}/tomtom && mkdir -p ${results_dir}/tomtom
 
-cat <<__SCRIPT__ > ${base_dir}/slurm.tomtom
+cat <<__SCRIPT__ > tomtom.sh
 #!/bin/bash
-#SBATCH --job-name=motif-clustering
-#SBATCH --output=${base_dir}/logs/%J.out
-#SBATCH --error=${base_dir}/logs/%J.err
+#SBATCH --job-name=tomtom
+#SBATCH --output=/outs/%J.out
+#SBATCH --error=/errs/%J.err
 #SBATCH --account=project_2006203
 #SBATCH --time=2-00:00:00
 #SBATCH --mem-per-cpu=1G
 #SBATCH --partition=small
+#SBATCH --gres=nvme:20 
 ##SBATCH --mail-type=BEGIN #uncomment to enable mail
 
+##SBATCH --gres=nvme:50 This is in GB
+
 export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
+
+results_dir="/scratch/project_2006203/Results/tomtom_final"
 
 tomtom \
 	-dist kullback \
 	-motif-pseudo 0.1 \
 	-text \
 	-min-overlap 1 \
-	${base_dir}/all.dbs.meme ${base_dir}/all.dbs.meme \
-> ${base_dir}/tomtom/tomtom.all.txt
+	../PWMs_final/all.meme ../PWMs_final/all.meme \
+> ${results_dir}/tomtom/tomtom.all.txt
 
 __SCRIPT__
 
 JOB0=$(sbatch --export=ALL --parsable \
 	--job-name=tomtom.chunk \
-	${base_dir}/slurm.tomtom)
+	tomtom.sh
 echo $JOB0
 
 #-dist allr|ed|kullback|pearson|sandelin|blic1|blic5|llr1|llr5
