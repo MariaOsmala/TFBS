@@ -7,6 +7,9 @@ library("ggplot2")
 library(ggbreak)
 #install.packages("ggbreak")
 #library("GRanges")
+library("readr")
+library("caret")
+library("glmnet")
 
 
 #The logistic regression model predicts whether a cCRE i is specific to certain cell type (Class 1) or not (0). 
@@ -35,12 +38,11 @@ length(unique(rep_motifs))
 
 representative_motif_matches <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/representative_motif_matches_human_final.Rds")
 
-
 motifs=names(representative_motif_matches)
-
-
 cCREs_list<- readRDS(file = paste0(data_path, "ATAC-seq-peaks/RData/cCREs_list.Rds") ) #
 length(cCREs_list)
+
+sum(sapply(cCREs_list, length)) #1 091 805
 
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
@@ -57,11 +59,6 @@ names(cCREs_list)=Adult_Celltypes_mapping$`Cell type`[ match(names(cCREs_list), 
 
 
 
-
-
-
-
-
 all_cCREs=unlist(cCREs_list) #which are unique
 #length(all_cCREs) #1091805, all are of width 400 bp
 
@@ -73,49 +70,92 @@ all_cCREs=unique(all_cCREs)
 
 N=length(all_cCREs) #all possible cCREs #435142
 
-presence_matrix=matrix(0,nrow=N,ncol=length(motifs), 
-                       dimnames=list(NULL, motifs)) #N x 1000
-
-count_matrix=matrix(0,nrow=N,ncol=length(motifs), 
-                    dimnames=list(NULL, motifs)) #N x 1000
-
-#How to take the scores of multiple matches into account
-max_score_matrix=matrix(0,nrow=N,ncol=length(motifs), 
-                        dimnames=list(NULL, motifs)) #N x 1000
 
 
+presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
+#saveRDS(count_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/count_matrix.Rds")) #
+#saveRDS(max_score_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
 
-for(hits in motifs){
-  print(hits)
-  #hits=motifs[1]
-  
-  fol=findOverlaps(representative_motif_matches[[hits]], all_cCREs, type="within", ignore.strand=TRUE)
-  
-  
-  presence_matrix[unique(fol@to),hits]=1
-  
-  count_matrix[as.numeric(names(table(fol@to))), hits]=as.vector(table(fol@to))
-  
-  indices=lapply(unique(fol@to), function(x, y) which(y==x), fol@to)
-  matches=lapply(indices, function (x,y,z) y[z[x]] , y=representative_motif_matches[[hits]], z=fol@from)
-  max_score_matrix[unique(fol@to), hits]=sapply(matches, function(x) max(x$score))
-  
-  
-  
-}
+#Consider only those that are truly unique
 
-saveRDS(presence_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
-saveRDS(count_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/count_matrix.Rds")) #
-saveRDS(max_score_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
+cell_type=names(cCREs_list)[56]
+#CREs specific to this one
+
+ct_CREs=cCREs_list[[cell_type]]
+
+ol=findOverlaps(ct_CREs, all_cCREs, type="equal", ignore.strand=TRUE)
+
+length(unique(ol@from))
+length(unique(ol@to))
+table(names(all_cCREs[unique(ol@to)]))
+
+#Data frame with rows as samples, columns correspond to the presence of a motif hit, first column as the class label
+
+presence_df=as.data.frame(presence_matrix)
+presence_df$Class=0
+presence_df$Class[ol@to]=1
+
+presence_df$Class=as.factor(presence_df$Class)
+
+#Binary features, does it make sense to scale them
 
 
-library("caret")
-library("glmnet")
+class1_folds <- createFolds(which(presence_df$Class==1), k = 5)
+class2_folds <- createFolds(which(presence_df$Class==0), k = 5)
+
+
+class1_folds=lapply(class1_folds,function(x) which(presence_df$Class==1)[x] )
+class2_folds=lapply(class2_folds,function(x) which(presence_df$Class==0)[x] )
+
+library("purrr")
+combined_folds=map2(class1_folds, class2_folds, c)
+
+library(doParallel)
+cl <- makePSOCKcluster(5)
+registerDoParallel(cl)
+
+## All subsequent models are then run in parallel
+#model <- train(y ~ ., data = training, method = "rf")
+
+set.seed(123)
+models <- lapply(folds, function(test_indices) {
+  #test_indices=combined_folds[[1]]
+  trainData <- presence_df[-test_indices, ]
+  testData <- presence_df[-test_indices, ]
+  
+  lasso_model <- train(
+    Class ~ ., data = trainData,
+    method = "glmnet",
+    family = "binomial",
+    trControl = trainControl(method = "cv"),
+    tuneGrid = expand.grid(alpha = 1, lambda = seq(1, 3, by = 1)) #alpha=1 means lasso, alpha=0 is ridge regression
+  )
+  
+  best_lambda <- lasso_model$bestTune$lambda
+  # Extract coefficients for the best lambda
+  coefficients <- coef(lasso_model$finalModel, s = best_lambda)
+  print(coefficients)
+  
+  coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
+  
+  plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
+  
+  lasso_predictions <- predict(lasso_model, newdata = testData)
+  confusionMatrix(lasso_predictions, testData$Class)
+  # Here you can insert the code to train your model using 'trainData'
+  lasso_model
+})
+
+## When you are done:
+stopCluster(cl)
+
 
 data(iris)
 binary_iris <- iris[iris$Species %in% c('setosa', 'versicolor'), ] #N=100, D=5
 
 binary_iris$Species=droplevels(binary_iris$Species)
+
+
 
 colMeans(binary_iris[,1:4])
 var(binary_iris[,1:4])
