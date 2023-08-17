@@ -1,0 +1,869 @@
+
+
+rm(list=ls())
+
+library(readr)
+metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata_representatives.tsv", 
+                           delim = "\t", escape_double = FALSE, 
+                           trim_ws = TRUE)
+
+#monomers
+
+monomers=metadata[metadata$experiment!="CAP-SELEX",]
+
+monomers_representative=monomers[which(monomers$new_representative=="YES"),]
+
+#How to check which motif is heterodimeric and which is composite?
+
+representatives=metadata[which(metadata$new_representative=="YES"),]
+
+#represented_by_representatives <- read_table("~/projects/TFBS/PWMs_final/sstat_represented_by_representatives.tsv")
+
+represented_by_representatives <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/represented_by_representatives.RDS")
+
+#which are heterodimeric or composite motifs
+
+capselex=representatives[representatives$experiment=="CAP-SELEX",]
+
+capselex$type[grep("composite",capselex$ID)]="composite"
+capselex$type[grep("spacing",capselex$ID)]="spacing"
+capselex$type[grep("20230420",capselex$type)]="spacing"
+
+#spacing motif, this is not representative
+motif="OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNNCATATGN_m1_c3b0_short_20230420"
+
+#monomeric motifs for OLIG2 and EVX2
+
+tmp=monomers[grep("OLIG2",monomers$ID),] #These are not representative
+
+
+#what represents OLIG2_EVX2
+
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+
+#choose the one with higher IC
+representative=metadata %>% filter(ID %in% names(represented_by_representatives)[indices]) %>%filter(IC==max(IC)) %>% pull(ID) 
+
+#representative=names(represented_by_representatives)[indices]
+
+tmp=metadata[which(metadata$ID %in% representative),]
+
+monomers$ID[grep("OLIG2",monomers$ID)] #This is not representative
+#Common part of OLIG2 names
+
+motif=find_common_prefix(monomers$ID[grep("OLIG2",monomers$ID)])
+#test if any is representative
+#if not then
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+#can be many, Let's take the shortes
+mono_representative=names(represented_by_representatives)[indices]
+motif1=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID) #Atoh1
+
+motif=find_common_prefix(monomers$ID[grep("EVX2_HT",monomers$ID)])
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x)))) #ALX4
+mono_representative=names(represented_by_representatives)[indices]
+motif2=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID) 
+motif2=motif2[1]
+
+
+motif=metadata$ID[grep("FOXI1_ELF1",metadata$ID)] #not representative
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+
+#choose the one with higher IC
+representative2=metadata %>% filter(ID %in% names(represented_by_representatives)[indices]) %>% pull(ID) 
+
+motif=find_common_prefix(monomers$ID[grep("FOXI1",monomers$ID)])
+#test if any is representative, there is one representative dimer, do not consider that
+
+#if not then
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+#can be many, Let's take the shortes
+mono_representative=names(represented_by_representatives)[indices]
+motif21=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID) #FOXA1
+
+motif=find_common_prefix(monomers$ID[grep("ELF1",monomers$ID)]) #none of these are representative
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x)))) #
+mono_representative=names(represented_by_representatives)[indices]
+motif22=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID) 
+
+indices <- which(
+  (tomtom$Query_ID %in% c(representative2, motif21) & tomtom$Target_ID %in% c(representative2, motif21)) & 
+    tomtom$Query_ID != tomtom$Target_ID
+)
+#Optimal offset 3, orientation -
+
+indices <- which(
+  (tomtom$Query_ID %in% c(representative2, motif22) & tomtom$Target_ID %in% c(representative2, motif22)) & 
+    tomtom$Query_ID != tomtom$Target_ID
+)
+
+
+tomtom[indices,]
+#Optimal offset -4 orientation +
+
+
+#Mihin motif1 ja motif2 matchaa representative:ssa
+
+#Extract the tomtom output between these motifs
+
+#TFBS_path='/Users/osmalama/projects/TFBS/'
+# These were able to be computed only part of the motif pairs ~3 million, there should be 16 million (both directions)
+tomtom = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_final/tomtom.all.txt') #2_722_099 rows
+#remove three last rows
+tomtom <- tomtom %>% slice(1:(n()-3)) #2044862
+
+sim_lt=as.data.frame(pivot_wider(tomtom, id_cols="Query_ID",
+                                 names_from="Target_ID", values_from="E-value"))
+
+sim_lt=sim_lt[, c("Query_ID", sim_lt$Query_ID)]
+
+#sim_lt=sim_lt[,-1]
+dim(sim_lt)
+
+
+sim = matrix(0,dim(metadata)[1], dim(metadata)[1])
+dim(sim)
+tril_indices=lower.tri(sim, diag = TRUE)
+ltril_indices=lower.tri(matrix(0, nrow(sim_lt),nrow(sim_lt)), diag = TRUE)
+
+
+sim[tril_indices]=sim_lt[,-1][ltril_indices]
+sim_sym = sim + t(sim) - diag(diag(sim), nrow(sim), ncol(sim))
+
+dimnames(sim_sym)=list(sim_lt$Query_ID, sim_lt$Query_ID)
+
+sim_sym[representative, motif1] #these are the same
+sim_sym[motif1,representative]
+
+sim_sym[representative, motif2] #these are the same
+sim_sym[motif2,representative]
+
+
+
+sim_df=data.frame(sim_sym, check.names = FALSE)
+
+
+
+#tomtom ei ole välttämättä löytänyt päällekkäisyyttä monomeerin ja heterodimeerin välillä
+
+indices <- which(
+  (tomtom$Query_ID %in% c(representative, motif1) & tomtom$Target_ID %in% c(representative, motif1)) & 
+    tomtom$Query_ID != tomtom$Target_ID
+)
+
+tomtom[indices,]
+
+which(tomtom$Query_ID==representative)
+which(tomtom$Target_ID==representative)
+
+
+
+
+
+#There is two representatives, take the shorter, the other is likely multimeric
+motif2=monomers[grep("FOXK1",monomers$ID)[2],] %>% pull(ID)
+
+
+
+grep("OLIG2", capselex$ID)
+
+grep("FOXI1_ELF2", capselex$ID)
+tmp=metadata[grep("OLIG2_HT", metadata$ID),] #this is not representative
+
+
+motif="ELF1_FOXK1_TTCATT40NTAT_YXI_NAGAAAACCGAAWMN_m2_c3b0_short_composite_new" #the individual motifs do not match this
+
+#what represents ELF1_FOXK1
+
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+
+representative=names(represented_by_representatives)[indices]
+
+#monomeric motifs for ELF1 and FOXK1
+
+monomers$ID[grep("ELF1",monomers$ID)] #This is not representative
+#Common part of ELF1 names
+
+
+find_common_prefix <- function(strings) {
+  # If the vector is empty, return an empty string
+  if (length(strings) == 0) return("")
+  
+  # Find the minimum length of strings
+  min_length <- min(nchar(strings))
+  
+  # Initialize common prefix as an empty string
+  common_prefix <- ""
+  
+  # Iterate through each character position
+  for (i in 1:min_length) {
+    # Get the i-th character from each string
+    chars <- substr(strings, i, i)
+    
+    # If not all characters are the same, break
+    if (length(unique(chars)) > 1) {
+      break
+    }
+    
+    # Append the common character to the common prefix
+    common_prefix <- paste0(common_prefix, chars[1])
+  }
+  
+  return(common_prefix)
+}
+
+# Test the function
+
+motif=find_common_prefix(monomers$ID[grep("ELF1",monomers$ID)])
+#test if any is representative
+#if not then
+indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+#can be many, Let's take the shortes
+mono_representative=names(represented_by_representatives)[indices]
+motif1=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID)
+
+motif=find_common_prefix(monomers$ID[grep("FOXK1",monomers$ID)])
+#There is two representatives, take the shorter, the other is likely multimeric
+motif2=monomers[grep("FOXK1",monomers$ID)[2],] %>% pull(ID)
+
+
+
+
+
+
+#read pwms
+
+pcm=as.matrix( read.table(  metadata$filename[metadata$ID==representative] , header=FALSE) )
+
+pcm1=as.matrix( read.table(  metadata$filename[metadata$ID==motif1], header=FALSE) )
+pcm2=as.matrix( read.table(  metadata$filename[metadata$ID==motif2], header=FALSE) )
+dimnames(pcm)=list(c("A", "C", "G", "T"))
+dimnames(pcm1)=list(c("A", "C", "G", "T"))
+dimnames(pcm2)=list(c("A", "C", "G", "T"))
+
+pcm_class <- TFBSTools::PFMatrix(strand="+", 
+                                 bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                                 profileMatrix=pcm
+)
+
+pcm1_class <- TFBSTools::PFMatrix(strand="+", 
+                                 bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                                 profileMatrix=pcm1
+)
+
+pcm2_class <- TFBSTools::PFMatrix(strand="+", 
+                                 bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+                                 profileMatrix=pcm2
+)
+
+
+pwm_class <- TFBSTools::toPWM(pcm_class, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+pwm1_class <- TFBSTools::toPWM(pcm1_class, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+pwm2_class <- TFBSTools::toPWM(pcm2_class, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+#Extract the tomtom output between
+
+
+
+source("~/projects/TFBS/RProjects/TFBS/code/KL_divergence_between_motifs.R")
+
+compare_transforms( pwm1_class@profileMatrix,pwm_class@profileMatrix)
+
+
+which(metadata$ID==mono_representative)
+
+
+lapply(represented_by_representatives, function(x) grep)
+
+
+#composite motifs: FIGLA-ETV1/2, HOXC10-TBX4, and FOXO1-ELK3, GLI3:RFX3
+FOXK1-ELF1 composite 
+
+TWISTTFC4/ALX3 FOXO1/ETS1, GLI3-RFX3 HOXB12/HOXD12-SOX11, HOXB2-PROX2
+
+protein dimers (MYC:MAX, CEBPD:ATF4, FOS:JUN), DNA facilitated dimers (MEIS1:HOXB13, MEIS1:DLX3, ETS1 homodimer) 
+and DNA dependent dimers (ETS1:PAX5, ERG:FLI1?, some other) 17. 
+The structures included BARHL2 dimer with two spacings, TEAD4 dimer, HOXB13 dimer, 
+TEAD4-HOXB13 and MEIS1-HOXB13 heterodimers, and FOXK1-ELF1 heterodimer.
+
+TEAD4-HOXB13
+
+
+
+artificial_all<-list()
+
+for(i in 1:nrow(metadata) ){
+  #i=1
+  print(i)
+  pcm=as.matrix( read.table(paste0( metadata$filename[i]), header=FALSE) )
+  
+  dimnames(pcm)=list(c("A", "C", "G", "T"))
+  
+  min_slice_width = floor( ncol(pcm) / 3 )
+  
+  artificial<-list()
+  for( j in min_slice_width:(ncol(pcm) - min_slice_width) ){
+    #j=5
+    # Get matrix versions where slices are concatenated in all 3 relative orientations
+   
+    artificial[paste0(metadata$ID[i], "_",j,c("_HT2", "_HH", "_TT")) ]=get_other_pfm_slice_pair_orientations(pcm, j)
+    
+  }
+  
+  for(motif in names(artificial)){
+    print(motif)
+    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../artificial_motifs/", motif, ".pfm"), sep="\t")
+    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../artificial_motifs_space/", motif, ".pfm"), sep=" ")
+  }
+  
+  artificial_all[[metadata$ID[i]]]=artificial
+  
+  #Write all motifs to file:
+  
+
+}
+
+saveRDS(artificial_all, file="Rdata/artificial_all.Rds")
+
+stop()
+
+
+
+data_path="/scratch/project_2006203/"
+
+#df_motif_info <- read_tsv("../metadata/df_motif_info.tsv", col_names=TRUE)
+#representatives <- read_tsv("../metadata/new_representatives.tsv", col_names=TRUE)
+representatives <- read_tsv(paste0(data_path,"motif-clustering-Viestra-private/metadata/new_representatives_IC_length_Morgunova.tsv"), col_names=TRUE)
+
+for(i in 1:nrow(representatives)){
+  #i=1
+  print(i)
+  pcm=as.matrix( read.table(paste0(data_path,"TFBS/", representatives$filename[i]), header=FALSE) )
+  length=ncol(pcm)
+  
+  #In how many different combinations you can have #length columns
+  factorial(length) #40320
+  
+  #Generate all permutations
+  library(gtools)
+  perms <- gtools::permutations(ncol(pcm), ncol(pcm))
+  perms <- gtools::permutations(ncol(pcm), ncol(pcm))
+  pairings <- expand.grid(1:col(perms), 1:ncol(perms))
+  
+  all.perms <- lapply(1:nrow(pairings), function(x) pcm[, perms[pairings[x,1],] ])
+  
+  all.unique.perms <- unique(perms)
+  length(all.unique.perms)
+  
+  perms2=Permn(1:length)
+  perms=perms[-1,] #the original not wanted
+  
+  motif_perms=pcm[,perms[1,]]
+  
+  #For creating the whole dataset of the permutations, there’s the function DescTools::CombSet(), which has
+  #an argument m for defining the size of the subset to be drawn and where the replacement and order
+  #arguments can be set. 
+  #CombN(1:length, 4, repl=FALSE, ord=FALSE) 
+
+  #Sample two or three columns at a time
+  
+  #How many two column parts?
+  
+  #length(which((representatives$length %% 2) == 0)) #even 4218
+  #length(which((representatives$length %% 2) != 0)) #odd 1565
+  
+  if(length %% 2==0){ #even
+    
+    parts=length/2 #length is even
+    
+    ind=as.matrix(data.frame(first=seq(1,(length-1),2), second=seq(2,length,2)))
+    colnames(ind)=NULL
+    ind.list <- split(ind, seq(nrow(ind)))
+    
+    ind2=as.matrix(data.frame(first=seq(2,length,2), second=c( seq(3,length-1,2),1) ))
+    colnames(ind2)=NULL
+    ind2.list <- split(ind2, seq(nrow(ind2)))
+    
+  }else{ #odd
+    
+    parts=ceiling(length/2)
+    
+    #first position alone
+    ind=as.matrix(data.frame(first=c(1, seq(2,(length-1),2)), second=c(NA,seq(3,length,2))) )
+    colnames(ind)=NULL
+    ind.list <- split(ind, seq(nrow(ind)))
+    ind.list[[1]]=1
+    
+    #last position alone
+    ind2=as.matrix(data.frame(first=c(seq(1,length-2,2),length), second=c( seq(2,length-1,2),length) ))
+    colnames(ind2)=NULL
+    ind2.list <- split(ind2, seq(nrow(ind2)))
+    ind2.list[[parts]]=length
+    
+  }
+  
+  #How many combinations of parts
+  perms=Permn(1:parts)
+  perms=perms[-1,] #the original not wanted
+  
+  #all possible motif permutations
+  
+  
+
+  
+  #reverse complements
+  #A control set of reversed but not complemented motifs was generated by reversing the column order of each motif matches (Sahu et al. 2022)
+  
+  #handle cap-selex motifs
+  
+
+}
+
+# x <- letters[1:4]
+# n <- length(x)
+# m <- 2
+# factorial(n) #24
+# Permn(x) 
+# CombN(n, m, repl=FALSE, ord=TRUE) #12
+# CombSet(x, m, repl=FALSE, ord=TRUE) #All combinations of two letters, the letter can not occur twice, the order matters
+# 
+# CombN(n, m, repl=TRUE, ord=TRUE) #16
+# CombSet(x, m, repl=TRUE, ord=TRUE) #All combinations of two letters, the letter can not occur twice, the order matters
+# 
+# CombN(n, m, repl=TRUE, ord=FALSE) #10
+# CombSet(x, m, repl=TRUE, ord=FALSE) #All combinations of two letters, the letter can occur twice, the order does not matter
+# 
+# CombN(n, m, repl=FALSE, ord=FALSE) #6
+# CombSet(x, m, repl=FALSE, ord=FALSE) #All combinations of two letters, the letter can not occur twice, the order does not matter
+
+
+
+df_motifsimilarity=read_tsv('../metadata/motifsimilarity.tsv') #7_926_171 rows
+#tmp=df_motifsimilarity.tail(1829)
+
+n=3982
+k=2
+P = choose(n, k)
+  
+factorial(n) / ( factorial(k)* factorial(n - k) )
+print(P) #n*(n-1)/2=7_926_171
+
+
+min(df_motifsimilarity$gapped)
+max(df_motifsimilarity$gapped)
+
+library(patchwork)
+#install.packages("patchwork")
+library(ggbreak)
+#install.packages("ggbreak")
+pdf("Figures/histogram-of-gapped-similarities.pdf", width=4, height=4)
+ggplot(df_motifsimilarity, aes(x=gapped)) +  geom_histogram(aes(y = after_stat(count / sum(count))), bins = 200) +
+  scale_y_continuous(labels = scales::percent)+ scale_y_cut(breaks=c(0.000075, 0.01, 0.93), which=c(1,2,3,4), scales=c(0.5,0.5,0.5,3))+
+  #scale_y_break(c(0.0225, 0.93 ))
+  #geom_histogram(color="black", fill="white", bins=100)+xlim(0,1)+
+  labs(x='Similarity', y='Frequency', title='Histogram of gapped 10-mer similarities')
+dev.off()
+
+
+
+sim_lt=pivot_wider(df_motifsimilarity, id_cols="Query_ID",
+                   names_from="Target_ID", values_from="gapped")
+
+half_lt=pivot_wider(df_motifsimilarity, id_cols="Query_ID",
+                   names_from="Target_ID", values_from="half")
+
+
+sim = matrix(0,dim(representatives)[1], dim(representatives)[1])
+half= matrix(0,dim(representatives)[1], dim(representatives)[1])
+
+dim(sim)
+dim(half)
+diag(sim)=1
+diag(half)=1
+
+tril_indices=lower.tri(sim, diag = FALSE)
+
+ltril_indices=lower.tri(matrix(0, nrow(sim_lt),nrow(sim_lt)), diag = TRUE)
+
+#sim[row, col]=df_motifsimilarity.gapped
+sim[tril_indices]=sim_lt[,-1][ltril_indices]
+half[tril_indices]=half_lt[,-1][ltril_indices]
+
+sim_sym = sim + t(sim) - diag(diag(sim), nrow(sim), ncol(sim))
+half_sym = half + t(half) - diag(diag(half), nrow(half), ncol(half))
+
+a=colnames(sim_lt)[2]
+  
+
+b=sim_lt[,"Query_ID"]$Query_ID
+
+a=c(a,b)
+
+rownames(sim_sym)=a
+colnames(sim_sym)=a
+
+rownames(half_sym)=a
+colnames(half_sym)=a
+
+
+sim_df=data.frame(sim_sym, check.names = FALSE)
+dist_df =data.frame(1-sim_sym, check.names=FALSE)
+
+half_df=data.frame(half_sym, check.names = FALSE)
+half_dist_df =data.frame(1-half_sym, check.names=FALSE)
+
+
+#Some motif names in sim_df and representatives do not match?
+
+#missing=which(!(names(sim_df) %in% representatives$ID))
+#missing=which(!( representatives$ID %in% names(sim_df)))
+#newnames=names(sim_df)
+#newnames[missing]=paste0(newnames[missing] ,"_NA")
+
+
+#rownames(sim_df)=newnames
+#colnames(sim_df)=newnames
+
+#rownames(dist_df)=newnames
+#colnames(dist_df)=newnames
+
+
+
+
+#Consider 1062 representatives
+
+table(representatives$new_representative)
+
+rep_motifs=representatives %>% filter(new_representative=="YES") %>% select(ID)
+
+sim_rep_df=sim_df[rep_motifs$ID, rep_motifs$ID]
+dist_rep_df=1-sim_rep_df
+
+half_rep_df=half_df[rep_motifs$ID, rep_motifs$ID]
+half_dist_rep_df=1-half_rep_df
+
+
+#Cluster the matrix, consider rows as samples, columns as features 
+
+
+
+#CAP-selex motifs for which both TFs from the same protein family
+
+CAP_index=which(representatives$experiment=="CAP-SELEX")
+
+tmp=representatives[CAP_index, "Lambert2018.families"]
+
+res = strsplit(tmp[[1]], "_")
+str(res)  
+
+res=do.call(rbind, res)
+
+CAP_index=CAP_index[which( res[,1]==res[,2])] #120
+
+representatives <- representatives %>% mutate(family_alt=`Lambert2018.families`)
+
+representatives[CAP_index, "family_alt"]=res[ res[,1]==res[,2],1]
+
+tmp=representatives %>% count(family_alt, sort=TRUE)
+
+
+
+rm=unique( c( grep("_", tmp[[1]]), grep(";", tmp[[1]])) )
+
+tmp=tmp[-rm,]
+
+#choose only first 10
+
+tmp=tmp[1:10,"family_alt"]
+
+#These need to be in same order as in sim_df
+anno=representatives %>% select(ID, "family_alt")  #N times D 
+#remove those family_alts that do not match tmp
+length(which( !(anno$family_alt %in% tmp$family_alt))) #1684
+anno$family_alt[!(anno$family_alt %in% tmp$family_alt)]=NA
+anno=anno[order(match(anno$ID,rownames(sim_df))),]
+
+#are the rownames of annos and rownames of sim_df the same
+
+mat=sim_df
+min(mat)
+max(mat)
+
+#correlation does not work here
+#ed <- dist(sim_df,method="correlation") #Euclidean is the default, N x D matrix as input
+
+# Pairwise correlation between samples (columns)
+cols.cor <- cor(sim_df, use = "pairwise.complete.obs", method = "pearson")
+cols.dist=as.dist(1 - cols.cor)
+
+hc_cor_complete <- cluster::agnes(cols.dist, diss=TRUE, method="complete")
+
+#hc<-hclust(as.matrix(sim_df), method="complete") does not work with big data
+hc_complete <- cluster::agnes(as.matrix(sim_df), diss=TRUE, method="complete")
+
+plot(as.dendrogram(hc_cor_complete), which.plots=2)
+
+
+fit<-kmeans(df_top1500,4, nstart=25)
+fviz_cluster(fit, df_top1500,ellipse.type="norm") +theme_minimal()
+#library(cluster)
+sil1<-silhouette(fit$cluster,dist(df_top1500))
+
+plot(silhouette(cutree(hc_cor_complete,4),cols.dist,border = NA))
+
+silhouette_score <- function(k){
+  print(k)
+  ss<-silhouette(cutree(hc_cor_complete,k), cols.dist,border = NA)
+  mean(ss[,3])
+  
+}
+k=2:1500
+k=850:1000
+agv_sil <- sapply(k, silhouette_score) #MAX IS 914
+plot(k, type="b", agv_sil, xlab="Number of clusters", ylab="Average silhouette score", frame=FALSE)
+
+plot(silhouette(cutree(cluster_complete,5), cluster_distance), col = c("blue","red","purple","green","black"), border =NA)
+
+
+res<-NbClust(data=mat, diss = cols.dist, distance=NULL,min.nc=2, max.nc=5, 
+             method = "complete", index = "all")
+
+data<-iris[,-c(5)]
+diss_matrix<- dist(data, method = "euclidean", diag=FALSE)
+diss_matrix<- factoextra::get_dist(sim_df, method = "pearson", diag=FALSE)
+diss_matrix<- factoextra::get_dist(sim_df, method = "pearson", diag=TRUE)
+
+
+clust.obj=NbClust(data, diss=diss_matrix, distance = NULL, min.nc=2, max.nc=6, 
+        method = "complete", index = "alllong")  
+
+#hcut is from factoextra, you can give it hc_func="hclust/agnes/diana"
+fviz_nbclust(sim_df, FUN=hcut, hc_func="agnes", hc_method="complete", hc_metric="pearson", method = "silhouette", min.nc=800, max.nc=1200)+ theme_classic()
+fviz_nbclust(sim_df, FUN=hcut, hc_func="agnes", hc_method="complete", hc_metric="pearson", method = "silhouette", k.max=5)+ theme_classic()
+
+wss.plot=fviz_nbclust(sim_df, FUN=hcut, diss=diss_matrix,hc_method="complete", hc_metric=NULL, method = "wss", k.max=5)+ theme_classic()
+
+silhouette.plot=fviz_nbclust(sim_df, FUN=hcut, diss=diss_matrix,hc_method="complete", hc_metric="pearson", method = "silhouette", k.max=20)+ theme_classic()
+
+gap_stat <- clusGap(dsim_df, FUN = hcut, nstart = 25, K.max = 10, B = 50)
+fviz_gap_stat(gap_stat)
+
+for_plot <-  sim_df %>%
+  as.data.frame() %>%
+  dist(method = "correlation") %>%
+  hclust(method = "complete") %>%
+  cutree(h=25, k=2)
+
+sil<- for_plot %>%
+  silhouette(.,distance_mat)
+plot(sil)
+
+#dist.euc <- daisy(dat, metric = "euclidean")
+#single <- agnes(dist.euc, method = "single")
+#plot(as.dendrogram(single), leaflab = "none",
+#     main = "Single linkage dendrogram")
+
+
+#library('factoextra')
+subset_mat <- t(subset_mat)
+distance_mat <- dist(subset_mat, method = 'euclidian')
+fviz_nbclust(subset_mat, FUNcluster = hcut ,method = "silhouette")
+
+
+
+
+
+png("Figures/motifsimilarity-heatmap_all_complete_correlation.png", width=3100,height=2000, res=315, pointsize=12)
+ComplexHeatmap::Heatmap(mat, 
+         name="Gapped 10-mer similarity",               
+         clustering_distance_rows="pearson",
+         clustering_distance_columns="pearson", 
+         col= circlize::colorRamp2( c(0, 1), c( "white", "blue") ),
+         clustering_method_rows="complete",
+         clustering_method_columns="complete",
+         #cluster_rows=rev(as.dendrogram(hc)),
+         #cluster_columns=rev(as.dendrogram(hc)),
+         show_row_names=FALSE,
+         show_column_names=FALSE, 
+         left_annotation = rowAnnotation(family=anno$family_alt, 
+                                             col=list(family=c("Homeodomain"="blue", "C2H2 ZF"="#FF7F00", "bHLH"="#66A61E",
+                                                               "bZIP"="#E41A1C", "Nuclear receptor"="purple", "Ets"="brown", 
+                                                               "HMG/Sox"="#E7298A", "Forkhead"="gray", "T-box"="#FFE528", "IRF"="cyan", "NA"="white")
+                                               )), 
+         show_row_dend=TRUE, show_column_dend = FALSE,
+         row_dend_width=unit(50, "pt"), 
+         #column_dend_height=unit(0,"pt"),
+         height = nrow(mat)*unit(0.1,"pt"), 
+         width = ncol(mat)*unit(0.1, "pt"), 
+         use_raster=TRUE,
+          #file="Figures/motifsimilarity-heatmap_all_complete_correlation.png"
+)
+dev.off()
+
+#half and gapped in the same figure
+
+
+sim_both = matrix(0,dim(sim_df)[1], dim(sim_df)[1])
+tril_indices=lower.tri(sim_both, diag = TRUE)
+triu_indices=upper.tri(sim_both, diag = FALSE)
+
+sim_both[tril_indices]=sim_df[tril_indices]
+sim_both[triu_indices]=half_df[triu_indices]
+
+utril_indices=upper.tri(matrix(0, nrow(sim_df),nrow(sim_df)), diag = FALSE)
+
+r = ((triu_indices-1) %% nrow(sim_df)) + 1
+c = floor((triu_indices-1) / nrow(sim_df)) + 1
+
+
+mat[triu_indices]=as.matrix(half_df)[triu_indices]
+
+mat[r,c]=half_df[r,c]
+
+mat=as.matrix(sim_both)
+mat=mat[rev(hc$order), rev(hc$order)]
+
+test=mat[1:5,1:5]
+rownames(test)=NULL
+colnames(test)=NULL
+
+zeromat=matrix(0, nrow=5, ncol=5)
+triu_indices=upper.tri(as.matrix(test), diag = FALSE)
+zeromat[triu_indices]=test[triu_indices]
+
+png("Figures/gapped-half-heatmap_all_ward.png", width=3100,height=2000, res=315, pointsize=12)
+ComplexHeatmap::Heatmap(mat, 
+                        name="Gapped 10-mer similarity",               
+                        #clustering_distance_rows="pearson",
+                        #clustering_distance_columns="pearson", 
+                        col= circlize::colorRamp2( c(0, 1), c( "white", "blue") ),
+                        #clustering_method_rows="complete",
+                        #clustering_method_columns="complete",
+                        cluster_rows=FALSE, #as.dendrogram(hc),
+                        cluster_columns=FALSE, #as.dendrogram(hc),
+                        #cluster_rows=FALSE,
+                        #cluster_columns=FALSE,
+                        show_row_names=FALSE,
+                        show_column_names=FALSE, 
+                        left_annotation = rowAnnotation(family=anno$family_alt[rev(hc$order)], 
+                                                        col=list(family=c("Homeodomain"="blue", "C2H2 ZF"="#FF7F00", "bHLH"="#66A61E",
+                                                                          "bZIP"="#E41A1C", "Nuclear receptor"="purple", "Ets"="brown", 
+                                                                          "HMG/Sox"="#E7298A", "Forkhead"="gray", "T-box"="#FFE528", "IRF"="cyan", "NA"="white")
+                                                        )), 
+                        show_row_dend=FALSE, show_column_dend = FALSE,
+                        #row_dend_width=unit(50, "pt"), 
+                        #column_dend_height=unit(0,"pt"),
+                        height = nrow(mat)*unit(0.1,"pt"), 
+                        width = ncol(mat)*unit(0.1, "pt"), 
+                        use_raster=TRUE,
+                        #file="Figures/motifsimilarity-heatmap_all_complete_correlation.png"
+)
+dev.off()
+
+mat=as.matrix(sim_both)
+mat=mat[hc_complete$order, hc_complete$order]
+
+png("Figures/gapped-half-heatmap_all_complete.png", width=3100,height=2000, res=315, pointsize=12)
+ComplexHeatmap::Heatmap(mat, 
+                        name="Half and gapped 10-mer similarity",               
+                        #clustering_distance_rows="pearson",
+                        #clustering_distance_columns="pearson", 
+                        col = viridisLite::viridis(n = 256,  option = "magma"),
+                        #col= circlize::colorRamp2( c(0, 1), c( "white", "blue") ),
+                        #clustering_method_rows="complete",
+                        #clustering_method_columns="complete",
+                        cluster_rows=FALSE, #as.dendrogram(hc),
+                        cluster_columns=FALSE, #as.dendrogram(hc),
+                        #cluster_rows=FALSE,
+                        #cluster_columns=FALSE,
+                        show_row_names=FALSE,
+                        show_column_names=FALSE, 
+                        left_annotation = rowAnnotation(family=anno$family_alt[hc_complete$order], 
+                                                        col=list(family=c("Homeodomain"="blue", "C2H2 ZF"="#FF7F00", "bHLH"="#66A61E",
+                                                                          "bZIP"="#E41A1C", "Nuclear receptor"="purple", "Ets"="brown", 
+                                                                          "HMG/Sox"="#E7298A", "Forkhead"="gray", "T-box"="#FFE528", "IRF"="cyan", "NA"="white")
+                                                        ), annotation_legend_param=list(at=tmp$family_alt)), 
+                        show_row_dend=FALSE, show_column_dend = FALSE,
+                        #row_dend_width=unit(50, "pt"), 
+                        #column_dend_height=unit(0,"pt"),
+                        height = nrow(mat)*unit(0.1,"pt"), 
+                        width = ncol(mat)*unit(0.1, "pt"), 
+                        use_raster=TRUE,
+                        #file="Figures/motifsimilarity-heatmap_all_complete_correlation.png"
+)
+dev.off()
+
+
+png("Figures/gapped-heatmap_all_complete.png", width=3100,height=2000, res=315, pointsize=12)
+ComplexHeatmap::Heatmap(as.matrix(sim_df), 
+                        name="Gapped 10-mer similarity",               
+                        #clustering_distance_rows="pearson",
+                        #clustering_distance_columns="pearson", 
+                        col= circlize::colorRamp2( c(0, 1), c( "white", "blue") ),
+                        #clustering_method_rows="complete",
+                        #clustering_method_columns="complete",
+                        cluster_rows=as.dendrogram(hc_complete),
+                        cluster_columns=as.dendrogram(hc_complete),
+                        #cluster_rows=FALSE,
+                        #cluster_columns=FALSE,
+                        
+                        show_row_names=FALSE,
+                        show_column_names=FALSE, 
+                        left_annotation = rowAnnotation(family=anno$family_alt, 
+                                                        col=list(family=c("Homeodomain"="blue", "C2H2 ZF"="#FF7F00", "bHLH"="#66A61E",
+                                                                          "bZIP"="#E41A1C", "Nuclear receptor"="purple", "Ets"="brown", 
+                                                                          "HMG/Sox"="#E7298A", "Forkhead"="gray", "T-box"="#FFE528", "IRF"="cyan", "NA"="white")
+                                                        ),
+                                                        annotation_legend_param=list(at=tmp$family_alt)
+                                                        ), 
+                        show_row_dend=TRUE, show_column_dend = FALSE,
+                        row_dend_width=unit(100, "pt"), 
+                        #column_dend_height=unit(0,"pt"),
+                        height = nrow(mat)*unit(0.1,"pt"), 
+                        width = ncol(mat)*unit(0.1, "pt"), 
+                        use_raster=TRUE,
+                        #file="Figures/motifsimilarity-heatmap_all_complete_correlation.png"
+)
+dev.off()
+
+
+
+
+
+# png("Figures/motifsimilarity-heatmap_all_complete_correlation.png", width=3100,height=2000, res=315, pointsize=12)
+pheatmap(as.matrix(sim_df), clustering_distance_rows="correlation",
+         clustering_distance_cols="correlation", color=color,clustering_method="complete",
+         show_rownames=FALSE,
+         show_colnames=FALSE, annotation_row=annos, treeheight_row=0, treeheight_col=0,
+         cellheight = 0.1, cellwidth = 0.1, 
+         annotation_colors=ann_colors #, #cellheight = 1, cellwidth = 1,
+         #file="Figures/motifsimilarity-heatmap_all_complete_correlation.png"
+         )
+dev.off()
+
+
+
+#pdf("Figures/heatmap_all_ward_correlation.pdf")
+png("Figures/motifsimilarity-heatmap_all_ward_correlation.png", width=3100,height=2000, res=315, pointsize=12)
+pheatmap(sim_df, clustering_distance_rows="correlation",
+         clustering_distance_cols="correlation", color=color,clustering_method="ward.D",
+         show_rownames=FALSE, treeheight_row=0, treeheight_col=0,
+         cellheight = 0.1, cellwidth = 0.1, 
+         show_colnames=FALSE, annotation_row=annos, annotation_colors=annoCol #, 
+         #file="Figures/motifsimilarity-heatmap_all_ward_correlation.png") 
+)
+dev.off()
+
+# annotation=anno, clustering_method="complete",
+#         drop_levels=TRUE, legend=FALSE,
+#         cutree_cols=2)
+
+
+
+ehc <- hclust(ed,method="complete")
+ehc2 <- hclust(ed,method="single")
+# plot the resulting dendrogram: complete linkage method produces clear groups (2 or 3 clear clusters), while single linkage starts from a single patient and goes to the most dissimilar which is not very informative here.
+plot(ehc,labels=FALSE)
+plot(ehc2, labels=F)
+
+

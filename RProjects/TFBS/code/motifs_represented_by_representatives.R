@@ -1,7 +1,7 @@
 
 
 # readLines("../../../SELEX-Dominating-Set-Analysis/data/Selex_all.dat", 
-          n=3)
+#          n=3)
 
 # graph_data <- read.table("../../../SELEX-Dominating-Set-Analysis/data/Selex_all.dat", header = FALSE, sep = "\t")
 
@@ -68,6 +68,7 @@ node <- "your_node"  # replace with your node
 representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/SELEX_all_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
 
 represented_by_representatives=lapply(representatives, function(x, g) neighbors(g, x)$name, g )
+saveRDS(represented_by_representatives, file="RData/represented_by_representatives.RDS")
 
 names(represented_by_representatives)=representatives
 
