@@ -16,18 +16,34 @@ print(sessionInfo())
 print(.libPaths())
 
 arrays <- as.numeric(commandArgs(trailingOnly = TRUE)) #644
-#arrays=0-39
+
 print(arrays)
 setwd("/scratch/project_2006203/TFBS/")
 
 representatives=read_csv(file="/projappl/project_2006203/TFBS/PWMs_final/representatives.csv",col_names=FALSE)
 
 #MOODS_PROX1_HOXA2_TCATAA40NAGC_YJI_NTAATTAAAGAN_m1_c3b0_short_composite_new.csv.gz
+#which(representatives$X1=="ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420") 767
+
+#df.representatives=read.table("/projappl/project_2006203/TFBS/PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+#df.representatives=df.representatives[which(df.representatives$new_representative=="YES"),]
+
 
 MOODS_file=paste0("MOODS_",representatives[arrays+1,]$X1, ".csv.gz")
 
 results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_processed/"
 
+#which runs fail
+#finished=dir(paste0(results_path, "MOODS_RDS/"))
+#finished=gsub("MOODS_", "", finished)
+#finished=gsub("_top.Rds", "", finished)
+
+#failed=which(!(representatives$X1 %in% finished))[which(!(representatives$X1 %in% finished))<800]
+#finished_id=which((representatives$X1 %in% finished))[which((representatives$X1 %in% finished))<800]
+
+#those which fail have a low information content
+#hist(df.representatives$IC[failed])
+#hist(df.representatives$IC[finished_id])
 
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
@@ -45,17 +61,20 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 
 MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human/"
 
+path_local_scratch=Sys.getenv("LOCAL_SCRATCH")
+system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch, "/"))
 
-
-
+dir(path_local_scratch)
   
-system(paste0("gunzip ",MOODS_path,MOODS_file))
+#system(paste0("gunzip ",path_local_scratch,"/",MOODS_file))
   
-  
-tb <- vroom(file = paste0(MOODS_path, strsplit(MOODS_file, ".gz")[[1]]),
+tb=read_csv(file = gzfile(paste0(path_local_scratch, "/",MOODS_file)),
+            col_names = FALSE) 
+ 
+tb <- vroom(file = paste0(path_local_scratch, strsplit(MOODS_file, ".gz")[[1]]),
               col_names = FALSE, num_threads = 40, altrep = TRUE)
   
-system(paste0("gzip ",MOODS_path, strsplit(MOODS_file, ".gz")[[1]] ))
+#system(paste0("rm ",path_local_scratch, strsplit(MOODS_file, ".gz")[[1]] ))
   
   
 tb=tb[,-7]
@@ -111,7 +130,8 @@ for(pwm in PWMs){
 #
 #
   #export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
-  export.bed(tmp_GRanges_top, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+  export.bed(tmp_GRanges_top, paste0(path_local_scratch, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+  system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch results_path, "/"))
 #
 #
 }

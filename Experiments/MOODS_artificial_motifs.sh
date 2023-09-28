@@ -2,7 +2,13 @@
 
 #!/bin/bash
 array=$1 #this varies between 0 and 1030 (number of representatives)
+echo $array
 
+#for array > 1000
+#num2=1000
+#array=$[array + num2]
+
+echo $array
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
@@ -14,8 +20,13 @@ S=/projappl/project_2006203/Genomes/Homo_sapiens/chr_sequences.fa #What is this?
 
 n=300000 #the number of best hits
 
-outfolder=/scratch/project_2006203/TFBS/Results/MOODS_artificial_human/
+#outfolder=/scratch/project_2006203/TFBS/Results/MOODS_artificial_human/
+#mkdir $outfolder
+
+outfolder=/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_zstd/
 mkdir $outfolder
+
+
 
 #pwms=($(ls /scratch/project_2006203/TFBS/artificial_motifs/artificial_motifs_space/PROX1_HOXA2_*.pfm))
 
@@ -36,10 +47,13 @@ echo ${pwms[@]}
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
-moods-dna.py -m ${pwms[@]} --threshold 2 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"${lines[$array]}".csv.gz" 
+#moods-dna.py -m ${pwms[@]} --threshold 2 -s $S | gzip > $LOCAL_SCRATCH"/MOODS_"${lines[$array]}".csv.gz" 
+
+moods-dna.py -m ${pwms[@]} --threshold 2 -s $S | zstd > $LOCAL_SCRATCH"/MOODS_"${lines[$array]}".zst" 
 
 cd $LOCAL_SCRATCH
-cp MOODS_"${lines[$array]}".csv.gz $outfolder 
+#cp MOODS_"${lines[$array]}".csv.gz $outfolder 
+cp MOODS_"${lines[$array]}".zst $outfolder 
 
 #gzip $outfile
 

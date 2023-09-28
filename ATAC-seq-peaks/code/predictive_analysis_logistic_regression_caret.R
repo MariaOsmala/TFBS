@@ -10,7 +10,6 @@ library(ggbreak)
 library("readr")
 library("caret")
 library("glmnet")
-library("purrr")
 
 cell_line_nro <- as.numeric(commandArgs(trailingOnly = TRUE))
 
@@ -63,9 +62,9 @@ N=length(all_cCREs) #all possible cCREs #435142
 
 
 
-#presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
+presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
 #saveRDS(count_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/count_matrix.Rds")) #
-presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
+#saveRDS(max_score_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
 
 #Consider only those that are truly unique
 
@@ -103,14 +102,72 @@ presence_sparse <- as(presence_matrix, "CsparseMatrix")
 #comboInfo
 
 
-#presence_df=as.data.frame(presence_matrix)
-#presence_df$Class=0
-#presence_df$Class[ol@to]=1
+presence_df=as.data.frame(presence_matrix)
+presence_df$Class="Class0"
+presence_df$Class[ol@to]="Class1"
 
-#presence_df$Class=as.factor(presence_df$Class)
+presence_df$Class=as.factor(presence_df$Class)
 
 Class=rep(0, nrow(presence_sparse))
 Class[ol@to]=1
+
+#80/20 split of the data
+#trainIndex=createDataPartition(Class, p=.8, list=FALSE, times=1) 
+#Class[trainIndex]
+#Class[-trainIndex]
+
+trainIndex=createFolds(as.factor(Class), k=5)
+
+# Below, we reformat the list of folds
+balanced <- rep(-1, length( factor(Class) ))
+for (i in seq_len(5)) balanced[trainIndex[[i]]] <- i
+
+classBreakdownTable <- function(i, folds) table(as.factor(Class)[which(folds == i)])
+
+sapply(seq_len(5), classBreakdownTable, balanced)
+#[,1]  [,2]  [,3]  [,4]  [,5]
+#0 85304 85304 85304 85304 85303
+#1  1725  1724  1725  1724  1725
+
+fitControl=trainControl(method="cv", #repeatedcv, loocs,
+                        number=10,
+                        classProbs = TRUE, #a logical value determining whether class probabilities should be computed for held-out samples during resample.
+                        verboseIter = TRUE, 
+                        returnData=FALSE,
+                        summaryFunction=twoClassSummary)
+
+#The user can change the metric used to determine the best settings. 
+#By default, RMSE, R2, and the mean absolute error (MAE) are computed
+#for regression while accuracy and Kappa are computed for classification. 
+#Also by default, the parameter values are chosen using RMSE and accuracy, respectively for regression and classification.
+
+
+lasso_model <- train(
+  Class ~ ., data = presence_df,
+  method = "glmnet",
+  family = "binomial",
+  type.measure="auc", keep=TRUE,
+  preProcess=NULL,
+  trControl = fitControl, 
+  metric="ROC", #"Accuracy"
+  tuneGrid = expand.grid(alpha = 1) #alpha=1 means lasso, alpha=0 is ridge regression, let glmnet choose the grid automatically
+)
+
+
+lasso_model$finalModel
+
+predict(lasso_model, newdata = head(testing), type="prob") #Use type=<something> to get classes
+
+trellis.par.set(caretTheme())
+plot(lasso_model, metric="AUC")
+
+?plot.train
+
+ggplot(lasso_model)
+?xyplot.train
+?update.train
+
+densityplot(lasso_model, pch = "|")
 
 #Binary features, does it make sense to scale them?
 
@@ -121,7 +178,7 @@ Class[ol@to]=1
 #class1_folds=lapply(class1_folds,function(x) which(presence_df$Class==1)[x] )
 #class2_folds=lapply(class2_folds,function(x) which(presence_df$Class==0)[x] )
 
-
+library("purrr")
 #combined_folds=map2(class1_folds, class2_folds, c)
 
 #other way
@@ -223,165 +280,164 @@ cvfits <- lapply(combined_folds, function(test_indices) {
 
 cvfit_final <- cv.glmnet(x=presence_sparse, y=Class,family = "binomial", alpha=1,trace.it = TRUE, type.measure="auc", keep=TRUE)
 
-#save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData"))
+save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
 
-# stop()
-# 
-# plot(cvfit_final)
-# 
-# #We can use the following code to get the value of lambda.min and the model coefficients at that value of 𝜆
-# 
-# cvfit_final$lambda.min
-# cvfit_final$lambda.1se
-# 
-# regression_coef=data.frame(name=rownames(coef(cvfit, s = "lambda.min"))[-1], coef=as.matrix(coef(cvfit, s = "lambda.min"))[-1] )
-# 
-# regression_coef=regression_coef[order(regression_coef$coef, decreasing =TRUE),]
-# 
-# regression_coef$order=1:nrow(regression_coef)
-# 
-# regression_coef$symbol=representatives$symbol[match(regression_coef$name, representatives$ID)]
-# 
-# #Plot regression coefficient as the function of the feature importance
-# library(ggrepel)
-# 
-# ggplot(regression_coef,aes(x=order, y=coef))+geom_point()+geom_text_repel(data=subset(regression_coef, coef > 0.25), 
-#                                                                    aes(label=symbol), box.padding=0.5)
-# 
-# stop()
-# 
-# lasso_model <- train(
-#   Class ~ ., data = trainData,
-#   method = "glmnet",
-#   family = "binomial",
-#   trControl = trainControl(method = "cv"),
-#   tuneGrid = expand.grid(alpha = 1, lambda = seq(1, 3, by = 1)) #alpha=1 means lasso, alpha=0 is ridge regression
-# )
-# 
-# best_lambda <- lasso_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(lasso_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
-# 
-# plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# lasso_predictions <- predict(lasso_model, newdata = testData)
-# confusionMatrix(lasso_predictions, testData$Class)
-# # Here you can insert the code to train your model using 'trainData'
-# lasso_model
-# 
-# ## When you are done:
-# stopCluster(cl)
-# 
-# 
-# data(iris)
-# binary_iris <- iris[iris$Species %in% c('setosa', 'versicolor'), ] #N=100, D=5
-# 
-# binary_iris$Species=droplevels(binary_iris$Species)
-# 
-# 
-# 
-# colMeans(binary_iris[,1:4])
-# var(binary_iris[,1:4])
-# 
-# binary_iris[,1:4]=scale(binary_iris[,1:4])
-# 
-# 
-# set.seed(123)
-# trainIndex <- createDataPartition(binary_iris$Species, p = 0.7, list = FALSE)
-# 
-# folds <- createFolds(binary_iris$Species, k = 5)
-# models <- lapply(folds, function(train_indices) {
-#   trainData <- binary_iris[train_indices, ]
-#   # Here you can insert the code to train your model using 'trainData'
-#   # Return the trained model
-# })
-# 
-# results <- lapply(1:length(folds), function(i) {
-#   train_indices <- folds[[i]]
-#   testData <- binary_iris[-train_indices, ]
-# })
-# 
-# 
-# trainData <- binary_iris[trainIndex, ]
-# testData  <- binary_iris[-trainIndex, ]
-# 
-# set.seed(123)
-# lasso_model <- train(
-#   Species ~ ., data = trainData,
-#   method = "glmnet",
-#   family = "binomial",
-#   trControl = trainControl(method = "cv"),
-#   tuneGrid = expand.grid(alpha = 1, lambda = seq(0.01, 0.3, by = 0.01)) #alpha means lasso, alpha=0 is ridge regression
-# )
-# 
-# print(lasso_model)
-# 
-# best_lambda <- lasso_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(lasso_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
-# 
-# plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# #Extract Coefficients:
-# #You can extract the coefficients for a specific value of 
-# #λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
-# 
-# lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
-# coefficients <- coef(lasso_model, s = lambda_value)
-# print(coefficients)
-# 
-# 
-# #The alpha parameter controls the elastic-net mixing parameter where alpha = 0 is ridge regression 
-# #and alpha = 1 is lasso regression. You can try values between 0 and 1 for elastic net.
-# 
-# 
-# set.seed(123)
-# elastic_net_model <- train(
-#   Species ~ ., data = trainData,
-#   method = "glmnet",
-#   trControl = trainControl(method = "cv"),
-#   family = "binomial",
-#   tuneGrid = expand.grid(alpha = 0.5, lambda = seq(0.01, 0.3, by = 0.01))
-# )
-# print(elastic_net_model)
-# 
-# best_lambda <- elastic_net_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(elastic_net_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(elastic_net_model$finalModel$beta)
-# 
-# plot(elastic_net_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# #Extract Coefficients:
-# #You can extract the coefficients for a specific value of 
-# #λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
-# 
-# lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
-# coefficients <- coef(lasso_model, s = lambda_value)
-# print(coefficients)
-# 
-# #Model evaluation
-# 
-# lasso_predictions <- predict(lasso_model, newdata = testData)
-# elastic_net_predictions <- predict(elastic_net_model, newdata = testData)
-# 
-# confusionMatrix(lasso_predictions, testData$Species)
-# confusionMatrix(elastic_net_predictions, testData$Species)
-# 
-# #Visualize the Regularization Path:
-# #This is more of a bonus step, but you can visualize the coefficients' paths across different lambda values using the glmnet package directly.
-# 
-# 
-# lasso_glmnet <- glmnet(as.matrix(trainData[,-5]), trainData$Species, alpha = 1)
-# plot(lasso_glmnet, xvar = "lambda", label = TRUE)
-# 
-# 
+stop()
+
+plot(cvfit_final)
+
+#We can use the following code to get the value of lambda.min and the model coefficients at that value of 𝜆
+
+cvfit_final$lambda.min
+cvfit_final$lambda.1se
+
+regression_coef=data.frame(name=rownames(coef(cvfit, s = "lambda.min"))[-1], coef=as.matrix(coef(cvfit, s = "lambda.min"))[-1] )
+
+regression_coef=regression_coef[order(regression_coef$coef, decreasing =TRUE),]
+
+regression_coef$order=1:nrow(regression_coef)
+
+regression_coef$symbol=representatives$symbol[match(regression_coef$name, representatives$ID)]
+
+#Plot regression coefficient as the function of the feature importance
+library(ggrepel)
+
+ggplot(regression_coef,aes(x=order, y=coef))+geom_point()+geom_text_repel(data=subset(regression_coef, coef > 0.25), 
+                                                                   aes(label=symbol), box.padding=0.5)
+
+stop()
+
+lasso_model <- train(
+  Class ~ ., data = trainData,
+  method = "glmnet",
+  family = "binomial",
+  trControl = trainControl(method = "cv"),
+  tuneGrid = expand.grid(alpha = 1, lambda = seq(1, 3, by = 1)) #alpha=1 means lasso, alpha=0 is ridge regression
+)
+
+best_lambda <- lasso_model$bestTune$lambda
+# Extract coefficients for the best lambda
+coefficients <- coef(lasso_model$finalModel, s = best_lambda)
+print(coefficients)
+
+coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
+
+plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
+
+lasso_predictions <- predict(lasso_model, newdata = testData)
+confusionMatrix(lasso_predictions, testData$Class)
+# Here you can insert the code to train your model using 'trainData'
+lasso_model
+
+## When you are done:
+stopCluster(cl)
+
+
+data(iris)
+binary_iris <- iris[iris$Species %in% c('setosa', 'versicolor'), ] #N=100, D=5
+
+binary_iris$Species=droplevels(binary_iris$Species)
+
+
+
+colMeans(binary_iris[,1:4])
+var(binary_iris[,1:4])
+
+binary_iris[,1:4]=scale(binary_iris[,1:4])
+
+
+set.seed(123)
+trainIndex <- createDataPartition(binary_iris$Species, p = 0.7, list = FALSE)
+
+folds <- createFolds(binary_iris$Species, k = 5)
+models <- lapply(folds, function(train_indices) {
+  trainData <- binary_iris[train_indices, ]
+  # Here you can insert the code to train your model using 'trainData'
+  # Return the trained model
+})
+
+results <- lapply(1:length(folds), function(i) {
+  train_indices <- folds[[i]]
+  testData <- binary_iris[-train_indices, ]
+})
+
+
+trainData <- binary_iris[trainIndex, ]
+testData  <- binary_iris[-trainIndex, ]
+
+set.seed(123)
+lasso_model <- train(
+  Species ~ ., data = trainData,
+  method = "glmnet",
+  family = "binomial",
+  trControl = trainControl(method = "cv"),
+  tuneGrid = expand.grid(alpha = 1, lambda = seq(0.01, 0.3, by = 0.01)) #alpha means lasso, alpha=0 is ridge regression
+)
+
+print(lasso_model)
+
+best_lambda <- lasso_model$bestTune$lambda
+# Extract coefficients for the best lambda
+coefficients <- coef(lasso_model$finalModel, s = best_lambda)
+print(coefficients)
+
+coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
+
+plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
+
+#Extract Coefficients:
+#You can extract the coefficients for a specific value of 
+#λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
+
+lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
+coefficients <- coef(lasso_model, s = lambda_value)
+print(coefficients)
+
+
+#The alpha parameter controls the elastic-net mixing parameter where alpha = 0 is ridge regression 
+#and alpha = 1 is lasso regression. You can try values between 0 and 1 for elastic net.
+
+
+set.seed(123)
+elastic_net_model <- train(
+  Species ~ ., data = trainData,
+  method = "glmnet",
+  trControl = trainControl(method = "cv"),
+  family = "binomial",
+  tuneGrid = expand.grid(alpha = 0.5, lambda = seq(0.01, 0.3, by = 0.01))
+)
+print(elastic_net_model)
+
+best_lambda <- elastic_net_model$bestTune$lambda
+# Extract coefficients for the best lambda
+coefficients <- coef(elastic_net_model$finalModel, s = best_lambda)
+print(coefficients)
+
+coefs_matrix <- as.matrix(elastic_net_model$finalModel$beta)
+
+plot(elastic_net_model$finalModel, xvar = "lambda", label = TRUE)
+
+#Extract Coefficients:
+#You can extract the coefficients for a specific value of 
+#λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
+
+lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
+coefficients <- coef(lasso_model, s = lambda_value)
+print(coefficients)
+
+#Model evaluation
+
+lasso_predictions <- predict(lasso_model, newdata = testData)
+elastic_net_predictions <- predict(elastic_net_model, newdata = testData)
+
+confusionMatrix(lasso_predictions, testData$Species)
+confusionMatrix(elastic_net_predictions, testData$Species)
+
+#Visualize the Regularization Path:
+#This is more of a bonus step, but you can visualize the coefficients' paths across different lambda values using the glmnet package directly.
+
+
+lasso_glmnet <- glmnet(as.matrix(trainData[,-5]), trainData$Species, alpha = 1)
+plot(lasso_glmnet, xvar = "lambda", label = TRUE)
+
+

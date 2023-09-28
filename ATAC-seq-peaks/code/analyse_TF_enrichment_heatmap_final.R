@@ -1,5 +1,7 @@
 #lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE)
 
+.libPaths("/projappl/project_2006203/project_rpackages_4.2.1")
+
 
 library("rtracklayer")
 library("dbplyr")
@@ -11,6 +13,9 @@ library("readr")
 library("grid")
 library("RColorBrewer")
 library("heatmaply")
+library("ggrepel") #
+#install.packages("latex2exp")
+library("latex2exp")
 
 source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
 
@@ -43,9 +48,7 @@ representatives=read.table( "../../PWMs_final/metadata_representatives_match_num
 
 p_matrix=readRDS(file = paste0(scratch,"RData/final_p_matrix_human_cell_type_restricted.Rds")) #
 
-
 #sort the representatives table according to the rownames of p_matrix
-
 representatives <- representatives[order(match(representatives$ID, rownames(p_matrix))), ]
 
 #test=gsub(".pfm", "", do.call(rbind, strsplit(representatives$filename,"/"))[,5])
@@ -69,9 +72,13 @@ length(unique(rep_motifs)) #1031
 #length(which(rep_Yimeng %in% rownames(p_matrix))) #238
 
 shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, 
-                                              new_representative, Lambert2018_families)
+                                              new_representative, Lambert2018_families, type)
 #table(shorter_names)
 
+shorter_names$new_motif="NO"
+shorter_names$new_motif[which(shorter_names$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420") )]="YES" #245
+
+#"pfm_composite_new" "pfm_spacing_new"       "20230420"
 
 #FDR correction for the p-values?
 
@@ -270,7 +277,7 @@ max(depletions, na.rm=TRUE) #-1.704847e-06
 str(depleted)
 
 
-
+#The ten most enriched per each cell line
 for( ct_group in names(cell_type_groups) ){
   print(ct_group)
    #ct_group="Epithelial 1"
@@ -400,10 +407,6 @@ for( ct_group in names(cell_type_groups) ){
 #save.image(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
 #load(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
 
-
-
-
-
 paletteLength=100
 color = colorRampPalette(rev(brewer.pal(n = 7, name =
                                           "RdBu")))(paletteLength)
@@ -417,10 +420,10 @@ myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1),
 
 pdf(file = paste0(scratch, "Figures/cell_group_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(t(p_cell_group_matrix))/44), height=4*nrow(t(p_cell_group_matrix))/7 )
 
-pheatmap(t(p_cell_group_matrix), color=color, clustering_method="complete",legend=TRUE,
+ComplexHeatmap::pheatmap(p_cell_group_matrix, color=color, legend=TRUE,
          cluster_rows = FALSE,
-         cluster_cols = FALSE,
-         breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
+         cluster_cols = FALSE, column_names_side = "top",
+         breaks=myBreaks, row_names_side = "left", name=expression(alpha+ frac(beta, gamma) ) )
 dev.off()
 
 
@@ -517,10 +520,134 @@ metadata=representatives[match(rownames(p_cell_group_matrix_orig), representativ
 }
 
 
+#All enriched, clustered heatmap
+for( ct_group in names(cell_type_groups) ){
+  print(ct_group)
+  #ct_group="Epithelial 1"
+  #Epithelial
+  #Visualise the Hepatocyte, Acinar, Parietal, Chief, Foveolar, G. Neuroendo, Ductal, 
+  p_matrix_depleted=-p_matrix
+  p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
+  p_matrix_depleted_orig=p_matrix_depleted
+  rownames(p_matrix_depleted)=shorter_names$symbol
+  rownames(e_matrix)=shorter_names$symbol
+  
+  p_cell_group_matrix=p_matrix_depleted[, which( colnames(p_matrix_depleted) %in% cell_type_groups[[ct_group]] )]
+  
+  e_cell_group_matrix=e_matrix[, which( colnames(e_matrix) %in% cell_type_groups[[ct_group]] )]
+  
+  p_cell_group_matrix_orig=p_matrix_depleted_orig[, which( colnames(p_matrix_depleted_orig) %in% cell_type_groups[[ct_group]]  )]
+  
+  
+  paletteLength=100
+  color = colorRampPalette(rev(brewer.pal(n = 7, name =
+                                            "RdBu")))(paletteLength)
+  
+  #color <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
+  # length(breaks) == length(paletteLength) + 1
+  # use floor and ceiling to deal with even/odd length pallettelengths
+  myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
+                seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
+  
+  
+  pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), height=max(8,8*ncol(t(p_cell_group_matrix))/44), width=max(4, 4*nrow(t(p_cell_group_matrix))/7) )
+  
+  pheatmap(p_cell_group_matrix, color=color, 
+           clustering_distance_rows = "euclidean",
+           clustering_distance_cols = "euclidean",
+           clustering_method="complete",legend=TRUE,
+           cluster_rows = TRUE,
+           cluster_cols = TRUE,
+           breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
+  dev.off()
+  
+  
+  
+  
+  #Interactive heatmap, does not really work here
+  
+  
+ 
+  # p_cell_group_matrix_saturated=p_cell_group_matrix
+  # saturated_threshold=100
+  # p_cell_group_matrix_saturated[p_cell_group_matrix_saturated > saturated_threshold] <- saturated_threshold
+  # p_cell_group_matrix_saturated[p_cell_group_matrix_saturated < -saturated_threshold] <- -saturated_threshold
+  # 
+  # 
+  # 
+  # metadata=representatives[match(rownames(p_cell_group_matrix_orig), representatives$ID),]
+  #  
+  # test=matrix(rep(metadata$ID,each=7), ncol=nrow(p_cell_group_matrix), byrow=FALSE)
+  # 
+  # mat=t(p_cell_group_matrix_orig) #7 x 44 (63?)
+  # mat[]<-paste("Motif: ", matrix(rep(metadata$ID,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE) ,
+  #              "\nFamily: ", matrix(rep(metadata$Lambert2018_families,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+  #              "\nStudy: ", matrix(rep(metadata$study,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+  #              "\n-log10 pvalue:", mat, 
+  #              "\nlog2FC: ", t(e_cell_group_matrix),
+  #              "\nIC: ", matrix(rep(metadata$IC,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+  #              "\nlength: ", matrix(rep(metadata$length,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+  #              "\nmatch numbers: ", matrix(rep(metadata$match_numbers,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE),
+  #              "\nMOODS threshold: ", matrix(rep(metadata$threshold,7), ncol = nrow(p_cell_group_matrix), byrow=TRUE)
+  # )
+  
+  
+  # heatmaply(p_cell_group_matrix_saturated,
+  #           col=colorRampPalette(rev(brewer.pal(n = 7, name = "RdBu")))(100),
+  #           legend=TRUE,
+  #           showticklabels = T,
+  #           RowSideColors = data.frame(Family=metadata$Lambert2018_families),
+  #           custom_hovertext=t(mat),
+  #           row_text_angle = 0,
+  #           plot_method="plotly",
+  #           column_text_angle = 45,
+  #           subplot_margin = 0,
+  #           cellnote = NULL,
+  #           cellnote_color = "auto",
+  #           cellnote_textposition = "middle right",
+  #           cellnote_size = 12,
+  #           margins = c(NA, NA, NA, NA),
+  #           scale = NULL, # Scale the data
+  #           symm = FALSE,  # Make the heatmap symmetric
+  #           dendrogram = "none",  # Show dendrograms on both rows and columns
+  #           k_row = 2,  # Show 2 clusters in row dendrogram
+  #           k_col = 2,  # Show 2 clusters in column dendrogram
+  #           cluster_row = FALSE,  # Cluster rows
+  #           cluster_col = FALSE,  # Cluster columns
+  #           xlab = "",  # X-axis label
+  #           ylab = "",  # Y-axis label
+  #           main = ct_group,  # Title of the plot
+  #           colorbar = TRUE,  # Show color bar
+  #           key.title = "-log10 p-value \n Negative (blue) indicates depletion",
+  #           colorbar_xanchor = "left",
+  #           colorbar_yanchor = "middle",
+  #           colorbar_xpos = 1.025,
+  #           colorbar_ypos = 0.25,
+  #           #colorbar_len = 0.4,
+  #           colorbar_thickness = 30,
+  #           fixed=FALSE,
+  #           fontsize_row = 14,
+  #           fontsize_col = 14,
+  #           side_color_colorbar_len = 0.5,
+  #           prefix="",
+  #           #width = NULL,
+  #           #height = NULL,
+  #           file=paste0("/scratch/project_2006203/TFBS/ATAC-seq-peaks/heatmaplys_whole/",ct_group,".html")
+  # )
+  
+  
+  
+  
+  
+}
+
+
+
 #Volcano plots, separate figure for each cell type group
 
 # Sample data
 library("gridExtra")
+options(ggrepel.max.overlaps = Inf)
 
 for( ct_group in names(cell_type_groups) ){
 
@@ -556,7 +683,8 @@ for( ct_group in names(cell_type_groups) ){
       scale_color_manual(values = c("FALSE"="grey", "TRUE"="red")) + 
       geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
       geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype="dashed") +
-      geom_text(data=significant_motifs, aes(label=shorter_name), vjust=-0.5, hjust=0.5, size=3.5, check_overlap = TRUE) +
+      geom_text_repel(data=significant_motifs, aes(label=shorter_name))+
+      #geom_text(data=significant_motifs, aes(label=shorter_name), vjust=-0.5, hjust=0.5, size=3.5, check_overlap = TRUE) +
       theme_minimal() +
       theme_minimal() +
       labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value", color="Significant") 
