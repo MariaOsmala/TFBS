@@ -8,17 +8,21 @@ library("dbplyr")
 library("dplyr")
 library("tidyverse")
 library("pheatmap")
+library("ComplexHeatmap")
 library("cluster")
 library("readr")
 library("grid")
 library("RColorBrewer")
 library("heatmaply")
 library("ggrepel") #
+library("circlize")
+library(gridExtra)
+library(grid) # for textGrob
 #install.packages("latex2exp")
-library("latex2exp")
+#library("latex2exp")
 
-source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
-
+#source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
+source("../code/heatmap_motor.R")
 
 #short names for TFs
 
@@ -27,18 +31,24 @@ source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
+Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
+                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
+
+
 #typo
 Adult_Celltypes_mapping$`Cell type`[grep("Alverolar Type 2,Immune", Adult_Celltypes_mapping$`Cell type`)]="Alveolar Type 2,Immune"
 
 
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
+scratch="../"
 
 data_path="/scratch/project_2006203/"
 
 #representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", sep="\t", header=TRUE)
 representatives=read.table( "../../PWMs_final/metadata_representatives_match_numbers_thresholds.tsv",sep="\t", header=TRUE) #3294 the order differs!
 
+representatives=read.table( "../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294 the order differs!
 #representatives2=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
 
 
@@ -75,8 +85,8 @@ shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% selec
                                               new_representative, Lambert2018_families, type)
 #table(shorter_names)
 
-shorter_names$new_motif="NO"
-shorter_names$new_motif[which(shorter_names$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420") )]="YES" #245
+shorter_names$new_motif=FALSE
+shorter_names$new_motif[which(shorter_names$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420") )]=TRUE #245
 
 #"pfm_composite_new" "pfm_spacing_new"       "20230420"
 
@@ -276,6 +286,27 @@ max(depletions, na.rm=TRUE) #-1.704847e-06
 #Convert the depleted -log_10 p-values to negative
 str(depleted)
 
+#  6 12.57143
+#  6 28.57143
+#  6 9.714286
+# 6 5.428571
+#  6 12.28571
+#  6 4.857143
+#  6 7.714286
+# 6 3.142857
+#  6  11.14286
+#  6 10.28571
+#  6 8
+#  6 7.714286
+#  6 11.14286
+#  6 13.42857
+#  6 8.285714
+
+
+#pdf(file = paste0(scratch, "Figures/cell_group_heatmaps.pdf"), width = 8.27, height = 15, onefile=TRUE )
+
+#newplot=FALSE
+
 
 #The ten most enriched per each cell line
 for( ct_group in names(cell_type_groups) ){
@@ -324,110 +355,141 @@ for( ct_group in names(cell_type_groups) ){
     p_cell_group_matrix_orig=p_cell_group_matrix_orig[index,] 
 
     
-    # name_order=c("Hepatocyte",
-    #              "Pancreatic Acinar Cell",
-    #              "Parietal Cell",  
-    #              "Chief Cell",
-    #              "Foveolar Cell",
-    #              "Gastric Neuroendocrine Cell",     
-    # "Ductal Cell (Pancreatic)")
-    # 
-    # p_cell_group_matrix=p_cell_group_matrix[,name_order]
-    # e_cell_group_matrix=e_cell_group_matrix[,name_order]
-    # p_cell_group_matrix_orig=p_cell_group_matrix_orig[,name_order]
-
-#epithelial=epithelial[order(rownames(epithelial)),]
-
-#Vierstra
-#epithelial=epithelial[c("HNF1A","HNF4A","ESRRA","GATA2","GATA3","GATA5", "FOXA1", "FOXA2" , "FOXC2",  "FOXD2",  "ONECUT1",  "ONECUT2",  "NR2F1", "BARHL1_TEAD4", "CEBPB_FOXD2",
-#  "CEBPG",  "FIGLA",  "FOSL1", "GSC2_TEAD4", "HOXA10_TEAD4", "HOXB2_TCF3", "HOXD12_TEAD4", "ID4", "JUN", "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3",
-#"NR2C1", "OTX1_TEAD4", "POU4F1", "RARA","RFX1", "RFX3",  "RFX3_FIGLA", "TCF12", "TEAD2", "TFAP4_FLI1" ),]
-
-#epithelial=epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
-#                        "HOXB2_TCF3",  "ID4", "JUN",  
-#"LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3", "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
-
-#e_epithelial=e_epithelial[c("HNF1A", "HNF4A", "ESRRA", "GATA2", "GATA3", "GATA5",  "FOXA1",  "FOXA2",  "FOXD2",  "ONECUT1", "ONECUT2",  "CEBPB_FOXD2", "CEBPG", "FIGLA",  "GSC2_TEAD4", 
-#                        "HOXB2_TCF3",  "ID4", "JUN",  
-#                        "LMX1A_BACH2",  "MYBL1_FIGLA",  "NEUROG1_TCF3", "NR2C1",  "POU4F1",   "RARA",  "RFX1",  "RFX3", "RFX3_FIGLA",  "TCF12",  "TEAD1",  "TEAD2",  "ETV5_TCF3", "FOXC2_TCF3",
-#                        "CUX1", "CUX2", "SOX10", "KLF12", "RFX7"),]                 
-
-# tmp=c("HNF1A_HT-SELEX_TGAGCA20NCGA_W_NRTTAATNATTAACN_1_2_YES", 
-#       "HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGGTCRN_1_3_NO",
-#       "HNF4A_HT-SELEX_TACCTT40NCGA_KO_NRGTCCAAAGTCCRN_1_3_NO" ,                        
-#       "HNF4A_HT-SELEX_TCCGTG40NTGC_AI_RRGGTCAAAGTCCRNN_1_3_YES",
-#       "HNF4A_Methyl-HT-SELEX_TTGTTT40NGGC_KO_NRGGTCAAAGGTCAN_1_3_NO"  ,
-#       "ESRRA_HT-SELEX_TAGACC40NAGT_KO_NYCAAGGTCAN_1_3_NO",
-#       "GATA2_HT-SELEX_TGAGGT40NTCC_KR_NYGATAASN_1_2_YES",
-#       "GATA2_Methyl-HT-SELEX_TATGCA40NGAG_KR_NWGATAASN_1_2_YES",
-#       "GATA3_HT-SELEX_TTCGTT40NGCC_KX_NGATAAGATCW_1_3_YES",
-#       "GATA5_Methyl-HT-SELEX_TTACTT40NTAT_KW_NWGATAASRN_1_2_NO" ,
-#       "FOXA1_HT-SELEX_TTCTAA40NAAT_KN_TRNGTAAACA_1_3b1_NA",                            
-#       "FOXA2_HT-SELEX_TAGCTG40NCTA_KT_NWNWGTMAATATTKRYNYWN_2_4_NO",
-#       "FOXC2_TCF3_TGACGT40NAGC_YIII_NCACCTGNRTAAAYAN_m1_c3b0u_short_composite",
-#       "FOXD2_HT-SELEX_TCGCCG40NTGC_KO_NYWANGTAAACAN_1_4_YES",
-#       "FOXD2_Methyl-HT-SELEX_TCATCT40NATT_KO_NYWANGTAAACAN_1_4_YES"   ,
-#       "ONECUT1_Methyl-HT-SELEX_TGGCCG40NGCT_KW_NTATTGATCSGN_1_4_NO",                   
-#       "ONECUT2_Methyl-HT-SELEX_TCCGGA40NGTC_KZ_NTATTGATTWN_1_2_NO" ,
-#       "CEBPB_FOXD2_TCCTCT40NGTC_YWI_NTTRYGTAAACAN_m1_c3b0_short_composite",
-#       "CEBPG_HT-SELEX_TAAAAT20NCG_AC_NTTRCGCAAY_1_2_NO",
-#       "FIGLA_HT-SELEX_AGATA14N_U_NNCACCTGNN_1_4_NO" ,
-#       "GSC2_TEAD4_TTTCTA40NCAT_YJII_NMRTTAACATTCCN_m1_c3b0_short_spacing" ,
-#       "HOXB2_TCF3_CAP-SELEX_TGAAGC40NCTA_AY_NCACCTGNNNNNMATTA_1_3_YES" ,
-#       "ID4_HT-SELEX_CTACA14N_U_NRCACCTGNN_1_4_YES"  ,
-#       "JUN_HT-SELEX_TCAGTG40NGAT_KAE_NATGACKCATN_1_3b0_NO",
-#       "LMX1A_BACH2_TTATTT40NCGT_YACIIII_TGASTCANNNNNNNNNNTAATTA_m1_c3b0_short_spacing",
-#       "MYBL1_FIGLA_CAP-SELEX_TCAGCC40NTTC_AX_NCASSTGNNNNNNNCSGTTR_1_3_YES" ,
-#       "NEUROG1_TCF3_TCGCAC40NCCT_YIII_NMCATCTGYYN_m1_c3b0u_short_composite",
-#       "NR2C1_HT-SELEX_TATTCA40NAGT_KT_NRRGGTCAN_1_4_YES",                              
-#       "NR2C1_Methyl-HT-SELEX_TACGGC40NAGT_KT_NRAGGTCAN_1_4_YES",
-#       "POU4F1_HT-SELEX_TACAAA20NAAC_Y_ATGMATAATTAATG_2_3_YES" , 
-#       "RARA_HT-SELEX_TGAACC40NCCA_KS_NRRGGTCANN_1_4_NO" ,  
-#       "RFX1_HT-SELEX_TTTAGG40NTCT_KS_NGTTRCCATGGYAACN_1_3_NO" ,
-#       "RFX3_HT-SELEX_TCCACC40NTTA_KS_NGTTGCCWAGCAACN_1_2_NO",
-#       "RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_TRGYAACNNNNCASSTGNN_1_3_YES",
-#       "RFX3_FIGLA_CAP-SELEX_TCGGCA40NAGC_AY_GTTGCYNNNNNNNNNNNNCASSTG_1_3_YES" ,
-#       "RFX7_HT-SELEX_TGAGTT40NCGG_KT_NGTTGCYAN_1_3_NO",
-#       "TCF12_HT-SELEX_TTTGAG40NATT_KS_NCACSTGN_1_3_NO",
-#       "TEAD1_HT-SELEX_TCTTAG20NATG_W_RCATTCCNNRCATWCCN_2_4_YES" ,
-#       "TEAD2_Methyl-HT-SELEX_TCGCAA40NTGT_KX_NRCATTCCWN_1_2_NO"  ,
-#       "ETV5_TCF3_CAP-SELEX_TCGTCC40NGCC_AY_RNCGGAAGNNNNNCASSTGN_1_2_YES",
-#       "CUX1_HT-SELEX_TTAGCG40NAGA_KP_NYATYGATYN_1_3_YES",        
-#       "CUX2_HT-SELEX_TCCACC40NTTA_KP_NTGATCGATYRN_1_3_NO",  
-#       "KLF12_Methyl-HT-SELEX_TAACTG40NGTA_KX_NRCCACGCCCW_1_3_YES",  "SOX10_HT-SELEX_TTGCCA40NGTG_KAF_AACAATNNNNNNATTGTT_1_3_YES")     
 
 
+#paletteLength=101
+#color = colorRampPalette(rev(brewer.pal(n = 7, name =
+#                                          "RdBu")))(paletteLength)
 
-#rownames(epithelial_orig)[match(tmp,rownames(epithelial_orig))]
-# p_cell_group_matrix=p_cell_group_matrix[match(tmp,rownames(p_cell_group_matrix_orig)),]
-# e_cell_group_matrix=e_cell_group_matrix[match(tmp,rownames(p_cell_group_matrix_orig)),]                      
-# p_cell_group_matrix_orig=p_cell_group_matrix_orig[match(tmp,rownames(p_cell_group_matrix_orig)),]                      
-
-
-#save.image(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
-#load(file= "/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/epithelial.RData")
-
-paletteLength=100
-color = colorRampPalette(rev(brewer.pal(n = 7, name =
-                                          "RdBu")))(paletteLength)
+#color=colorRampPalette(c("navy", "white", "firebrick3"))(paletteLength)
 
 #color <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
 # length(breaks) == length(paletteLength) + 1
 # use floor and ceiling to deal with even/odd length pallettelengths
-myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
-              seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
+#myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
+#              seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
 
+fontsize=12
+# Replace values greater than 100 with 100 and less than -100 with -100
+p_cell_group_matrix_tmp=pmin(pmax(p_cell_group_matrix, -100), 100)
 
-pdf(file = paste0(scratch, "Figures/cell_group_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(t(p_cell_group_matrix))/44), height=4*nrow(t(p_cell_group_matrix))/7 )
+shorter_names_subset <- rownames(p_cell_group_matrix_orig) %>%
+  map_df(~filter(shorter_names, ID == .x))
 
-ComplexHeatmap::pheatmap(p_cell_group_matrix, color=color, legend=TRUE,
-         cluster_rows = FALSE,
-         cluster_cols = FALSE, column_names_side = "top",
-         breaks=myBreaks, row_names_side = "left", name=expression(alpha+ frac(beta, gamma) ) )
+row_name_colors <- ifelse(shorter_names_subset$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420"), "red", "black")
+
+#print( max(6,6*ncol(p_cell_group_matrix)/44) )
+#print(2*nrow( p_cell_group_matrix)/7 )
+
+pdf(file = paste0(scratch, "Figures/cell_group_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix)/44), height=4*nrow(p_cell_group_matrix)/7 )
+
+#par(pin=c(max(6,6*ncol(p_cell_group_matrix)/44), height=2*nrow(p_cell_group_matrix)/7 ))
+
+# if(newplot==FALSE){
+#   newplot=TRUE
+#   
+# }else{
+#   #plot.new()
+# }
+
+ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+         cluster_rows = TRUE,
+         cluster_columns = TRUE, 
+         show_row_names = TRUE,
+         show_column_names = TRUE,
+         column_names_side = "top",
+         row_names_side = "left",
+         row_names_gp = gpar(col = row_name_colors),
+         clustering_distance_rows = "pearson",
+         clustering_method_rows = "complete",
+         clustering_distance_columns = "pearson",
+         clustering_method_columns = "complete",
+         show_column_dend = FALSE,
+         show_row_dend = FALSE,
+         heatmap_legend_param=list(
+           #title = "-Log_10(P-val)",
+           #title = expression(-log[10](P-val)),
+           title = expression(paste(-log[10],"(P-value)")),
+           title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+           #title_position = "topleft",
+           grid_height = unit(8, "mm"),
+           grid_width = unit(8, "mm"),
+           #tick_length = unit(0.8, "mm"),
+           #border = NULL,
+           #at = object@levels,
+           #labels = at,
+           at = c(-100, 0, 100),
+           labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+           labels_gp = gpar(fontsize = fontsize),
+           #labels_rot = 0,
+           #nrow = NULL,
+           #ncol = 1,
+           #by_row = FALSE,
+           legend_gp = gpar(fontsize = fontsize)
+           #legend_height = NULL,
+           #legend_width = NULL,
+           #legend_direction = c("vertical", "horizontal"),
+           # break_dist = NULL,
+           #graphics = NULL,
+           #param = NULL
+         )
+         )
+
+result=try( draw(ht, column_title=ct_group), silent=TRUE )
+
+if( class(result)=="try-error"){
+  dev.off()
+  pdf(file = paste0(scratch, "Figures/cell_group_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix)/44), height=4*nrow(p_cell_group_matrix)/7 )
+  ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                             cluster_rows = FALSE,
+                             cluster_columns = FALSE, 
+                             show_row_names = TRUE,
+                             show_column_names = TRUE,
+                             column_names_side = "top",
+                             row_names_side = "left",
+                             row_names_gp = gpar(col = row_name_colors),
+                             clustering_distance_rows = "pearson",
+                             clustering_method_rows = "complete",
+                             clustering_distance_columns = "pearson",
+                             clustering_method_columns = "complete",
+                             show_column_dend = FALSE,
+                             show_row_dend = FALSE,
+                             heatmap_legend_param=list(
+                               #title = "-Log_10(P-val)",
+                               #title = expression(-log[10](P-val)),
+                               title = expression(paste(-log[10],"(P-value)")),
+                               title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                               #title_position = "topleft",
+                               grid_height = unit(8, "mm"),
+                               grid_width = unit(8, "mm"),
+                               #tick_length = unit(0.8, "mm"),
+                               #border = NULL,
+                               #at = object@levels,
+                               #labels = at,
+                               at = c(-100, 0, 100),
+                               labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+                               labels_gp = gpar(fontsize = fontsize),
+                               #labels_rot = 0,
+                               #nrow = NULL,
+                               #ncol = 1,
+                               #by_row = FALSE,
+                               legend_gp = gpar(fontsize = fontsize)
+                               #legend_height = NULL,
+                               #legend_width = NULL,
+                               #legend_direction = c("vertical", "horizontal"),
+                               # break_dist = NULL,
+                               #graphics = NULL,
+                               #param = NULL
+                             )
+  )
+  result=try( draw(ht, column_title=ct_group), silent=TRUE )
+  
+}
 dev.off()
 
 
 
+#dev.off()
 
 #Interactive heatmap
 
@@ -520,9 +582,9 @@ metadata=representatives[match(rownames(p_cell_group_matrix_orig), representativ
 }
 
 
-#All enriched, clustered heatmap
+#All new enriched, clustered heatmap
 for( ct_group in names(cell_type_groups) ){
-  print(ct_group)
+  #print(ct_group)
   #ct_group="Epithelial 1"
   #Epithelial
   #Visualise the Hepatocyte, Acinar, Parietal, Chief, Foveolar, G. Neuroendo, Ductal, 
@@ -539,30 +601,154 @@ for( ct_group in names(cell_type_groups) ){
   p_cell_group_matrix_orig=p_matrix_depleted_orig[, which( colnames(p_matrix_depleted_orig) %in% cell_type_groups[[ct_group]]  )]
   
   
-  paletteLength=100
-  color = colorRampPalette(rev(brewer.pal(n = 7, name =
-                                            "RdBu")))(paletteLength)
+  #paletteLength=100
+  #color = colorRampPalette(rev(brewer.pal(n = 7, name =
+  #                                          "RdBu")))(paletteLength)
   
   #color <- colorRampPalette(c("blue", "white", "red"))(paletteLength)
   # length(breaks) == length(paletteLength) + 1
   # use floor and ceiling to deal with even/odd length pallettelengths
-  myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
-                seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
+  #myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1), 
+  #              seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
   
   
-  pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), height=max(8,8*ncol(t(p_cell_group_matrix))/44), width=max(4, 4*nrow(t(p_cell_group_matrix))/7) )
+  #pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), height=max(8,8*ncol(t(p_cell_group_matrix))/44), width=max(4, 4*nrow(t(p_cell_group_matrix))/7) )
   
-  pheatmap(p_cell_group_matrix, color=color, 
-           clustering_distance_rows = "euclidean",
-           clustering_distance_cols = "euclidean",
-           clustering_method="complete",legend=TRUE,
-           cluster_rows = TRUE,
-           cluster_cols = TRUE,
-           breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
+  #pheatmap(p_cell_group_matrix, color=color, 
+  #          clustering_distance_rows = "euclidean",
+  #          clustering_distance_cols = "euclidean",
+  #          clustering_method="complete",legend=TRUE,
+  #          cluster_rows = TRUE,
+  #          cluster_cols = TRUE,
+  #          breaks= myBreaks, row_names_side = "left", row_dend_side = "right")
+  # dev.off()
+  # 
+  
+  
+  fontsize=12
+  # Replace values greater than 100 with 100 and less than -100 with -100
+  p_cell_group_matrix_tmp=pmin(pmax(p_cell_group_matrix, -100), 100)
+  
+  shorter_names_subset <- rownames(p_cell_group_matrix_orig) %>%
+    map_df(~filter(shorter_names, ID == .x))
+  
+  row_name_colors <- ifelse(shorter_names_subset$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420"), "red", "black")
+  
+  index=shorter_names_subset$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")
+  
+  p_cell_group_matrix_tmp=p_cell_group_matrix_tmp[which(rownames(p_cell_group_matrix_orig) %in% shorter_names_subset$ID[ index ]),]
+  
+  #print( max(6,6*ncol(p_cell_group_matrix)/44) )
+  #print(2*nrow( p_cell_group_matrix)/7 )
+  
+  pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix_tmp)/44), height=2*nrow(p_cell_group_matrix_tmp)/7 )
+  
+  #par(pin=c(max(6,6*ncol(p_cell_group_matrix)/44), height=2*nrow(p_cell_group_matrix)/7 ))
+  
+  # if(newplot==FALSE){
+  #   newplot=TRUE
+  #   
+  # }else{
+  #   #plot.new()
+  # }
+  
+  ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                             cluster_rows = TRUE,
+                             cluster_columns = TRUE, 
+                             show_row_names = TRUE,
+                             show_column_names = TRUE,
+                             column_names_side = "top",
+                             row_names_side = "left",
+                             #row_names_gp = gpar(col = row_name_colors),
+                             clustering_distance_rows = "pearson",
+                             clustering_method_rows = "complete",
+                             clustering_distance_columns = "pearson",
+                             clustering_method_columns = "complete",
+                             show_column_dend = FALSE,
+                             show_row_dend = FALSE,
+                             heatmap_legend_param=list(
+                               #title = "-Log_10(P-val)",
+                               #title = expression(-log[10](P-val)),
+                               title = expression(paste(-log[10],"(P-value)")),
+                               title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                               #title_position = "topleft",
+                               grid_height = unit(8, "mm"),
+                               grid_width = unit(8, "mm"),
+                               #tick_length = unit(0.8, "mm"),
+                               #border = NULL,
+                               #at = object@levels,
+                               #labels = at,
+                               at = c(-100, 0, 100),
+                               labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+                               labels_gp = gpar(fontsize = fontsize),
+                               #labels_rot = 0,
+                               #nrow = NULL,
+                               #ncol = 1,
+                               #by_row = FALSE,
+                               legend_gp = gpar(fontsize = fontsize)
+                               #legend_height = NULL,
+                               #legend_width = NULL,
+                               #legend_direction = c("vertical", "horizontal"),
+                               # break_dist = NULL,
+                               #graphics = NULL,
+                               #param = NULL
+                             )
+  )
+  
+  result=try( draw(ht, column_title=ct_group), silent=TRUE )
+  
+  if( class(result)=="try-error"){
+    dev.off()
+    print(ct_group)
+    print("error")
+    pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix_tmp)/44), height=2*nrow(p_cell_group_matrix_tmp)/7 )
+    ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                               cluster_rows = FALSE,
+                               cluster_columns = FALSE, 
+                               show_row_names = TRUE,
+                               show_column_names = TRUE,
+                               column_names_side = "top",
+                               row_names_side = "left",
+                               #row_names_gp = gpar(col = row_name_colors),
+                               clustering_distance_rows = "pearson",
+                               clustering_method_rows = "complete",
+                               clustering_distance_columns = "pearson",
+                               clustering_method_columns = "complete",
+                               show_column_dend = FALSE,
+                               show_row_dend = FALSE,
+                               heatmap_legend_param=list(
+                                 #title = "-Log_10(P-val)",
+                                 #title = expression(-log[10](P-val)),
+                                 title = expression(paste(-log[10],"(P-value)")),
+                                 title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                                 #title_position = "topleft",
+                                 grid_height = unit(8, "mm"),
+                                 grid_width = unit(8, "mm"),
+                                 #tick_length = unit(0.8, "mm"),
+                                 #border = NULL,
+                                 #at = object@levels,
+                                 #labels = at,
+                                 at = c(-100, 0, 100),
+                                 labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+                                 labels_gp = gpar(fontsize = fontsize),
+                                 #labels_rot = 0,
+                                 #nrow = NULL,
+                                 #ncol = 1,
+                                 #by_row = FALSE,
+                                 legend_gp = gpar(fontsize = fontsize)
+                                 #legend_height = NULL,
+                                 #legend_width = NULL,
+                                 #legend_direction = c("vertical", "horizontal"),
+                                 # break_dist = NULL,
+                                 #graphics = NULL,
+                                 #param = NULL
+                               )
+    )
+    result=try( draw(ht, column_title=ct_group), silent=TRUE )
+    
+  }
+  
   dev.off()
-  
-  
-  
   
   #Interactive heatmap, does not really work here
   
@@ -649,6 +835,10 @@ for( ct_group in names(cell_type_groups) ){
 library("gridExtra")
 options(ggrepel.max.overlaps = Inf)
 
+# Thresholds
+lfc_threshold <- 1
+pvalue_threshold <- 0.01
+
 for( ct_group in names(cell_type_groups) ){
 
   print(ct_group)
@@ -658,6 +848,7 @@ for( ct_group in names(cell_type_groups) ){
   grid_size=ceiling(sqrt(length(cell_type_groups[[ct_group]])))
 
   plots<-list()
+  plots_new<-list()
 
   for(ct in cell_type_groups[[ct_group]]){
     #ct=cell_type_groups[[ct_group]][1] 
@@ -665,35 +856,80 @@ for( ct_group in names(cell_type_groups) ){
       name = rownames(e_matrix),
       shorter_name=shorter_names$symbol,
       log2FoldChange = e_matrix[,ct], # random log2 fold changes
-      minusLog10Pvalue  = -p_matrix[,ct]          # 
+      minusLog10Pvalue  = -p_matrix[,ct],
+      new_motif=shorter_names$new_motif # 
     )
     
     data$pvalue <- 10^{-data$minusLog10Pvalue}
     
-    # Thresholds
-    lfc_threshold <- 1
-    pvalue_threshold <- 0.01
+    
+    data$significant=FALSE
+    data$significant[(data$log2FoldChange > lfc_threshold | data$log2FoldChange < -lfc_threshold) & data$pvalue < pvalue_threshold]=TRUE
+    
+    data$new_significant=FALSE
+    data$new_significant[ (data$log2FoldChange > 0.75) & data$pvalue < pvalue_threshold & data$new_motif==TRUE]=TRUE
     
     significant_motifs<- data[(data$log2FoldChange > lfc_threshold | data$log2FoldChange < -lfc_threshold) & data$pvalue < pvalue_threshold, ]
+    significant_motifs_new<- data[(data$log2FoldChange > 0.75 ) & data$pvalue < pvalue_threshold & data$new_motif==TRUE, ]
+    
+    #non_significant_motifs<- data[-((data$log2FoldChange > lfc_threshold | data$log2FoldChange < -lfc_threshold) & data$pvalue < pvalue_threshold), ]
+    
+    #highlight_color <- ifelse(significant_motifs$new_motif, "red", "black")
     
     
-    plots[[ct]]=ggplot(data, aes(x=log2FoldChange, y=minusLog10Pvalue)) +
-      geom_point(aes(color = (abs(log2FoldChange) > lfc_threshold & pvalue < pvalue_threshold)), 
-                 alpha = 0.6) +
-      scale_color_manual(values = c("FALSE"="grey", "TRUE"="red")) + 
-      geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
+    # plots[[ct]]=ggplot(data, aes(x=log2FoldChange, y=minusLog10Pvalue)) +
+    #   geom_point(aes(color = (abs(log2FoldChange) > lfc_threshold & pvalue < pvalue_threshold)), 
+    #              alpha = 0.6) +
+    #   geom_point(data = subset(data, data$new_motif), color = "red", alpha = 0.6) +
+    #   scale_color_manual(values = c("FALSE"="grey", "TRUE"="black")) + 
+    #   geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
+    #   geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype="dashed") +
+    #   geom_text_repel(data=subset(significant_motifs, new_motif), aes(label=shorter_name ) ,color="red")+
+    #   geom_text_repel(data=subset(significant_motifs, !new_motif), aes(label=shorter_name ) ,color="black")+
+    #   #geom_text(data=significant_motifs, aes(label=shorter_name), vjust=-0.5, hjust=0.5, size=3.5, check_overlap = TRUE) +
+    #   theme_minimal() +
+    #   theme_minimal() +
+    #   labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value", color="Significant") 
+    
+    plots[[ct]]=ggplot(data, aes(x = log2FoldChange, y = minusLog10Pvalue)) +
+      
+      # Plotting all points
+      geom_point(aes( color = new_motif, alpha = significant)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "darkgrey"))+
+      scale_alpha_manual(values = c("TRUE" = 1, "FALSE" = 0.3)) +
+    geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
       geom_vline(xintercept = c(-lfc_threshold, lfc_threshold), linetype="dashed") +
-      geom_text_repel(data=significant_motifs, aes(label=shorter_name))+
-      #geom_text(data=significant_motifs, aes(label=shorter_name), vjust=-0.5, hjust=0.5, size=3.5, check_overlap = TRUE) +
+      geom_text_repel(data=subset(significant_motifs, new_motif), aes(label=shorter_name ) ,color="red",box.padding = unit(0.5, "lines"))+
+      geom_text_repel(data=subset(significant_motifs, !new_motif), aes(label=shorter_name ) ,color="black",box.padding = unit(0.5, "lines"))+
       theme_minimal() +
+      labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value",color="New motif", alpha="Significant") 
+    
+    
+    plots_new[[ct]]=ggplot(data, aes(x = log2FoldChange, y = minusLog10Pvalue)) +
+      
+      # Plotting all points
+      geom_point(aes( color = new_motif, alpha = new_significant)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "darkgrey"))+
+      scale_alpha_manual(values = c("TRUE" = 1, "FALSE" = 0.3)) +
+      geom_hline(yintercept = -log10(pvalue_threshold), linetype="dashed") +
+      geom_vline(xintercept = c(-0.75, 0.75), linetype="dashed", col="red") +
+      geom_text_repel(data=subset(significant_motifs_new, new_motif), aes(label=shorter_name ) ,color="red",box.padding = unit(0.5, "lines"))+
+      #geom_text_repel(data=subset(significant_motifs, !new_motif), aes(label=shorter_name ) ,color="black",box.padding = unit(0.5, "lines"))+
       theme_minimal() +
-      labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value", color="Significant") 
+      labs(title=ct, x="Log2 Fold Change", y="-Log10 p-value", color="New motif", alpha="Significant") 
+    
+    
+    
     
     
   }
   
   pdf(file = paste0(scratch, "Figures/cell_group_volcanoes/",ct_group,".pdf"), width=8*grid_size, height=4*grid_size )
-  do.call(grid.arrange, c(plots, ncol = grid_size))  
+  do.call(grid.arrange, c(plots, ncol = grid_size, top = ct_group) )   
+  dev.off()
+  
+  pdf(file = paste0(scratch, "Figures/cell_group_volcanoes_new_motifs/",ct_group,".pdf"), width=8*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots_new, ncol = grid_size, top=ct_group))  
   dev.off()
     
 }
