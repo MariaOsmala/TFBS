@@ -638,9 +638,12 @@ for( ct_group in names(cell_type_groups) ){
   
   p_cell_group_matrix_tmp=p_cell_group_matrix_tmp[which(rownames(p_cell_group_matrix_orig) %in% shorter_names_subset$ID[ index ]),]
   
+  p_cell_group_matrix_new_motifs=p_cell_group_matrix[which(rownames(p_cell_group_matrix_orig) %in% shorter_names_subset$ID[ index ]),]
+  p_cell_group_matrix_orig_new_motifs=p_cell_group_matrix_orig[which(rownames(p_cell_group_matrix_orig) %in% shorter_names_subset$ID[ index ]),]
   #print( max(6,6*ncol(p_cell_group_matrix)/44) )
   #print(2*nrow( p_cell_group_matrix)/7 )
   
+  #Whole heatmaps, all new motifs
   pdf(file = paste0(scratch, "Figures/cell_group_whole_heatmaps/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix_tmp)/44), height=2*nrow(p_cell_group_matrix_tmp)/7 )
   
   #par(pin=c(max(6,6*ncol(p_cell_group_matrix)/44), height=2*nrow(p_cell_group_matrix)/7 ))
@@ -749,6 +752,153 @@ for( ct_group in names(cell_type_groups) ){
   }
   
   dev.off()
+  
+  #Only 10 or 20 most enriched
+  
+  most_enriched<-list()
+  most_enriched_orig<-list()
+  
+  #Choosing the ten most enriched for each cell type maybe not sensible, as there 
+  #are many more for some cell lines, try volcano plots and predictive analysis
+  
+  number_of_most_enriched=10
+  
+  for(c in colnames(p_cell_group_matrix_new_motifs)){
+    
+    most_enriched[[c]]=names(sort(p_cell_group_matrix_new_motifs[,c], decreasing = TRUE)[1:number_of_most_enriched])
+    most_enriched_orig[[c]]=names(sort(p_cell_group_matrix_orig_new_motifs[,c], decreasing = TRUE)[1:number_of_most_enriched])
+  }
+  
+  
+  length(unlist(most_enriched)) #70
+  most_enriched=unique(unlist(most_enriched)) #37
+  
+  length(unlist(most_enriched_orig)) #70
+  most_enriched_orig=unique(unlist(most_enriched_orig)) #44
+  
+  #index
+  index=which(rownames(p_cell_group_matrix_orig_new_motifs) %in% unlist(most_enriched_orig))
+  
+  p_cell_group_matrix_new_motifs=p_cell_group_matrix_new_motifs[index,] 
+  #e_cell_group_matrix=e_cell_group_matrix[index,] 
+  p_cell_group_matrix_orig_new_motifs=p_cell_group_matrix_orig_new_motifs[index,] 
+  
+  p_cell_group_matrix_tmp=pmin(pmax(p_cell_group_matrix_new_motifs, -100), 100)
+  
+  #shorter_names_subset <- rownames(p_cell_group_matrix_orig) %>%
+  #  map_df(~filter(shorter_names, ID == .x))
+  
+  
+  pdf(file = paste0(scratch, "Figures/cell_group_heatmaps_new_motifs/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix_tmp)/44), height=3*nrow(p_cell_group_matrix_tmp)/7 )
+  
+  #par(pin=c(max(6,6*ncol(p_cell_group_matrix)/44), height=2*nrow(p_cell_group_matrix)/7 ))
+  
+  # if(newplot==FALSE){
+  #   newplot=TRUE
+  #   
+  # }else{
+  #   #plot.new()
+  # }
+  
+  ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                             cluster_rows = TRUE,
+                             cluster_columns = TRUE, 
+                             show_row_names = TRUE,
+                             show_column_names = TRUE,
+                             column_names_side = "top",
+                             row_names_side = "left",
+                             #row_names_gp = gpar(col = row_name_colors),
+                             clustering_distance_rows = "pearson",
+                             clustering_method_rows = "complete",
+                             clustering_distance_columns = "pearson",
+                             clustering_method_columns = "complete",
+                             show_column_dend = FALSE,
+                             show_row_dend = FALSE,
+                             heatmap_legend_param=list(
+                               #title = "-Log_10(P-val)",
+                               #title = expression(-log[10](P-val)),
+                               title = expression(paste(-log[10],"(P-value)")),
+                               title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                               #title_position = "topleft",
+                               grid_height = unit(8, "mm"),
+                               grid_width = unit(8, "mm"),
+                               #tick_length = unit(0.8, "mm"),
+                               #border = NULL,
+                               #at = object@levels,
+                               #labels = at,
+                               at = c(-100, 0, 100),
+                               labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+                               labels_gp = gpar(fontsize = fontsize),
+                               #labels_rot = 0,
+                               #nrow = NULL,
+                               #ncol = 1,
+                               #by_row = FALSE,
+                               legend_gp = gpar(fontsize = fontsize)
+                               #legend_height = NULL,
+                               #legend_width = NULL,
+                               #legend_direction = c("vertical", "horizontal"),
+                               # break_dist = NULL,
+                               #graphics = NULL,
+                               #param = NULL
+                             )
+  )
+  
+  result=try( draw(ht, column_title=ct_group), silent=TRUE )
+  
+  if( class(result)=="try-error"){
+    dev.off()
+    print(ct_group)
+    print("error")
+    pdf(file = paste0(scratch, "Figures/cell_group_heatmaps_new_motifs/",ct_group,".pdf"), width=max(8,8*ncol(p_cell_group_matrix_tmp)/44), height=3*nrow(p_cell_group_matrix_tmp)/7 )
+    ht=ComplexHeatmap::Heatmap(p_cell_group_matrix_tmp, col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                               cluster_rows = FALSE,
+                               cluster_columns = FALSE, 
+                               show_row_names = TRUE,
+                               show_column_names = TRUE,
+                               column_names_side = "top",
+                               row_names_side = "left",
+                               #row_names_gp = gpar(col = row_name_colors),
+                               clustering_distance_rows = "pearson",
+                               clustering_method_rows = "complete",
+                               clustering_distance_columns = "pearson",
+                               clustering_method_columns = "complete",
+                               show_column_dend = FALSE,
+                               show_row_dend = FALSE,
+                               heatmap_legend_param=list(
+                                 #title = "-Log_10(P-val)",
+                                 #title = expression(-log[10](P-val)),
+                                 title = expression(paste(-log[10],"(P-value)")),
+                                 title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                                 #title_position = "topleft",
+                                 grid_height = unit(8, "mm"),
+                                 grid_width = unit(8, "mm"),
+                                 #tick_length = unit(0.8, "mm"),
+                                 #border = NULL,
+                                 #at = object@levels,
+                                 #labels = at,
+                                 at = c(-100, 0, 100),
+                                 labels = c("< -100 (Depleted)","0",">100 (Enriched)"),
+                                 labels_gp = gpar(fontsize = fontsize),
+                                 #labels_rot = 0,
+                                 #nrow = NULL,
+                                 #ncol = 1,
+                                 #by_row = FALSE,
+                                 legend_gp = gpar(fontsize = fontsize)
+                                 #legend_height = NULL,
+                                 #legend_width = NULL,
+                                 #legend_direction = c("vertical", "horizontal"),
+                                 # break_dist = NULL,
+                                 #graphics = NULL,
+                                 #param = NULL
+                               )
+    )
+    result=try( draw(ht, column_title=ct_group), silent=TRUE )
+    
+  }
+  
+  dev.off()
+  
+  
   
   #Interactive heatmap, does not really work here
   

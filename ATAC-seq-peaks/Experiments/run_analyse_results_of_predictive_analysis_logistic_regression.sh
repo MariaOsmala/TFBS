@@ -1,15 +1,15 @@
 #!/bin/bash -l
-#SBATCH --job-name=analyse_logistic_reg
+#SBATCH --job-name=figures_logistic_reg
 #SBATCH --account=project_2006203
-#SBATCH --output=outs/analyse_logistic_reg_%j_%a.txt
-#SBATCH --error=errs/analyse_logistic_reg_%j_%a.txt
+#SBATCH --output=outs/figures_logistic_reg_%j_%a.txt
+#SBATCH --error=errs/figures_logistic_reg_%j_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=12:00:00
+#SBATCH --time=01:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=100G #3G with database
-#SBATCH --array=1,3-15 #1-15
+#SBATCH --array=1-15 #1-15
 
 
 # Load r-env
@@ -24,7 +24,8 @@ fi
 echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 
 
-srun apptainer_wrapper exec Rscript --no-save ../code/analyse_results_of_predictive_analysis_logistic_regression.R $SLURM_ARRAY_TASK_ID
+#srun apptainer_wrapper exec Rscript --no-save ../code/analyse_results_of_predictive_analysis_logistic_regression.R $SLURM_ARRAY_TASK_ID
+srun apptainer_wrapper exec Rscript --no-save ../code/figures_predictive_analysis_logistic_regression.R $SLURM_ARRAY_TASK_ID
 
 
 seff $SLURM_JOBID

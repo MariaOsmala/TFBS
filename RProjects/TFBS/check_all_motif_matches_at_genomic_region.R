@@ -25,8 +25,12 @@ install.packages("/projappl/project_2006203/project_rpackages_4.2.1/BSgenome.Hsa
 #echo "R_LIBS=/projappl/project_2006203/project_rpackages_4.2.1" >> ~/.Renviron
 
 #representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives.tsv", sep="\t", header=TRUE)
-representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", 
-                           sep="\t", header=TRUE)
+#representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", 
+#                           sep="\t", header=TRUE)
+
+
+representatives=read.table("/projappl/project_2006203/TFBS/PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+
 
 rep_motifs=representatives[which(representatives$new_representative=="YES"),]
 
@@ -34,12 +38,9 @@ rep_motifs=representatives[which(representatives$new_representative=="YES"),]
 #rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
 #rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
 
-#https://www.ncbi.nlm.nih.gov/gene/105804841
-
-#chr7:156,790,708-156,793,079 #this is 2,372 bp.
+#https://www.ncbi.nlm.nih.gov/gene/105804841 GRCh38: chr7:156,790,708-156,793,079 #this is 2,372 bp.
 
 #coordinates in GRCh37 chr7:156583402..156585773
-
 
 #Vista browser, this is in hg19:  chr7:156,583,782-156,584,569
 
@@ -53,7 +54,7 @@ motifs<-PFMatrixList()
 
 for(i in 1:nrow(rep_motifs)){
   print(i)
-  profileMatrix=as.matrix(read.table(file=paste0("/scratch/project_2006203/TFBS/",rep_motifs$filename[i])))
+  profileMatrix=as.matrix(read.table(file=paste0("/projappl/project_2006203/TFBS/",gsub("../../", "",rep_motifs$filename[i]))))
   dimnames(profileMatrix)=list(c("A", "C", "G", "T"))
   
   
@@ -128,7 +129,7 @@ export.bed(test_GRanges_GRCh38, paste0("/scratch/project_2006203/TFBS/Results/SH
 motif_ix <- matchMotifs(example_pwms, test_GRanges_GRCh38, genome="hg38", p.cutoff=1e-05, out="positions") #out=scores
 
 
-chr1:214150857-214151185
+#chr1:214150857-214151185
 #sort based on the max score
 
 motif_ix_maxscore<-list()
@@ -159,47 +160,41 @@ best_motif_matches=best_motif_matches[order(best_motif_matches$score, decreasing
 #Wider region 2372
 
 #This is hg19
-test_GRanges=GRanges(seqnames = Rle( "chr7", rep(1, 1) ),
-                     ranges = IRanges(start=156583402, end = 156585773) )
-
-
-
-
-
-
+#test_GRanges=GRanges(seqnames = Rle( "chr7", rep(1, 1) ),
+#                     ranges = IRanges(start=156583402, end = 156585773) )
 
 #In hg19 coordinates chr7:156583402..156585773
 
 
 
-motif_ix_2kb <- matchMotifs(example_pwms, test_GRanges, genome = "hg19", p.cutoff=1e-05, out="positions") #out=scores
+# motif_ix_2kb <- matchMotifs(example_pwms, test_GRanges, genome = "hg19", p.cutoff=1e-05, out="positions") #out=scores
+# 
+# motif_ix_2kb_maxscore<-list()
+# 
+# motif_ix_2kb_lnscore<-list()
+# 
+# for(i in 1:length(motif_ix_2kb)){
+#   print(i)
+#   motif_ix_2kb[[i]]=motif_ix_2kb[[i]][rev(order(motif_ix_2kb[[i]]$score))]
+#   motif_ix_2kb_lnscore[[i]]=motif_ix_2kb[[i]]
+#   motif_ix_2kb_lnscore[[i]]$score=motif_ix_2kb[[i]]$score/log2(exp(1))
+#   motif_ix_2kb_lnscore[[i]]=motif_ix_2kb_lnscore[[i]][motif_ix_2kb_lnscore[[i]]$score>=2]
+#   if(length(motif_ix_2kb_lnscore[[i]]) != 0){
+#     export.bed(motif_ix_2kb_lnscore[[i]], paste0("/scratch/project_2006203/TFBS/Results/SHH_enhancer_ZRS_wider/",names(motif_ix_2kb)[[i]],".bed") )
+#     motif_ix_2kb_maxscore[[names(motif_ix_2kb)[[i]] ]]=as.data.frame(motif_ix_2kb_lnscore[[i]][1,])
+#   }
+# }
 
-motif_ix_2kb_maxscore<-list()
 
-motif_ix_2kb_lnscore<-list()
-
-for(i in 1:length(motif_ix_2kb)){
-  print(i)
-  motif_ix_2kb[[i]]=motif_ix_2kb[[i]][rev(order(motif_ix_2kb[[i]]$score))]
-  motif_ix_2kb_lnscore[[i]]=motif_ix_2kb[[i]]
-  motif_ix_2kb_lnscore[[i]]$score=motif_ix_2kb[[i]]$score/log2(exp(1))
-  motif_ix_2kb_lnscore[[i]]=motif_ix_2kb_lnscore[[i]][motif_ix_2kb_lnscore[[i]]$score>=2]
-  if(length(motif_ix_2kb_lnscore[[i]]) != 0){
-    export.bed(motif_ix_2kb_lnscore[[i]], paste0("/scratch/project_2006203/TFBS/Results/SHH_enhancer_ZRS_wider/",names(motif_ix_2kb)[[i]],".bed") )
-    motif_ix_2kb_maxscore[[names(motif_ix_2kb)[[i]] ]]=as.data.frame(motif_ix_2kb_lnscore[[i]][1,])
-  }
-}
-
-
-best_motif_matches_2kb=do.call(rbind, motif_ix_2kb_maxscore)
-best_motif_matches_2kb$pfm=names(motif_ix_2kb_maxscore)
+# best_motif_matches_2kb=do.call(rbind, motif_ix_2kb_maxscore)
+# best_motif_matches_2kb$pfm=names(motif_ix_2kb_maxscore)
 
 #sort based on motif match
-best_motif_matches_2kb=best_motif_matches_2kb[order(best_motif_matches_2kb$score, decreasing=TRUE),]
+# best_motif_matches_2kb=best_motif_matches_2kb[order(best_motif_matches_2kb$score, decreasing=TRUE),]
 
 
 #save.image(file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/SHH_enhancer_ZRS.Rds")
-load(file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/SHH_enhancer_ZRS.Rds")
+#load(file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/SHH_enhancer_ZRS.Rds")
 
 
 
@@ -234,21 +229,24 @@ names(seqlengths)=paste0("chr", names(seqlengths))
 seqlengths(test_GRanges_GRCh38)=seqlengths
 genome(test_GRanges_GRCh38) <- "GRCh38"
 
-
+#GR_list=readRDS(file = paste0("/scratch/project_2006203/TFBS/", "/ATAC-seq-peaks/RData/top_motif_matches_human_final.Rds")) #
+GR_list=readRDS(file = paste0("/scratch/project_2006203/TFBS/", "/ATAC-seq-peaks/RData/representative_motif_matches_human_final.Rds")) #
 
 for(i in 1:nrow(rep_motifs) ){
   #TFBS_GRanges=import.bed( bigbed[i])  #logarithm base for log-odds conversion (default natural logarithm)
   #print(i)
   
   #i=1
-  threshold=rep_motifs$MOODS_threshold[i]
+  #threshold=rep_motifs$MOODS_threshold[i]
   name=rep_motifs$ID[i]
   #rep_motifs$match_numbers[i]
-  if(threshold==5){
-    TFBS_GRanges=import.bed(paste0("/scratch/project_2006203/TFBS/Results/MOODS_Teemu_processed/MOODS_bigbed/",name,"_top.bed"))
-  }else{
-    TFBS_GRanges=import.bed(paste0("/scratch/project_2006203/TFBS/Results/MOODS_Teemu_",threshold,"_processed/MOODS_bigbed/",name,"_top.bed"))
-  }
+  #if(threshold==5){
+  #  TFBS_GRanges=import.bed(paste0("/scratch/project_2006203/TFBS/Results/MOODS_Teemu_processed/MOODS_bigbed/",name,"_top.bed"))
+  #}else{
+  #  TFBS_GRanges=import.bed(paste0("/scratch/project_2006203/TFBS/Results/MOODS_Teemu_",threshold,"_processed/MOODS_bigbed/",name,"_top.bed"))
+  #}
+  
+  TFBS_GRanges=GR_list[[name]]
   
   isCircular(seqinfo(TFBS_GRanges))=rep(FALSE, length(seqinfo(TFBS_GRanges)))
   
@@ -266,7 +264,7 @@ for(i in 1:nrow(rep_motifs) ){
   
   hits=findOverlaps( TFBS_GRanges,test_GRanges_GRCh38, ignore.strand=TRUE)
   if(length(hits)!=0){
-  export.bed( TFBS_GRanges[hits@from], paste0("/scratch/project_2006203/TFBS/Results/300000matches_SHH_enhancer_ZRS_wider/",rep_motifs$ID[i],".bed") )
+  export.bed( TFBS_GRanges[hits@from], paste0("/scratch/project_2006203/TFBS/Results/300000matches_SHH_enhancer_ZRS_wider_final/",rep_motifs$ID[i],".bed") )
   }
 
 }

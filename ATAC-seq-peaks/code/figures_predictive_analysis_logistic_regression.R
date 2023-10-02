@@ -15,6 +15,8 @@ library("glmnet")
 library("reshape2")
 library(ggrepel) #
 library("gridExtra")
+library("openxlsx")
+
 
 cell_type_group_nro <- as.numeric(commandArgs(trailingOnly = TRUE)) #1:15
 
@@ -226,85 +228,14 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
 #for( cell_type_group in names(cell_type_groups) ){ 
 
   cell_type_group=names(cell_type_groups)[cell_type_group_nro]
-  print(cell_type_group)
-  aucs=list()
-  assessments_list=list()
   
-  cvfits_list=list()
-  cvfit_final_list=list()
+  load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
   
-  aucs_maxscore=list()
-  assessments_list_maxscore=list()
+  representatives$new_motif=FALSE
   
-  cvfits_list_maxscore=list()
-  cvfit_final_list_maxscore=list()
-  
-  #presence-absence
-  for(cell_type in cell_type_groups[[cell_type_group]] ){
-    print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
-    cvfits_list[[cell_type]]=cvfits
-    cvfit_final_list[[cell_type]]=cvfit_final
-    assessments=list()
-  
-    for(i in 1:length(cvfits)){
-      print(i)
-      assessments[[i]]=assess.glmnet(cvfits[[i]], newx = presence_sparse[combined_folds[[i]], ], 
-                             newy = Class[combined_folds[[i]]],s = "lambda.1se", family="binomial")
-    
-    
-    }
-    assessments_list[[cell_type]]=assessments
-    aucs[[cell_type]]=sapply(assessments, function(x) x[["auc"]])
-    
-  }
-  
-  #maxscore
-  for(cell_type in cell_type_groups[[cell_type_group]] ){
-    print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData"))
-    cvfits_list_maxscore[[cell_type]]=cvfits
-    cvfit_final_list_maxscore[[cell_type]]=cvfit_final
-    assessments_maxscore=list()
-    
-    for(i in 1:length(cvfits)){
-      print(i)
-      assessments_maxscore[[i]]=assess.glmnet(cvfits[[i]], newx = presence_sparse[combined_folds[[i]], ], #the name of the matrix is the same
-                                     newy = Class[combined_folds[[i]]],s = "lambda.1se", family="binomial")
-      
-      
-    }
-    assessments_list_maxscore[[cell_type]]=assessments_maxscore
-    aucs_maxscore[[cell_type]]=sapply(assessments_maxscore, function(x) x[["auc"]])
-    
-  }
+  representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
   
   
-  # aucs_ctg[[cell_type_group]]=aucs
-  # assessments_ctg[[cell_type_group]]=assessments_list
-  # cvfits_ctg[[cell_type_group]]=cvfits_list
-  # cvfit_final_ctg[[cell_type_group]]=cvfit_final_list
-  # 
-  # aucs_maxscore_ctg[[cell_type_group]]=aucs_maxscore
-  # assessments_maxscore_ctg[[cell_type_group]]=assessments_list_maxscore
-  # cvfits_maxscore_ctg[[cell_type_group]]=cvfits_list_maxscore
-  # cvfit_maxscore_final_ctg[[cell_type_group]]=cvfit_final_list_maxscore
-  
-  
-  aucs_test=as.data.frame(do.call(cbind, aucs))
-  aucs_test$id=1:nrow(aucs_test)
-  aucs_test=reshape2::melt(aucs_test,id.vars=c("id"), value.name="AUC", variable.name = "Cell type")
-  aucs_test$method="presence"
-  
-  aucs_test_maxscore=as.data.frame(do.call(cbind, aucs_maxscore))
-  aucs_test_maxscore$id=1:nrow(aucs_test_maxscore)
-  aucs_test_maxscore=reshape2::melt(aucs_test_maxscore,id.vars=c("id"), value.name="AUC", variable.name = "Cell type")
-  aucs_test_maxscore$method="score"
-  
-  aucs_test=rbind(aucs_test, aucs_test_maxscore)
-  
-  
-  reshape2::melt(aucs_test, )
   
   pdf(file = paste0(scratch, "Figures/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=12*(length(cell_type_groups[[cell_type_group]])/7), height=4 )
   
@@ -316,12 +247,23 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   plot(gg)
   
   dev.off()
+  
+  #write excel
+  
+  
+  # Create a new workbook
+  wb = createWorkbook()
+  
+  # Add a worksheet
+  addWorksheet(wb, "presence")
 
   #Importance of the regression weights
   #Presence
   plots=list()
   plots_new=list()
   options(ggrepel.max.overlaps = Inf)
+  
+  i=1
   
   for(cell_type in names(cvfit_final_list) ){
     #cell_type=names(cvfit_final_list)[1]  
@@ -339,6 +281,25 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     
     # 
     # #Plot regression coefficient as the function of the feature importance
+    
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+1, startRow=1)
+    addStyle(wb, "presence", style=createStyle(border="left"), cols=(i-1)*5+1, rows=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+2, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+3, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+4, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+5, startRow=1)
+    addStyle(wb, "presence", style=createStyle(border="right"), cols=(i-1)*5+5, rows=1)
+    
+    writeData(wb, "presence", x=regression_coef, startCol=(i-1)*5+1, startRow=2, 
+              borders="surrounding", headerStyle = createStyle(border=c("left","right")) )
+    
+    # Define the style for the rows you want to color (e.g., red background)
+    style_red <- createStyle(fgFill = "red")  # FF0000 is the hex code for red
+    
+    # Apply the style to the desired rows (e.g., rows 2 and 4)
+    addStyle(wb, "presence", style = style_red, rows = 2+which(regression_coef$new_motif==TRUE), cols = ((i-1)*5+1):((i-1)*5+5), gridExpand = TRUE)
+    
+   
     
     # 
     plots[[cell_type]]=ggplot(regression_coef,aes(x=order, y=coef))+geom_point(aes(color = new_motif))+
@@ -369,7 +330,12 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     
     
   # 
+    i=i+1
   }
+  
+  
+  
+ 
   
   #grid size
   grid_size=ceiling(sqrt(length(names(cvfit_final_list))))
@@ -383,6 +349,10 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   dev.off()
   
   
+  # Add a worksheet
+  addWorksheet(wb, "scores")
+  
+  i=1
   
   #Scores
   plots=list()
@@ -403,6 +373,29 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     # 
     
     regression_coef$new_motif=representatives$new_motif[match(regression_coef$name, representatives$ID)]
+    
+    
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+1, startRow=1)
+    addStyle(wb, "scores", style=createStyle(border="left"), cols=(i-1)*5+1, rows=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+2, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+3, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+4, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+5, startRow=1)
+    addStyle(wb, "scores", style=createStyle(border="right"), cols=(i-1)*5+5, rows=1)
+    
+    writeData(wb, "scores", x=regression_coef, startCol=(i-1)*5+1, startRow=2, 
+              borders="surrounding", headerStyle = createStyle(border=c("left","right")) )
+    
+    # Define the style for the rows you want to color (e.g., red background)
+    style_red <- createStyle(fgFill = "red")  # FF0000 is the hex code for red
+    
+    # Apply the style to the desired rows (e.g., rows 2 and 4)
+    addStyle(wb, "scores", style = style_red, rows = 2+which(regression_coef$new_motif==TRUE), cols = ((i-1)*5+1):((i-1)*5+5), gridExpand = TRUE)
+    
+    
+    
+    
+    
     # #Plot regression coefficient as the function of the feature importance
     
     # 
@@ -429,7 +422,7 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
            x="Features sorted by importance",y="Regression coefficient", color="New motif")+
       theme_minimal()
     
-    
+    i=i+1
     
     
     # 
@@ -446,338 +439,8 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   do.call(grid.arrange, c(plots_new, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
-  
+  # Save the workbook to a file
+  saveWorkbook(wb, paste0("/scratch/project_2006203/TFBS/ATAC-seq-peaks/reg_coeff_excels/",cell_type_group,".xlsx"), overwrite = TRUE)
   
 #}
 
-
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
-stop()
-
-load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
-
-
-
-cvfit_final 
-
-presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
-#saveRDS(count_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/count_matrix.Rds")) #
-#saveRDS(max_score_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
-
-#Consider only those that are truly unique
-
-cell_type=names(cCREs_list)[cell_line_nro]
-#CREs specific to this one
-
-ct_CREs=cCREs_list[[cell_type]]
-
-ol=findOverlaps(ct_CREs, all_cCREs, type="equal", ignore.strand=TRUE) #queryLength: 16481 / subjectLength: 435142
-
-length(unique(ol@from))
-length(unique(ol@to))
-table(names(all_cCREs[unique(ol@to)]))
-
-#Data frame with rows as samples, columns correspond to the presence of a motif hit, first column as the class label
-
-presence_sparse <- as(presence_matrix, "CsparseMatrix")
-
-
-#the frequency of the most prevalent value over the second most frequent value (called the “frequency ratio’’), 
-#which would be near one for well-behaved predictors and very large for highly-unbalanced data and
-#the “percent of unique values’’ is the number of unique values divided by the total number of samples (times 100) 
-#that approaches zero as the granularity of the data increases
-#nzv <- nearZeroVar(presence_matrix, saveMetrics= TRUE)
-#nzv[nzv$nzv,][1:10,]
-
-#filteredData <- presence_matrix[, -nzv]
-
-#Identifying correlated predictors
-
-#highlyCorDescr <- findCorrelation(presence_matrix, cutoff = .75)
-#filteredData <- filteredData[,-highlyCorDescr]
-
-#comboInfo <- findLinearCombos(ltfrDesign)
-#comboInfo
-
-
-#presence_df=as.data.frame(presence_matrix)
-#presence_df$Class=0
-#presence_df$Class[ol@to]=1
-
-#presence_df$Class=as.factor(presence_df$Class)
-
-Class=rep(0, nrow(presence_sparse))
-Class[ol@to]=1
-
-#Binary features, does it make sense to scale them?
-
-#class1_folds <- createFolds(which(presence_df$Class==1), k = 5)
-#class2_folds <- createFolds(which(presence_df$Class==0), k = 5)
-
-
-#class1_folds=lapply(class1_folds,function(x) which(presence_df$Class==1)[x] )
-#class2_folds=lapply(class2_folds,function(x) which(presence_df$Class==0)[x] )
-
-library("purrr")
-#combined_folds=map2(class1_folds, class2_folds, c)
-
-#other way
-class1_folds <- createFolds(which(Class==1), k = 5)
-class2_folds <- createFolds(which(Class==0), k = 5)
-
-class1_folds=lapply(class1_folds,function(x) which(Class==1)[x] )
-class2_folds=lapply(class2_folds,function(x) which(Class==0)[x] )
-
-combined_folds=map2(class1_folds, class2_folds, c)
-
-#library(doParallel)
-#cl <- makePSOCKcluster(5)
-#registerDoParallel(cl)
-
-## All subsequent models are then run in parallel
-#model <- train(y ~ ., data = training, method = "rf")
-
-
-cvfits <- lapply(combined_folds, function(test_indices) {
-  #test_indices=combined_folds[[1]]
-  trainData <- presence_sparse[-test_indices, ]
-  testData <- presence_sparse[test_indices, ]
-  
-  classes=Class[-test_indices]
-  
-  #fit <- glmnet(x=subset(trainData, select = -Class), y=trainData$Class, family = "binomial", alpha=1, trace.it=TRUE)
-  #fit <- glmnet(x=trainData, y=classes, family = "binomial", alpha=1, trace.it=TRUE)
-  
-  #By specifying keep = TRUE in the cv.glmnet call, a matrix of prevalidated predictions are stored in the returned output as the fit.preval component.
-  #We can then use this component in the call to assess.glmnet
-  cvfit <- cv.glmnet(x=trainData, y=classes,family = "binomial", alpha=1,trace.it = TRUE, type.measure="auc", keep=TRUE)
-  
-  cvfit
-  
-  #plots the cross-validation curve (red dotted line) along with upper and lower standard deviation curves along the 𝜆
-  #sequence (error bars). Two special values along the 𝜆
-  #sequence are indicated by the vertical dotted lines. lambda.min is the value of 𝜆
-  #that gives minimum mean cross-validated error, while lambda.1se is the value of 𝜆
-  #that gives the most regularized model such that the cross-validated error is within one standard error of the minimum.
-  
-  #plot(cvfit)
-  
-  #We can use the following code to get the value of lambda.min and the model coefficients at that value of 𝜆
-  
-  #cvfit$lambda.min
-  #cvfit$lambda.1se
-  
-  #coef(cvfit, s = "lambda.min")
-  
-  #Each curve corresponds to a variable. It shows the path of its coefficient against the l1-norm of the whole coefficient vector as 𝜆
-  #varies. The axis above indicates the number of nonzero coefficients at the current 𝜆, which is the effective degrees of freedom (df) 
-  #for the lasso. Users may also wish to annotate the curves: this can be done by setting label = TRUE in the plot command.
-  
-  #plot(cvfit$glmnet.fit, label=TRUE)
-  
-  #The number of nonzero coefficients (Df), the percent (of null) deviance explained (%dev) and the value of 𝜆
-  #(Lambda). Although glmnet fits the model for 100 values of lambda by default, it stops early if %dev does not change sufficiently from one lambda to the next
-  #print(cvfit$glmnet.fit)
-  
-  #We can obtain the model coefficients at one or more 𝜆’s within the range of the sequence:
-  #coef(fit, s = 0.01)
-  
-  #predict(cvfit, newx = testData, s = "lambda.min")
-  
-  #assessment=assess.glmnet(cvfit, newx = testData, newy = Class[test_indices],s = "lambda.min", family="binomial")
-  
-  #rocs <- roc.glmnet(cvfit$fit.preval, newy = classes, s = "lambda.min")
-  
-  #roc.glmnet returns a list of cross-validated ROC data, one for each model along the path. 
-  #The code below demonstrates how one can plot the output. 
-  #The first line identifies the lambda value giving the best area under the curve (AUC). 
-  #Then we plot all the ROC curves in grey and the “winner” in red.
-  
-  #best <- cvfit$index["min",]
-  #plot(rocs[[best]], type = "l")
-  #invisible(sapply(rocs, lines, col="grey"))
-  #lines(rocs[[best]], lwd = 2,col = "red")
-  
-  #for test data
-  #rocs_test <- roc.glmnet(cvfit, newx=testData, newy = Class[test_indices], s = "lambda.min", family="binomial")
-  
-  #The first argument to confusion.glmnet should be a glmnet or cv.glmnet object (from which predictions can be made), 
-  #or a matrix/array of predictions, such as the kept "fit.preval" component in the output of a cv.glmnet call with keep = TRUE
-  #cnf <- confusion.glmnet(cvfit, newx = testData, newy = Class[test_indices],s = "lambda.min", family="binomial")
-  #print(cnf)
-  
-  #In the code below, we identify and print the one achieving the smallest classification error.
-  #best <- cvfit$index["min",]
-  #print(cnf[[best]])
-  
-  
-  
-})
-
-
-
-#Fit the whole model
-
-cvfit_final <- cv.glmnet(x=presence_sparse, y=Class,family = "binomial", alpha=1,trace.it = TRUE, type.measure="auc", keep=TRUE)
-
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
-
-# stop()
-# 
-# plot(cvfit_final)
-# 
-# #We can use the following code to get the value of lambda.min and the model coefficients at that value of 𝜆
-# 
-# cvfit_final$lambda.min
-# cvfit_final$lambda.1se
-# 
-# regression_coef=data.frame(name=rownames(coef(cvfit, s = "lambda.min"))[-1], coef=as.matrix(coef(cvfit, s = "lambda.min"))[-1] )
-# 
-# regression_coef=regression_coef[order(regression_coef$coef, decreasing =TRUE),]
-# 
-# regression_coef$order=1:nrow(regression_coef)
-# 
-# regression_coef$symbol=representatives$symbol[match(regression_coef$name, representatives$ID)]
-# 
-# #Plot regression coefficient as the function of the feature importance
-# library(ggrepel)
-# 
-# ggplot(regression_coef,aes(x=order, y=coef))+geom_point()+geom_text_repel(data=subset(regression_coef, coef > 0.25), 
-#                                                                    aes(label=symbol), box.padding=0.5)
-# 
-# stop()
-# 
-# lasso_model <- train(
-#   Class ~ ., data = trainData,
-#   method = "glmnet",
-#   family = "binomial",
-#   trControl = trainControl(method = "cv"),
-#   tuneGrid = expand.grid(alpha = 1, lambda = seq(1, 3, by = 1)) #alpha=1 means lasso, alpha=0 is ridge regression
-# )
-# 
-# best_lambda <- lasso_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(lasso_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
-# 
-# plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# lasso_predictions <- predict(lasso_model, newdata = testData)
-# confusionMatrix(lasso_predictions, testData$Class)
-# # Here you can insert the code to train your model using 'trainData'
-# lasso_model
-# 
-# ## When you are done:
-# stopCluster(cl)
-# 
-# 
-# data(iris)
-# binary_iris <- iris[iris$Species %in% c('setosa', 'versicolor'), ] #N=100, D=5
-# 
-# binary_iris$Species=droplevels(binary_iris$Species)
-# 
-# 
-# 
-# colMeans(binary_iris[,1:4])
-# var(binary_iris[,1:4])
-# 
-# binary_iris[,1:4]=scale(binary_iris[,1:4])
-# 
-# 
-# set.seed(123)
-# trainIndex <- createDataPartition(binary_iris$Species, p = 0.7, list = FALSE)
-# 
-# folds <- createFolds(binary_iris$Species, k = 5)
-# models <- lapply(folds, function(train_indices) {
-#   trainData <- binary_iris[train_indices, ]
-#   # Here you can insert the code to train your model using 'trainData'
-#   # Return the trained model
-# })
-# 
-# results <- lapply(1:length(folds), function(i) {
-#   train_indices <- folds[[i]]
-#   testData <- binary_iris[-train_indices, ]
-# })
-# 
-# 
-# trainData <- binary_iris[trainIndex, ]
-# testData  <- binary_iris[-trainIndex, ]
-# 
-# set.seed(123)
-# lasso_model <- train(
-#   Species ~ ., data = trainData,
-#   method = "glmnet",
-#   family = "binomial",
-#   trControl = trainControl(method = "cv"),
-#   tuneGrid = expand.grid(alpha = 1, lambda = seq(0.01, 0.3, by = 0.01)) #alpha means lasso, alpha=0 is ridge regression
-# )
-# 
-# print(lasso_model)
-# 
-# best_lambda <- lasso_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(lasso_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(lasso_model$finalModel$beta)
-# 
-# plot(lasso_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# #Extract Coefficients:
-# #You can extract the coefficients for a specific value of 
-# #λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
-# 
-# lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
-# coefficients <- coef(lasso_model, s = lambda_value)
-# print(coefficients)
-# 
-# 
-# #The alpha parameter controls the elastic-net mixing parameter where alpha = 0 is ridge regression 
-# #and alpha = 1 is lasso regression. You can try values between 0 and 1 for elastic net.
-# 
-# 
-# set.seed(123)
-# elastic_net_model <- train(
-#   Species ~ ., data = trainData,
-#   method = "glmnet",
-#   trControl = trainControl(method = "cv"),
-#   family = "binomial",
-#   tuneGrid = expand.grid(alpha = 0.5, lambda = seq(0.01, 0.3, by = 0.01))
-# )
-# print(elastic_net_model)
-# 
-# best_lambda <- elastic_net_model$bestTune$lambda
-# # Extract coefficients for the best lambda
-# coefficients <- coef(elastic_net_model$finalModel, s = best_lambda)
-# print(coefficients)
-# 
-# coefs_matrix <- as.matrix(elastic_net_model$finalModel$beta)
-# 
-# plot(elastic_net_model$finalModel, xvar = "lambda", label = TRUE)
-# 
-# #Extract Coefficients:
-# #You can extract the coefficients for a specific value of 
-# #λ using the coef function. Remember that glmnet computes coefficients for many values of λ by default.
-# 
-# lambda_value <- lasso_model$results$lambda[30] # Choose a lambda value
-# coefficients <- coef(lasso_model, s = lambda_value)
-# print(coefficients)
-# 
-# #Model evaluation
-# 
-# lasso_predictions <- predict(lasso_model, newdata = testData)
-# elastic_net_predictions <- predict(elastic_net_model, newdata = testData)
-# 
-# confusionMatrix(lasso_predictions, testData$Species)
-# confusionMatrix(elastic_net_predictions, testData$Species)
-# 
-# #Visualize the Regularization Path:
-# #This is more of a bonus step, but you can visualize the coefficients' paths across different lambda values using the glmnet package directly.
-# 
-# 
-# lasso_glmnet <- glmnet(as.matrix(trainData[,-5]), trainData$Species, alpha = 1)
-# plot(lasso_glmnet, xvar = "lambda", label = TRUE)
-# 
-# 
