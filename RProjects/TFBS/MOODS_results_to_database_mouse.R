@@ -25,7 +25,8 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_4/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_3/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_2/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_moouse_mm39_final_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final_processed/"
+
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -55,7 +56,8 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_moouse_mm39_final/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final/"
+  
 chrom_lengths=read.table("/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/mm39.chrom.sizes")
 seqlengths=chrom_lengths[,2]
 names(seqlengths)=chrom_lengths[,1]
@@ -108,15 +110,20 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
   
   MOODS_file=paste0("MOODS_", index, ".csv.gz")
   
+  path_local_scratch=Sys.getenv("LOCAL_SCRATCH")
+  system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch, "/"))
+  
+  tb=read_csv(file = gzfile(paste0(path_local_scratch, "/",MOODS_file)),
+              col_names = FALSE) 
   
   
-  system(paste0("gunzip ",MOODS_path,MOODS_file))
+  #system(paste0("gunzip ",MOODS_path,MOODS_file))
   
   
-  tb <- vroom(file = paste0(MOODS_path, strsplit(MOODS_file, ".gz")[[1]]),
-              col_names = FALSE, num_threads = 40, altrep = TRUE)
+  #tb <- vroom(file = paste0(MOODS_path, strsplit(MOODS_file, ".gz")[[1]]),
+  #            col_names = FALSE, num_threads = 40, altrep = TRUE)
   
-  system(paste0("gzip ",MOODS_path, strsplit(MOODS_file, ".gz")[[1]] ))
+  #system(paste0("gzip ",MOODS_path, strsplit(MOODS_file, ".gz")[[1]] ))
   
   
   tb=tb[,-7]
@@ -133,16 +140,16 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
   #motif id starts from zero
   
   #Uncomment if using database ######################
-  motifs=data.frame(PWMs=do.call(rbind, strsplit(PWMs, ".pfm")), motif_id=seq(index*10, index*10 + length(PWMs)-1,1) )
-  level_key=seq(index*10, index*10 + length(PWMs)-1,1)
-  names(level_key)=PWMs
+  #motifs=data.frame(PWMs=do.call(rbind, strsplit(PWMs, ".pfm")), motif_id=seq(index*10, index*10 + length(PWMs)-1,1) )
+  #level_key=seq(index*10, index*10 + length(PWMs)-1,1)
+  #names(level_key)=PWMs
 
 
-  tb=tb %>% mutate(motif_id=recode(motif_id,!!!level_key))
+  #tb=tb %>% mutate(motif_id=recode(motif_id,!!!level_key))
   
   #MOODS output is 0-based, GRanges is 1-based
   
-
+  motifs=data.frame(PWMs=do.call(rbind, strsplit(PWMs, ".pfm")) )
   
   
   motif_matches<-GRangesList()
@@ -153,7 +160,8 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
       print(pwm)
      #pwm="ZSCAN16_HT-SELEX_TCCACC40NTTA_KR_NANTGTTAACAGAGCCTCN_2_4_YES.pfm"
       #level_key[pwm]
-      tmp=tb[tb$motif_id==level_key[pwm],]
+      #tmp=tb[tb$motif_id==level_key[pwm],]
+     tmp=tb[tb$motif_id==pwm,]
       tmp_GRanges=GRanges(seqnames = Rle( tmp$chr, rep(1, nrow(tmp)) ),
       ranges = IRanges(start=tmp$position+1, end = tmp$position+ nchar(tmp$sequence[1]) ),
       strand = Rle(strand(tmp$strand  ), rep(1, nrow(tmp))  ))
@@ -190,15 +198,18 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
    #
    #
    #   export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
-      export.bed(tmp_GRanges_top, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+      #export.bed(tmp_GRanges_top, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+      export.bed(tmp_GRanges_top, paste0(path_local_scratch, "/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+      system(paste0("cp ",paste0(path_local_scratch, "/", strsplit(pwm, ".pfm")[[1]], "_top.bed"), " ", results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+      
    #
    #
-    }
+    } #over PWMs
    #
    # saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
     saveRDS(motif_matches_top, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds")) #1.5GB
 
-}
+} #Over index
 #} #0-39
 
 

@@ -1,46 +1,52 @@
 #!/bin/bash -l
 #SBATCH --job-name=process_MOODS
 #SBATCH --account=project_2007567
-#SBATCH --output=outs/process_MOODS_%j_%a.txt
-#SBATCH --error=errs/process_MOODS_%j_%a.txt
+#SBATCH --output=outs/process_MOODS_%A_%a.txt
+#SBATCH --error=errs/process_MOODS_%A_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=12:00:00
+#SBATCH --time=08:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=150G #3G with database
-#SBATCH --gres=nvme:50
-#SBATCH --array=259,604,610,616,637,642,645,658,659,661,662,672,682,684,685,686,690,699,706,712,721,726,750,763,771%8
-
-#0-1030
+#SBATCH --mem-per-cpu=300G #3G with database
+#SBATCH --gres=nvme:100
+#SBATCH --array=616,684,726 
 
 
-#MEMORY RUNS OUT:
-# 18469715_259.0       CANCELLED+ 
-# 18469715_604.0       CANCELLED+ 
-# 18469715_610.0       CANCELLED+ 
-# 18469715_637.0       CANCELLED+ 
-# 18469715_642.0       CANCELLED+ 
-# 18469715_645.0       CANCELLED+ 
-# 18469715_658.0       CANCELLED+ 
-# 18469715_659.0       CANCELLED+ 
-# 18469715_661.0       CANCELLED+ 
-# 18469715_662.0       CANCELLED+ 
-# 18469715_672.0       CANCELLED+ 
-# 18469715_685.0       CANCELLED+ 
-# 18469715_686.0       CANCELLED+ 
-# 18469715_690.0       CANCELLED+ 
-# 18469715_699.0       CANCELLED+ 
-# 18469715_706.0       CANCELLED+ 
-# 18469715_712.0       CANCELLED+ 
-# 18469715_721.0       CANCELLED+ 
-# 18469715_750.0       CANCELLED+ 
-# 18469715_763.0       CANCELLED+ 
 
-#FAILS
-#18469715_616.0           FAILED 
-#18469715_684.0           FAILED 
-#18469715_726.0           FAILED 
+
+# 19184582_[1-300] #OK
+
+#301-500: OK
+
+#501-600: OK
+
+#19209909_[601-800]
+
+#FAILED: 616,684,726 #19386445
+
+#OK 642,685,
+
+
+
+#19235452_[901-1000 OK!
+
+#1001-1031: 19322725_[0-30] OK!
+
+#0-32 human and mouse true motifs
+
+#0-1030 artificial representative motifs
+
+#0-15: 18913194 #DONE
+
+#16-32: 18919036 Memory runs out, rerun 17-19,21-24,26-27,29,31
+
+#rerun 18930020
+
+#Figure out which artificial results are still missing and their job array numbers
+
+
+
 
 #0-10
 #3,4,5,6,11 #SBATCH --gres=nvme:50

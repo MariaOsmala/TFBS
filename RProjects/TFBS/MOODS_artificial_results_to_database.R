@@ -17,6 +17,8 @@ print(.libPaths())
 
 arrays <- as.numeric(commandArgs(trailingOnly = TRUE)) #644
 
+#arrays=arrays+1000
+
 print(arrays)
 setwd("/scratch/project_2006203/TFBS/")
 
@@ -29,9 +31,33 @@ representatives=read_csv(file="/projappl/project_2006203/TFBS/PWMs_final/represe
 #df.representatives=df.representatives[which(df.representatives$new_representative=="YES"),]
 
 
+#MOODS_BCL6B_HT-SELEX_TGCGGG20NGA_AC_TGCTTTCTAGGAATTMM_2_4.zst Does not work
+#library("fst")
+# read compressed file into a raw vector
+
+#read_csv(file = gzfile(paste0(path_local_scratch, "/",MOODS_file)),
+#         col_names = FALSE) 
+
+#compressed_file="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_zstd/MOODS_BCL6B_HT-SELEX_TGCGGG20NGA_AC_TGCTTTCTAGGAATTMM_2_4.zst"
+
+#compressed_vec <- readBin(compressed_file, "raw", file.size(compressed_file))
+# decompress file contents
+#raw_vec_decompressed <- decompress_fst(compressed_vec)
+
+#A nice feature of data.table’s fread method is that 
+#it can parse in-memory data directly. That means that we can easily feed our raw vector to fread:
+  
+#library(data.table)
+# read data set from the in-memory csv
+#dt <- fread(rawToChar(raw_vec_decompressed))
+
+
+
 MOODS_file=paste0("MOODS_",representatives[arrays+1,]$X1, ".csv.gz")
 
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_processed/"
+
+
 
 #which runs fail
 #finished=dir(paste0(results_path, "MOODS_RDS/"))
@@ -59,7 +85,7 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #Is this the right genome version, YES, the genome lengths of gtf and bsg from Bsgenome are the same
 gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final/"
 
 path_local_scratch=Sys.getenv("LOCAL_SCRATCH")
 system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch, "/"))
@@ -71,8 +97,8 @@ dir(path_local_scratch)
 tb=read_csv(file = gzfile(paste0(path_local_scratch, "/",MOODS_file)),
             col_names = FALSE) 
  
-tb <- vroom(file = paste0(path_local_scratch, strsplit(MOODS_file, ".gz")[[1]]),
-              col_names = FALSE, num_threads = 40, altrep = TRUE)
+#tb <- vroom(file = paste0(path_local_scratch, strsplit(MOODS_file, ".gz")[[1]]),
+#              col_names = FALSE, num_threads = 40, altrep = TRUE)
   
 #system(paste0("rm ",path_local_scratch, strsplit(MOODS_file, ".gz")[[1]] ))
   
@@ -130,12 +156,19 @@ for(pwm in PWMs){
 #
 #
   #export.bed(tmp_GRanges, paste0(results_path, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], ".bed"))
-  export.bed(tmp_GRanges_top, paste0(path_local_scratch, "MOODS_bigbed/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
-  system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch results_path, "/"))
+  export.bed(tmp_GRanges_top, paste0(path_local_scratch, "/", strsplit(pwm, ".pfm")[[1]], "_top.bed"))
+  #IS THERE SOMETHING WRONG?
+  print(paste0("cp ", path_local_scratch, "/", strsplit(pwm, ".pfm")[[1]], "_top.bed ", results_path, "MOODS_bigbed/"))
+  system(paste0("cp ", path_local_scratch, "/", strsplit(pwm, ".pfm")[[1]], "_top.bed ", results_path, "MOODS_bigbed/"))
+  
+  
 #
 #
 }
 #
 #saveRDS(motif_matches, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], ".Rds")) #1.5GB
-saveRDS(motif_matches_top, file = paste0(results_path, "MOODS_RDS/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds")) #1.5GB
+saveRDS(motif_matches_top, file = paste0(path_local_scratch, "/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds")) #1.5GB
+paste0("cp ", path_local_scratch, "/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds ", results_path, "MOODS_RDS/")
+system(paste0("cp ", path_local_scratch, "/", strsplit(MOODS_file, ".csv.gz")[[1]], "_top.Rds ", results_path, "MOODS_RDS/"))
+
 

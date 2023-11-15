@@ -9,13 +9,16 @@ array=$1 #this varies between 0 and 399 when 3982 motifs
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
 
-S=/projappl/project_2006203/Genomes/Homo_sapiens/chr_sequences.fa #What is this?, this is repeat masked, contains only chromsomes chr1-22, X, Y
+#S=/projappl/project_2006203/Genomes/Homo_sapiens/chr_sequences.fa #What is this?, this is repeat masked, contains only chromsomes chr1-22, X, Y
 #S=/projappl/project_2006203/Genomes/Homo_sapiens/hg38.fa.masked #Repeats (RepeatMasker& Tandem Repeats Finder) masked by capital N, contains also other genomes
 #S=/projappl/project_2006203/Genomes/Homo_sapiens/hg38.fa
 
+#USE THIS INSTEAD?
+S=/projappl/project_2007567/Genomes/GRCh38.p14_31102023/hg38.analysisSet.fa
+
 n=300000 #the number of best hits
 
-outfolder=/scratch/project_2006203/TFBS/Results/MOODS_human_final/
+outfolder=/scratch/project_2006203/TFBS/Results/MOODS_human_final_whole_genome/
 mkdir $outfolder
 #outfile=../Results/MOODS/MOODS_"$array".csv"
 
