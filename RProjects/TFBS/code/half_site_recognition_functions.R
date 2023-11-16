@@ -70,7 +70,7 @@ find_representative_monomer <- function(monomer, monomers, represented_by_repres
 
 find_monomer <- function(monomer, monomers, metadata) {
   representative_bool=FALSE
-  mono1=monomers[grep(monomer,monomers$ID),]
+  mono1=monomers[which(monomers$symbol==monomer),]
   
   #There can be representative dimers, remove those
   if(length(which(mono1$type %in% c( "dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", "monomer or dimer","trimeric",
@@ -110,4 +110,49 @@ find_monomer <- function(monomer, monomers, metadata) {
   list(motif=motif1, representative_bool=representative_bool)
 }
 
-
+monomer_start_end <- function(tomtom_reverse_order, optimal_offset, optimal_orientation, optimal_overlap, dimer_length) {
+  
+  #tomtom_reverse_order=capselex$First_tomtom_reverse_order[i]
+  #optimal_offset=capselex$First_Optimal_offset[i]
+  #optimal_orientation=capselex$First_Optimal_Orientation[i]
+  #optimal_overlap=capselex$First_Optimal_Overlap
+  #dimer_length=capselex$length[i]
+  
+  #tomtom_reverse_order=capselex$Second_tomtom_reverse_order[i]
+  #optimal_offset=capselex$Second_Optimal_offset[i]
+  #optimal_orientation=capselex$Second_Optimal_Orientation[i]
+  #optimal_overlap=capselex$Second_Optimal_Overlap[i]
+  #dimer_length=capselex$length[i]
+  
+  
+  if(tomtom_reverse_order==FALSE){
+    offset=optimal_offset
+  }else{
+    offset=-optimal_offset
+  }
+  if(optimal_orientation=="-"){
+    if(offset<0){
+      end=dimer_length
+      #If offset -1 no -1 -1+1
+      #If offset -2, -1.  -2+1
+      start=dimer_length-offset-optimal_overlap+offset+1 
+      
+    }else{
+      end=dimer_length-offset
+      start=dimer_length-offset-optimal_overlap+1
+    }
+    
+  }else{
+    if(offset<0){
+      offset=0
+    }
+    start=1+offset
+    end=offset+optimal_overlap
+  }
+  #The start needs to be min 1 and end needs to be max the dimer_length of the dimer
+  
+  start=max(1, start)
+  end=min(dimer_length, end)
+  
+  list(start=start, end=end)
+}

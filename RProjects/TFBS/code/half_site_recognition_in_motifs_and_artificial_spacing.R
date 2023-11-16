@@ -2,33 +2,7 @@
 
 rm(list=ls())
 
-
-find_common_prefix <- function(strings) {
-  # If the vector is empty, return an empty string
-  if (length(strings) == 0) return("")
-  
-  # Find the minimum length of strings
-  min_length <- min(nchar(strings))
-  
-  # Initialize common prefix as an empty string
-  common_prefix <- ""
-  
-  # Iterate through each character position
-  for (i in 1:min_length) {
-    # Get the i-th character from each string
-    chars <- substr(strings, i, i)
-    
-    # If not all characters are the same, break
-    if (length(unique(chars)) > 1) {
-      break
-    }
-    
-    # Append the common character to the common prefix
-    common_prefix <- paste0(common_prefix, chars[1])
-  }
-  
-  return(common_prefix)
-}
+source("code/half_site_recognition_functions.R", echo=FALSE)
 
 library(readr)
 library(tidyverse)
@@ -46,6 +20,8 @@ metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata_representatives.tsv"
 
 #monomers
 
+
+
 monomers=metadata[metadata$experiment!="CAP-SELEX",]
 
 monomers_representative=monomers[which(monomers$new_representative=="YES"),]
@@ -60,7 +36,8 @@ represented_by_representatives <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/
 
 #which are heterodimeric or composite motifs
 
-capselex=representatives[representatives$experiment=="CAP-SELEX",]
+#capselex=representatives[representatives$experiment=="CAP-SELEX",]
+capselex=metadata[metadata$experiment=="CAP-SELEX",]
 
 capselex$type[grep("composite",capselex$ID)]="composite"
 capselex$type[grep("spacing",capselex$ID)]="spacing"
@@ -81,82 +58,61 @@ capselex$Second_Optimal_offset=NA
 capselex$Second_Optimal_Overlap=NA
 capselex$Second_Optimal_Orientation=""
 
-find_representative_monomer <- function(monomer, monomers, represented_by_representatives, metadata) {
-  representative_bool=FALSE
-  mono1=monomers[grep(monomer,monomers$ID),]
-  
-  #There can be representative dimers, remove those
-  if(length(which(mono1$type %in% c( "dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", "monomer or dimer","trimeric",
-                                     "putatively multimeric")))!=0){
-    mono1=mono1[-which(mono1$type %in% c( "dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", "monomer or dimer","trimeric",
-                                          "putatively multimeric")),]
-  }
-  
-  
-  #Exclude METHYL-SELEX
-  if(length(which(mono1$experiment=="Methyl-HT-SELEX"))!=0){
-    mono1=mono1[-which(mono1$experiment=="Methyl-HT-SELEX"),]
-  }
-  
-  if( length(which(mono1$new_representative=="YES"))!=0 ){
-    mono1=mono1[which(mono1$new_representative=="YES"),]
-    representative_bool=TRUE
-  }
-  common_prefix=find_common_prefix(mono1$ID[grep(monomer,mono1$ID)])
-  if(representative_bool==FALSE){
-    indices <- which(sapply(represented_by_representatives, function(x) any(grepl(common_prefix, x))))
-    #can be many, Let's take the shortes, or the one with highest information content?
-    mono_representative=names(represented_by_representatives)[indices]
-    motif1=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>% pull(ID) #Atoh1
-    if(length(motif1)>1){
-      motif1=metadata %>% filter(ID %in% mono_representative) %>%filter(length==min(length)) %>%filter(IC==max(IC))%>% pull(ID)
-    }
-    
-  }else{
-    motif1=mono1 %>%filter(length==min(length)) %>% pull(ID) 
-    if(length(motif1)>1){
-      motif1=mono1 %>%filter(length==min(length)) %>%filter(IC==max(IC)) %>% pull(ID)
-    }
-  }
-  
-  list(motif=motif1, representative_bool=representative_bool)
-}
+
 
 
 for(i in 1:nrow(capselex)){
   print(i)
   dimer_ID=capselex$ID[i]
+  
+  #which(capselex$ID=="ATF3_TEAD4_TGAGAG40NTGTG_YJII_CATTCCNNNNNNNTGACGTMA_m1_c3b0_short_spacing_new") #477
+  
+  #which(capselex$ID=="OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420") #1268
   #monomers
   monomers_symbols=unlist(strsplit(capselex$symbol[i],"_"))
   
-  #First monomer, is any of these representative
+  #Find representative monomers
+  #motif1=find_representative_monomer(monomer=monomers_symbols[1], monomers, represented_by_representatives, metadata)
+  #motif2=find_representative_monomer(monomer=monomers_symbols[2], monomers, represented_by_representatives, metadata)
   
-  motif1=find_representative_monomer(monomer=monomers_symbols[1], monomers, represented_by_representatives, metadata)
-  motif2=find_representative_monomer(monomer=monomers_symbols[2], monomers, represented_by_representatives, metadata)
+  #FInd monomers by symbol only
+  
+  motif1=try(find_monomer(monomer=monomers_symbols[1], monomers, metadata), silent=TRUE)
+  motif2=try(find_monomer(monomer=monomers_symbols[2], monomers, metadata), silent=TRUE)
+  
+  if(length(motif1$motif)==1){
   
   tomtom_reverse_order=FALSE
-  indices <- which(
+  indices <- which( #92250
     (tomtom$Query_ID==motif1$motif) & (tomtom$Target_ID==dimer_ID) & 
       tomtom$Query_ID != tomtom$Target_ID
   )
   
   if(length(indices)==0){
     tomtom_reverse_order=TRUE
-    indices <- which(
+    indices <- which( #1309620
       (tomtom$Target_ID==motif1$motif) & (tomtom$Query_ID==dimer_ID) & 
         tomtom$Query_ID != tomtom$Target_ID
     )
   }
   
   capselex$first.monomer[i]=motif1$motif
-  capselex$second.monomer[i]=motif2$motif
+  
   
   capselex$First_representative_bool[i]=motif1$representative_bool
   capselex$First_tomtom_reverse_order[i]=tomtom_reverse_order
   if(length(indices)!=0){
     capselex[i, c("First_Optimal_offset","First_Optimal_Overlap","First_Optimal_Orientation")]=tomtom[indices,c("Optimal_offset", "Overlap", "Orientation")]
   }
-  tomtom_reverse_order=FALSE
+  
+  }else{
+    print("No first monomer found")
+  }
+  
+  if(length(motif2$motif)==1){
+  
+    
+    tomtom_reverse_order=FALSE
   indices <- which(
     (tomtom$Query_ID==motif2$motif) & (tomtom$Target_ID==dimer_ID) & 
       tomtom$Query_ID != tomtom$Target_ID
@@ -170,56 +126,54 @@ for(i in 1:nrow(capselex)){
     )
   }
   
+  
+  capselex$second.monomer[i]=motif2$motif
   capselex$Second_representative_bool[i]=motif2$representative_bool
   capselex$Second_tomtom_reverse_order[i]=tomtom_reverse_order
   if(length(indices)!=0){
     capselex[i, c("Second_Optimal_offset","Second_Optimal_Overlap","Second_Optimal_Orientation")]=tomtom[indices,c("Optimal_offset", "Overlap", "Orientation")]
   }
   
+  }else{
+    print("No second monomer found")
+  }
+  
 }
+
+#For the new spacing motifs, for how many 
+  #both monomers were found
+  #only one monomer was found
+  #both were not found
+
+spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
+
+length(which(!spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) #193
+length(which( (!spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="") | (spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) )#13
+length(which(spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="")) #0
+
+#For How many of these, tomtom did not find the match
+length(which(!spacing_motifs$first.monomer=="" & is.na(spacing_motifs$First_Optimal_offset))) #34
+length(which(!spacing_motifs$second.monomer=="" & is.na(spacing_motifs$Second_Optimal_offset))) #23
+
+#How many with both info
+length(which(!is.na(spacing_motifs$First_Optimal_offset) & !is.na(spacing_motifs$Second_Optimal_offset))) #141 of 206, 70 %
+
+
+
+
+# tmp=tomtom[tomtom$Query_ID==dimer_ID,]
+# tmp$Target_experiment=metadata$experiment[match(tmp$Target_ID, metadata$ID)]
+# tmp=tmp %>% filter(Target_experiment=="HT-SELEX")
 
 #match for both motifs
 
-monomer_start_end <- function(tomtom_reverse_order, optimal_offset, optimal_orientation, optimal_overlap, dimer_length) {
-  
-  #tomtom_reverse_order=capselex$First_tomtom_reverse_order[i]
-  #optimal_offset=capselex$First_Optimal_offset[i]
-  #optimal_orientation=capselex$First_Optimal_Orientation[i]
-  #optimal_overlap=capselex$First_Optimal_Overlap
-  #dimer_length=capselex$length[i]
-  
-  #tomtom_reverse_order=capselex$Second_tomtom_reverse_order[i]
-  #optimal_offset=capselex$Second_Optimal_offset[i]
-  #optimal_orientation=capselex$Second_Optimal_Orientation[i]
-  #optimal_overlap=capselex$Second_Optimal_Overlap[i]
-  #dimer_length=capselex$length[i]
-  
-  
-  if(tomtom_reverse_order==FALSE){
-    offset=optimal_offset
-  }else{
-    offset=-optimal_offset
-  }
-  if(optimal_orientation=="-"){
-    if(offset<0){
-      offset=0
-    }
-    start=dimer_length-offset-optimal_overlap+1
-    end=dimer_length-offset
-  }else{
-    if(offset<0){
-      offset=0
-    }
-    start=1+offset
-    end=offset+optimal_overlap
-  }
-  #The start needs to be min 1 and end needs to be max the dimer_length of the dimer
-  
-  start=max(1, start)
-  end=min(dimer_length, end)
-  
-  list(start=start, end=end)
-}
+
+capselex$first_start=NA
+capselex$first_end=NA
+
+capselex$second_start=NA
+capselex$second_end=NA
+
 
 
 capselex$type_computation=""
@@ -232,13 +186,15 @@ capselex$gap_start=NA
 capselex$gap_end=NA
 
 
-
 for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second_Optimal_Orientation) %in% c("- -", "- +", "+ +", "+ -")) ){
   print(i)
   #i=which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second_Optimal_Orientation) %in% c("- -", "- +", "+ +", "+ -"))[1]
   #"first.monomer"               "second.monomer"              "First_representative_bool"   "First_tomtom_reverse_order"  "First_Optimal_offset"       
   #"First_Optimal_Overlap"       "First_Optimal_Orientation"   "Second_representative_bool"  "Second_tomtom_reverse_order" "Second_Optimal_offset"      
   #"Second_Optimal_Overlap"      "Second_Optimal_Orientation" 
+  
+  #which(capselex$ID =="ATOH1_ONECUT1_TCCATG40NCAC_YJII_CATATGNNNNNNATCGAT_m1_c3b0_short_spacing_new")
+  
   
   first_se=monomer_start_end( tomtom_reverse_order=capselex$First_tomtom_reverse_order[i], 
                      optimal_offset=capselex$First_Optimal_offset[i], 
@@ -254,21 +210,38 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
                               dimer_length=capselex$length[i])
   
   
+  
+  capselex$first_start[i]=first_se$start
+  capselex$first_end[i]=first_se$end
+  
+  capselex$second_start[i]=second_se$start
+  capselex$second_end[i]=second_se$end
+  
+  
+  
   #cap length
   #Left and rightmost
   if(first_se$start< second_se$start){
     
     gap=second_se$start-first_se$end #0
     
-    if(gap>0){
+    if(gap>=0){
       capselex$type_computation[i]="spacing"
-      capselex$gap_length[i]=second_se$start-first_se$end-1
-      capselex$gap_start[i]=first_se$end+1
-      capselex$gap_end[i]=second_se$start-1
+      if(gap==0){
+        capselex$gap_length[i]=second_se$start-first_se$end
+        capselex$gap_start[i]=first_se$end
+        capselex$gap_end[i]=second_se$start
+      }else{
+        capselex$gap_length[i]=second_se$start-first_se$end-1
+        capselex$gap_start[i]=first_se$end+1
+        capselex$gap_end[i]=second_se$start-1
+      }
+      
+      
     }else{
       capselex$type_computation[i]="composite"
       #The size of the overlapping part is abs(-3)+1=3
-      capselex$overlap_length[i]=abs(gap)+1
+      capselex$overlap_length[i]=abs(gap)+1 #IS THIS CORRECT
       capselex$overlap_start[i]=second_se$start
       capselex$overlap_end[i]=first_se$end
       
@@ -278,15 +251,22 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
      print("reverse")
      gap=first_se$start-second_se$end #0
      
-     if(gap>0){
+     if(gap>=0){
        capselex$type_computation[i]="spacing"
-       capselex$gap_length[i]=first_se$start-second_se$end-1
-       capselex$gap_start[i]=second_se$end+1
-       capselex$gap_end[i]=first_se$start-1
+       if(gap==0){
+         capselex$gap_length[i]=first_se$start-second_se$end
+         capselex$gap_start[i]=second_se$end
+         capselex$gap_end[i]=first_se$start
+         
+       }else{
+         capselex$gap_length[i]=first_se$start-second_se$end-1
+         capselex$gap_start[i]=second_se$end+1
+         capselex$gap_end[i]=first_se$start-1
+       }
      }else{
        capselex$type_computation[i]="composite"
        #The size of the overlapping part is abs(-3)+1=3
-       capselex$overlap_length[i]=abs(gap)+1
+       capselex$overlap_length[i]=abs(gap)+1 #Is this correct
        capselex$overlap_start[i]=first_se$start
        capselex$overlap_end[i]=second_se$end
        
@@ -299,6 +279,69 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
     
   
 }
+
+#How many of the new spacing motifs are predicted as composites
+spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
+
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type==spacing_motifs$type_computation)) #52
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation)) #89
+
+inconsistent=spacing_motifs[which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation),]
+
+#For how many of these there is also the corresponding composite motifs, these are all actually composites?
+
+inconsistent_unique=data.frame(symbol=unique(inconsistent$symbol), composite=NA)
+
+for(s in unique(inconsistent$symbol)){
+  #s=unique(inconsistent$symbol)[1]
+  
+  types=capselex %>% filter(study=="fromYimeng" & symbol==s) %>% select(type)  %>% pull(type)
+  
+  inconsistent_unique$composite[which(inconsistent_unique$symbol==s)]="composite" %in% types
+  
+}
+
+table(inconsistent_unique$composite)
+#FALSE  TRUE 
+#77    10 
+
+#Some monomers do not appear in the motif name in the same order as they appear in the motif (left to right), fix this
+
+capselex$switched_order=FALSE
+capselex$switched_order=capselex$first_start > capselex$second_start
+
+table(capselex$first_start > capselex$second_start)
+
+#FALSE  TRUE 
+#583   447 
+
+
+saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+
+tmp=capselex[grep("OLIG2_NKX6.1",capselex$ID),]
+
+tmp=capselex[grep("TEAD4_CEBPB",capselex$ID),] #TEAD4: -1, 9, - #Goes wrong
+
+tmp=capselex[grep("ATF3_TEAD4",capselex$ID),]
+
+tmp=capselex[grep("ATF3_TBX4_TCATTC40NATT_YWII_GGTGACGTGT_m1_c3b0_short_spacing_new",capselex$ID),] #ATF3: -2, 10, -
+
+tmp=capselex[grep("ATOH1_ONECUT1",capselex$ID),]
+
+
+tmp=capselex[grep("BARHL1_MEF2C",capselex$ID),]
+
+tomtom_reverse_order=tmp$First_tomtom_reverse_order
+optimal_offset=tmp$First_Optimal_offset
+optimal_orientation=tmp$First_Optimal_Orientation
+optimal_overlap=tmp$First_Optimal_Overlap
+dimer_length=tmp$length
+
+
+#The matches need to be in the opposing strands (but this is palindromic)
+monomer_start_end(tmp$First_tomtom_reverse_order, tmp$First_Optimal_offset, tmp$First_Optimal_Orientation, tmp$First_Optimal_Overlap, tmp$length) 
+monomer_start_end(tmp$Second_tomtom_reverse_order, tmp$Second_Optimal_offset, tmp$Second_Optimal_Orientation, tmp$Second_Optimal_Overlap, tmp$length) 
+
 
 #E2F3_HT-SELEX_TTACAT20NACA_AF_NNAAATGGCGCCAAAANN_2_4  -6                    12                         +  FALSE
 #ELK1_HT-SELEX_TCGGAA20NAGT_AG_ACCGGAAGTN_1_2       8                      9  +                            FALSE
