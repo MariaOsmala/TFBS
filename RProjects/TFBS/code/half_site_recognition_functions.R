@@ -70,7 +70,9 @@ find_representative_monomer <- function(monomer, monomers, represented_by_repres
 
 find_monomer <- function(monomer, monomers, metadata) {
   representative_bool=FALSE
-  mono1=monomers[which(monomers$symbol==monomer),]
+  
+  #Include also mouse motifs, do not mind about the upper/lowercase characters in the name
+  mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),]
   
   #There can be representative dimers, remove those
   if(length(which(mono1$type %in% c( "dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", "monomer or dimer","trimeric",
@@ -105,6 +107,39 @@ find_monomer <- function(monomer, monomers, metadata) {
     if(length(motif1)>1){
       motif1=mono1 %>%filter(length==min(length)) %>%filter(IC==max(IC)) %>% pull(ID)
     }
+  }
+  
+  #If no motif found, try also dimeric
+  if(length(motif1)==0){
+    mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),]
+    
+    if(length(which(mono1$experiment=="Methyl-HT-SELEX"))!=0){
+      mono1=mono1[-which(mono1$experiment=="Methyl-HT-SELEX"),]
+    }
+    
+    if( length(which(mono1$new_representative=="YES"))!=0 ){
+      mono1=mono1[which(mono1$new_representative=="YES"),]
+      representative_bool=TRUE
+    }
+    
+    if(representative_bool==FALSE & nrow(mono1)>1 ){
+      
+      mono1=mono1 %>%filter(length==min(length))
+      motif1=mono1 %>% pull(ID)
+      
+      if(length(motif1)>1){
+        mono1=mono1 %>%filter(length==min(length)) %>%filter(IC==max(IC))
+        motif1=mono1 %>% pull(ID)
+      }
+      
+    }else{
+      motif1=mono1 %>%filter(length==min(length)) %>% pull(ID) 
+      if(length(motif1)>1){
+        motif1=mono1 %>%filter(length==min(length)) %>%filter(IC==max(IC)) %>% pull(ID)
+      }
+    }
+    
+    
   }
   
   list(motif=motif1, representative_bool=representative_bool)

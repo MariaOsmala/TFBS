@@ -59,7 +59,8 @@ capselex$Second_Optimal_Overlap=NA
 capselex$Second_Optimal_Orientation=""
 
 
-
+#i=which(capselex$ID=="FOXC2_TCF3_TGACGT40NAGC_YIII_NCACCTGNRTAAAYAN_m1_c3b0u_short_composite_new")
+#i=which(capselex$ID=="FOXB1_SOX11_TAAGGG40NACC_YUIII_NGYAAACAAWGN_m1_c3b0_short_composite_new")
 
 for(i in 1:nrow(capselex)){
   print(i)
@@ -147,16 +148,16 @@ for(i in 1:nrow(capselex)){
 
 spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
 
-length(which(!spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) #193
-length(which( (!spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="") | (spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) )#13
+length(which(!spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) #198
+length(which( (!spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="") | (spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) )#8
 length(which(spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="")) #0
 
 #For How many of these, tomtom did not find the match
 length(which(!spacing_motifs$first.monomer=="" & is.na(spacing_motifs$First_Optimal_offset))) #34
-length(which(!spacing_motifs$second.monomer=="" & is.na(spacing_motifs$Second_Optimal_offset))) #23
+length(which(!spacing_motifs$second.monomer=="" & is.na(spacing_motifs$Second_Optimal_offset))) #27
 
 #How many with both info
-length(which(!is.na(spacing_motifs$First_Optimal_offset) & !is.na(spacing_motifs$Second_Optimal_offset))) #141 of 206, 70 %
+length(which(!is.na(spacing_motifs$First_Optimal_offset) & !is.na(spacing_motifs$Second_Optimal_offset))) #142 of 206, 70 %
 
 
 
@@ -184,6 +185,10 @@ capselex$overlap_end=NA
 capselex$gap_length=NA
 capselex$gap_start=NA
 capselex$gap_end=NA
+
+#i=which(capselex$ID=="CREB1_FLI1_TAACTG40NCGCG_YYIII_NRTGACGTACCGGAARYN_m2_c3b0u_short_composite_new")
+#i=which(capselex$ID=="HOXA10_TBX4_TGCGGT40NTCA_YWII_NAGGTGTNANRTCGTAAAN_m2_c3b0u_short_composite_new")
+
 
 
 for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second_Optimal_Orientation) %in% c("- -", "- +", "+ +", "+ -")) ){
@@ -225,20 +230,26 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
     
     gap=second_se$start-first_se$end #0
     
-    if(gap>=0){
+    if(gap>0){
       capselex$type_computation[i]="spacing"
-      if(gap==0){
-        capselex$gap_length[i]=second_se$start-first_se$end
-        capselex$gap_start[i]=first_se$end
-        capselex$gap_end[i]=second_se$start
-      }else{
+      #if(gap==0){
+      #  capselex$gap_length[i]=second_se$start-first_se$end
+      #  capselex$gap_start[i]=first_se$end
+      #  capselex$gap_end[i]=second_se$start
+      #}else{
         capselex$gap_length[i]=second_se$start-first_se$end-1
+        if(capselex$gap_length[i]!=0){
         capselex$gap_start[i]=first_se$end+1
-        capselex$gap_end[i]=second_se$start-1
-      }
+        capselex$gap_end[i]=second_se$start
+        }else{
+          capselex$gap_start[i]=first_se$end
+          capselex$gap_end[i]=first_se$end
+        }
+      #}
       
       
     }else{
+      #gap is 0 or less
       capselex$type_computation[i]="composite"
       #The size of the overlapping part is abs(-3)+1=3
       capselex$overlap_length[i]=abs(gap)+1 #IS THIS CORRECT
@@ -251,18 +262,23 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
      print("reverse")
      gap=first_se$start-second_se$end #0
      
-     if(gap>=0){
+     if(gap>0){
        capselex$type_computation[i]="spacing"
-       if(gap==0){
-         capselex$gap_length[i]=first_se$start-second_se$end
-         capselex$gap_start[i]=second_se$end
-         capselex$gap_end[i]=first_se$start
+       #if(gap==0){
+      #   capselex$gap_length[i]=first_se$start-second_se$end
+      #   capselex$gap_start[i]=second_se$end
+      #   capselex$gap_end[i]=first_se$start
          
-       }else{
+      # }else{
          capselex$gap_length[i]=first_se$start-second_se$end-1
-         capselex$gap_start[i]=second_se$end+1
-         capselex$gap_end[i]=first_se$start-1
-       }
+         if(capselex$gap_length[i]!=0){
+          capselex$gap_start[i]=second_se$end+1
+          capselex$gap_end[i]=first_se$start
+         }else{
+           capselex$gap_start[i]=second_se$end
+           capselex$gap_end[i]=second_se$end
+         }
+       #}
      }else{
        capselex$type_computation[i]="composite"
        #The size of the overlapping part is abs(-3)+1=3
@@ -283,8 +299,8 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
 #How many of the new spacing motifs are predicted as composites
 spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
 
-length(which(spacing_motifs$type_computation!="" & spacing_motifs$type==spacing_motifs$type_computation)) #52
-length(which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation)) #89
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type==spacing_motifs$type_computation)) #44 CORRECT
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation)) #98 UNCORRECT
 
 inconsistent=spacing_motifs[which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation),]
 
@@ -303,7 +319,34 @@ for(s in unique(inconsistent$symbol)){
 
 table(inconsistent_unique$composite)
 #FALSE  TRUE 
-#77    10 
+#84    11
+
+#How many of the new composite motifs are predicted as spacing motifs
+composite_motifs=capselex %>% filter(study=="fromYimeng" & type=="composite") #206
+
+length(which(composite_motifs$type_computation!="" & composite_motifs$type==composite_motifs$type_computation)) #407 CORRECT
+length(which(composite_motifs$type_computation!="" & composite_motifs$type!=composite_motifs$type_computation)) #12 UNCORRECT
+
+inconsistent=composite_motifs[which(composite_motifs$type_computation!="" & composite_motifs$type!=composite_motifs$type_computation),]
+
+#For how many of these there is also the corresponding composite motifs, these are all actually composites?
+
+inconsistent_unique=data.frame(symbol=unique(inconsistent$symbol), spacing=NA)
+
+for(s in unique(inconsistent$symbol)){
+  #s=unique(inconsistent$symbol)[1]
+  
+  types=capselex %>% filter(study=="fromYimeng" & symbol==s) %>% select(type)  %>% pull(type)
+  
+  inconsistent_unique$composite[which(inconsistent_unique$symbol==s)]="spacing" %in% types
+  
+}
+
+table(inconsistent_unique$composite)
+#FALSE  TRUE 
+#7    2 
+
+
 
 #Some monomers do not appear in the motif name in the same order as they appear in the motif (left to right), fix this
 
@@ -313,10 +356,448 @@ capselex$switched_order=capselex$first_start > capselex$second_start
 table(capselex$first_start > capselex$second_start)
 
 #FALSE  TRUE 
-#583   447 
+#584   459
 
 
-saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+#saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+
+
+#capselex=readRDS(file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+fromYimeng=capselex[capselex$study=="fromYimeng",]
+#Does the types agree
+
+fromYimeng$types_agree=FALSE
+
+fromYimeng$types_agree=fromYimeng$type==fromYimeng$type_computation
+
+fromYimeng$types_agree[which(fromYimeng$type_computation=="")]=NA
+
+#For how many TF-pairs, there are both composite and spacing motifs
+
+length(unique(fromYimeng$symbol)) #502
+
+both_types=c()
+motif_list=c()
+unique_pairs=unique(fromYimeng$symbol)
+for(pair in unique_pairs){
+  #pair=unique_pairs[1]
+  if(length(unique(fromYimeng$type[fromYimeng$symbol==pair]))==2){
+    print(pair)
+    both_types=c(both_types, pair)
+    motif_list[[pair]]=fromYimeng$ID[fromYimeng$symbol==pair]
+  }
+}
+# "ATF3_TBX4"
+# "ATF4_TBX4"
+# "ELF2_FOXD2"
+# "ETV5_FOXO1"
+# "FOXC2_ELF2"
+# "FOXC2_TCF3"
+# "HOXB13_MEIS3"
+# "HOXD10_MEIS3"
+# "HOXD10_TBX4"
+# "HOXD10_TBX6"
+# "HOXD13_MEIS3"
+# "HOXD13_TBX4"
+# "HOXD9_ONECUT1"
+# "MAFA_IRF7"
+# "MSX1_MEIS3"
+# "PAX2_HOXA2"
+# "PROX2_HOXA2"
+# "RUNX3_TBX6"
+# "TFAP4_FOXD3"
+
+library("openxlsx")
+
+wb <- createWorkbook()
+
+# Add a worksheet
+addWorksheet(wb, "Sheet")
+
+# Write data to the first worksheet
+writeData(wb, sheet = "Sheet", fromYimeng)
+
+# Save the workbook
+saveWorkbook(wb, file = "/Users/osmalama/projects/TFBS/PWMs_final/fromYimeng_curation.xlsx", overwrite = TRUE)
+
+#How many composite motifs are predicted to be spacing motifs
+
+#Number of composite motifs
+length(which(fromYimeng$type=="composite"))
+#For how many composite motifs I was able to obtain computational type prediction
+length(which(fromYimeng$type=="composite" & fromYimeng$type_computation %in% c("composite", "spacing"))) #419
+
+length(which(fromYimeng$type=="composite" & fromYimeng$types_agree==FALSE))
+
+#Number of composite motifs
+length(which(fromYimeng$type=="spacing"))
+#For how many composite motifs I was able to obtain computational type prediction
+length(which(fromYimeng$type=="spacing" & fromYimeng$type_computation %in% c("composite", "spacing"))) #142
+
+length(which(fromYimeng$type=="spacing" & fromYimeng$types_agree==FALSE)) #98
+
+#Compare with curations from Yimeng
+
+table(fromYimeng$type)
+
+#composite   spacing 
+#503       206 
+
+table(fromYimeng$type_computation)
+
+#""         composite   spacing 
+#148       505        56 
+
+
+library("tidyverse")
+
+#"EN2_TBX20"
+
+fromYimeng=capselex[capselex$study=="fromYimeng",]
+#Does the types agree
+fromYimeng$types_agree=FALSE
+fromYimeng$types_agree=fromYimeng$type==fromYimeng$type_computation
+fromYimeng$types_agree[which(fromYimeng$type_computation=="")]=NA
+
+library(readxl)
+#Composites 391
+curated_composites <- read_excel("~/projects/TFBS/curated_spacing_and_composite/TF_pairs_with_composite_binding_sites_filter.common20240117.xlsx")
+curated_composites$curation="composite"
+#Spacing 1613
+curated_spacing <- read_excel("~/projects/TFBS/curated_spacing_and_composite/TF_pairs_showing_spacing_orientation_preference.filter_common_20240117.xlsx")
+
+curated_spacing$curation="spacing"
+curated_spacing=curated_spacing %>%   mutate(ID2 = paste(HGNC, Barcode,Batch, Seed, sep="_")) #These are unique
+
+fromYimeng=fromYimeng %>%  mutate(ID2 = paste(symbol, ligand, batch, seed, sep="_")) #Also unique
+     
+notna_ind=which(!is.na(match( fromYimeng$ID2, curated_spacing$ID2))) #127
+
+head(fromYimeng$ID2[notna_ind])
+head(curated_spacing$ID2[match( fromYimeng$ID2, curated_spacing$ID2)[notna_ind]])
+
+fromYimeng <- left_join(fromYimeng, curated_spacing, by = "ID2")
+#New columns: "HGNC" "Length" "Barcode" "Batch" "Seed" "Mul" "Cyc" "DOMAIN" "1" "2" "curation.x (changed later)" 
+
+
+curated_spacing=curated_spacing[-match( fromYimeng$ID2, curated_spacing$ID2)[notna_ind],] #left with 1486
+
+#How many of the original spacing were curated as spacing
+length(which(fromYimeng$type=="spacing" & fromYimeng$curation=="spacing")) # 127
+#How many of the original composites were curated as spacing
+length(which(fromYimeng$type=="composites" & fromYimeng$curation=="spacing")) # 0
+#For how many motifs, computational spacing and curated spacing agrees
+length(which(fromYimeng$type_computation=="spacing" & fromYimeng$curation=="spacing")) # 28
+
+
+#Try to match composites
+
+#TF pairs that have ligand in their name
+fromYimeng$ID_composite=paste0(fromYimeng$symbol,"_", fromYimeng$ligand) #These are not unique
+
+#Which are not unique
+fromYimeng$ID[which(fromYimeng$ID_composite %in% names(which(table(fromYimeng$ID_composite)>1)))]
+
+notna_ind=which(!is.na(match(curated_composites$TF_pairs, fromYimeng$ID_composite))) #188
+head(curated_composites[notna_ind,])
+head(fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]])
+
+#notna_ind=which(!is.na(match( fromYimeng$ID2, curated_spacing$ID2))) #127
+
+#are these unique, NOT
+length(unique(fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]])) #185
+#Which ones are not unique
+
+not_unique_ind=which(fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]] %in% names(which(table(fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]])>1)))
+fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]][not_unique_ind]
+
+#Remove the non-unique EN2_TBX20 is still remainin
+curated_composites_cleaned=curated_composites[which(!(curated_composites$TF_pairs %in% unique(fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]][not_unique_ind]))),]
+
+notna_ind=which(!is.na(match(curated_composites_cleaned$TF_pairs, fromYimeng$ID_composite))) #182
+head(curated_composites_cleaned[notna_ind,])
+head(fromYimeng$ID_composite[match(curated_composites_cleaned$TF_pairs,fromYimeng$ID_composite)[notna_ind]])
+
+length(unique(fromYimeng$ID_composite[match(curated_composites_cleaned$TF_pairs,fromYimeng$ID_composite)[notna_ind]])) #182
+
+
+#Does anyone of these match to those already curated as spacing NO
+#which( fromYimeng$ID_composite %in% fromYimeng$ID_composite[match(curated_composites$TF_pairs,fromYimeng$ID_composite)[notna_ind]] & fromYimeng$curation=="spacing") #0
+
+curated_composites_cleaned$ID_composite=curated_composites_cleaned$TF_pairs
+
+fromYimeng <- left_join(fromYimeng, curated_composites_cleaned, by = "ID_composite")
+#New columns 
+#"TF_pairs (TF_pairs.x)" "consensus.y" "p_value (p_value.x)" "comments (comments.x)" "Batch.y" "curation.y"
+
+#There are some TF-TF-pairs which occur several times in fromYimeng but only once in curated_composites_cleaned, what are these and how many
+
+matched_composites=paste0(fromYimeng$TF_pairs, fromYimeng$consensus.y, fromYimeng$p_value, fromYimeng$comments, fromYimeng$Batch.y, fromYimeng$curation.y)
+matched_composites_names=names(which(table(matched_composites)>1))
+matched_composites_names=matched_composites_names[-which(matched_composites_names=="NANANANANANA")]
+fromYimeng$ID[which(matched_composites %in% matched_composites_names)] #There can be some motifs with both original composite and spacing type
+
+#Add manually some motifs
+
+#"CEBPE_TGIF2LX_TGGGCT40NGTT" Only one with ATGTCACAAT
+fromYimeng[which(fromYimeng$symbol=="CEBPE_TGIF2LX"), which(names(fromYimeng) %in% c("TF_pairs", "consensus.y", "p_value",                    
+                                                             "comments", "Batch.y", "curation.y"))]=curated_composites[which(paste(curated_composites$TF_pairs, curated_composites$consensus, sep="_")=="CEBPE_TGIF2LX_TGGGCT40NGTT_ATGTCACAAT") ,]
+
+#"HOXD10_TBX20_TAGCTG40NCTA" Three
+
+#TCGTTAACAC HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NRNGTGTTAACGAN_m1_c3b0_short_composite_new
+fromYimeng[which(fromYimeng$ID=="HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NRNGTGTTAACGAN_m1_c3b0_short_composite_new"), which(names(fromYimeng) %in% c("TF_pairs", "consensus.y", "p_value",                    
+                                                                                     "comments", "Batch.y", "curation.y"))]=curated_composites[which(paste(curated_composites$TF_pairs, curated_composites$consensus, sep="_")=="HOXD10_TBX20_TAGCTG40NCTA_TCGTTAACAC") ,]
+
+#TTATTAGGTG HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NTTTAYKANGTGTNRN_m1_c3b0_short_composite_new
+fromYimeng[which(fromYimeng$ID=="HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NTTTAYKANGTGTNRN_m1_c3b0_short_composite_new"), which(names(fromYimeng) %in% c("TF_pairs", "consensus.y", "p_value",                    
+                                                                                                                                               "comments", "Batch.y", "curation.y"))]=curated_composites[which(paste(curated_composites$TF_pairs, curated_composites$consensus, sep="_")=="HOXD10_TBX20_TAGCTG40NCTA_TTATTAGGTG") ,]
+
+# HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NYMRTAAAANAGGTGTNRN_m2_c3b0_short_composite_new
+fromYimeng[which(fromYimeng$ID=="HOXD10_TBX20_TAGCTG40NCTA_YWIIII_NYMRTAAAANAGGTGTNRN_m2_c3b0_short_composite_new"), which(names(fromYimeng) %in% c("TF_pairs", "consensus.y", "p_value",                    
+                                                                                                                                                 "comments", "Batch.y", "curation.y"))]=curated_composites[which(paste(curated_composites$TF_pairs, curated_composites$consensus, sep="_")=="HOXD10_TBX20_NA") ,]
+
+#"CEBPE_TBX21_TGGGCT40NGTT"   
+#GGTGTCGCAA matches
+#AGTTGTGAAA
+fromYimeng[which(fromYimeng$symbol=="CEBPE_TBX21"), which(names(fromYimeng) %in% c("TF_pairs", "consensus.y", "p_value",                    
+                                                                                     "comments", "Batch.y", "curation.y"))]=curated_composites[which(paste(curated_composites$TF_pairs, curated_composites$consensus, sep="_")=="CEBPE_TBX21_TGGGCT40NGTT_GGTGTCGCAA") ,]
+
+#Remove those that were already matched from curated_composites
+#tmp=curated_composites_cleaned #385
+#327
+curated_composites_cleaned=curated_composites_cleaned[-which(paste0(curated_composites_cleaned$TF_pairs, curated_composites_cleaned$consensus, 
+             curated_composites_cleaned$p_value, curated_composites_cleaned$comments, curated_composites_cleaned$Batch, curated_composites_cleaned$curation) %in% matched_composites_names),]
+
+#Match the symbols
+
+#TF pairs have ligand in their name
+notna_ind=which(!is.na(match(curated_composites_cleaned$TF_pairs, fromYimeng$symbol))) #144
+head(curated_composites_cleaned[notna_ind,])
+head(fromYimeng$symbol[match(curated_composites_cleaned$TF_pairs,fromYimeng$symbol)[notna_ind]])
+
+length(unique(curated_composites_cleaned$TF_pairs[notna_ind])) #142
+
+names(which(table(curated_composites_cleaned$TF_pairs[notna_ind])>1))
+names(which(table(fromYimeng$symbol[match(curated_composites_cleaned$TF_pairs,fromYimeng$symbol)[notna_ind]])>1))
+
+#"ELK1_TBX21"  "PAX2_NKX6-1"
+
+#Remove the non-unique
+
+not_unique_ind=which(fromYimeng$symbol[match(curated_composites_cleaned$TF_pairs,fromYimeng$symbol)[notna_ind]] %in% names(which(table(fromYimeng$symbol[match(curated_composites_cleaned$TF_pairs,fromYimeng$symbol)[notna_ind]])>1)))
+
+#EN2_TBX20
+curated_composites_cleaned2=curated_composites_cleaned[which(!(curated_composites_cleaned$TF_pairs %in% unique(fromYimeng$symbol[match(curated_composites_cleaned$TF_pairs,fromYimeng$symbol)[notna_ind]][not_unique_ind]))),]
+
+curated_composites_cleaned2$symbol=curated_composites_cleaned2$TF_pairs
+
+
+#Are there some TF_pairs for which we have already obtained all info, remove these from curated_composites_cleaned2
+
+for(pair in curated_composites_cleaned2$symbol[is.na(curated_composites_cleaned2$consensus)]){
+  #pair=curated_composites_cleaned2$symbol[is.na(curated_composites_cleaned2$consensus)][1]
+  if(length(which(fromYimeng$symbol %in% pair))!=0){
+    #print(pair)   
+    if(names(table(!is.na(fromYimeng$TF_pairs[ which(fromYimeng$symbol==pair)]))) %in% c("TRUE")
+      
+      #!is.na(fromYimeng$TF_pairs[ which(fromYimeng$symbol==pair)])
+      ){
+      print(pair)
+    }
+  }
+  
+}
+
+fromYimeng %>% filter(symbol=="HOXA6_TBX4") %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+fromYimeng %>% filter(symbol=="HOXB7_TBX4")  %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+fromYimeng %>% filter(symbol=="VSX1_TBX4")  %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+fromYimeng %>% filter(symbol=="HOXA4_TBX20")  %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+fromYimeng %>% filter(symbol=="HOXB5_TBX20")  %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+fromYimeng %>% filter(symbol=="HOXD10_TBX20")  %>% select(TF_pairs, consensus.y, p_value, comments, Batch.y, curation.y)
+
+curated_composites_cleaned2 =curated_composites_cleaned2[-which(curated_composites_cleaned2$TF_pairs %in% c("HOXA6_TBX4", "HOXB7_TBX4", "VSX1_TBX4", "HOXA4_TBX20", "HOXB5_TBX20", "HOXD10_TBX20")),]
+
+
+
+fromYimeng <- left_join(fromYimeng, curated_composites_cleaned2, by = "symbol")
+
+#New columns: "TF_pairs.y"  "consensus" "p_value.y" "comments.y"  "Batch" "curation"  "ID_composite.y"      
+
+#Add some motifs manually
+
+fromYimeng$ID[which(fromYimeng$symbol=="ELK1_TBX21")]
+curated_composites_cleaned[which(curated_composites_cleaned$TF_pairs=="ELK1_TBX21"),]
+
+fromYimeng[which(fromYimeng$symbol=="ELK1_TBX21"), c("TF_pairs.y", "consensus", "p_value.y", "comments.y",  "Batch", "curation",  "ID_composite.y"   )]=curated_composites_cleaned[which(curated_composites_cleaned$TF_pairs=="ELK1_TBX21"),]
+
+
+fromYimeng$ID[which(fromYimeng$symbol=="PAX2_NKX6-1")]
+curated_composites_cleaned[which(curated_composites_cleaned$TF_pairs=="PAX2_NKX6-1"),]
+
+fromYimeng[which(fromYimeng$symbol=="PAX2_NKX6-1"), c("TF_pairs.y", "consensus", "p_value.y", "comments.y",  "Batch", "curation",  "ID_composite.y"   )]=curated_composites_cleaned[which(curated_composites_cleaned$TF_pairs=="PAX2_NKX6-1")[1],]
+
+#Is there some motifs that are not found in the curated set
+
+
+which(!(is.na(fromYimeng$TF_pairs.y)))
+
+# HOXC11_TBX20_TCTTGT40NGATC in both
+table(fromYimeng$TF_pairs.y[ !is.na(fromYimeng$TF_pairs.x)])
+table(fromYimeng$TF_pairs.x[ !is.na(fromYimeng$TF_pairs.y)])
+
+#The code below is WRONG!!!!!You need indexes
+fromYimeng[which(!(is.na(fromYimeng$TF_pairs.y))) , c("TF_pairs.x", "consensus.y", "p_value.x",  "comments.x", "Batch.y", "curation.y")] = fromYimeng[which(!(is.na(fromYimeng$TF_pairs.y))), c("TF_pairs.y", "consensus", "p_value.y",
+                                                                                                                   "comments.y","Batch", "curation")   ]
+
+fromYimeng=fromYimeng[, -which(names(fromYimeng) %in% c("TF_pairs.y", "consensus", "p_value.y", "comments.y", "Batch", "curation","ID_composite.y" ))]
+
+fromYimeng <- fromYimeng %>%
+  rename(
+    consensus = consensus.x,
+    HGNC_spacing=HGNC,
+    Length_spacing=Length,
+    Barcode_spacing=Barcode,
+    Batch_spacing=Batch.x,                    
+    Seed_spacing=Seed,
+    Mul_spacing=Mul,
+    Cyc_spacing=Cyc,
+    DOMAIN_spacing=DOMAIN,
+    one_spacing="1",
+    two_spacing="2",                           
+    curation_spacing=curation.x,
+    ID_composite=ID_composite.x,
+    TF_pairs_composite=TF_pairs.x,
+    consensus_composite=consensus.y,
+    p_values_composite=p_value.x,
+    comments_composite=comments.x,
+    Batch_composite=Batch.y,
+    curation_composite=curation.y                 
+    )
+
+#curation_spacing and curation_composite, these are mutually exclusive
+
+fromYimeng$curation_composite[(!is.na(fromYimeng$curation_spacing))]
+fromYimeng$curation_spacing[(!is.na(fromYimeng$curation_composite))]
+
+fromYimeng$curation_both=NA
+fromYimeng$curation_both[(!is.na(fromYimeng$curation_spacing))]=fromYimeng$curation_spacing[(!is.na(fromYimeng$curation_spacing))]
+fromYimeng$curation_both[(!is.na(fromYimeng$curation_composite))]=fromYimeng$curation_composite[(!is.na(fromYimeng$curation_composite))]
+
+#Are there still some motifs for which the curation is missing
+missing1=fromYimeng$ID[which(is.na(fromYimeng$curation_both))] #70
+
+#Maybe spacing motifs still not mapped
+
+curated_spacing=curated_spacing %>%   mutate(ID2 = paste(HGNC, Barcode, sep="_")) #These are not unique
+
+fromYimeng=fromYimeng %>%  mutate(ID2 = paste(symbol, ligand, sep="_")) #
+length(fromYimeng$ID[which(is.na(fromYimeng$curation_both))]) #These are also not unique for the missing TFs
+
+notna_ind=which(!is.na(match( fromYimeng$ID2[which(is.na(fromYimeng$curation_both))]  , curated_spacing$ID2))) #33
+
+head(fromYimeng$ID2[which(is.na(fromYimeng$curation_both))][notna_ind])
+head(curated_spacing$ID2[match( fromYimeng$ID2[which(is.na(fromYimeng$curation_both))], curated_spacing$ID2)[notna_ind]])
+
+fromYimeng[which(is.na(fromYimeng$curation_both))[notna_ind],c("HGNC_spacing", "Length_spacing", "Barcode_spacing", "Batch_spacing" ,  "Seed_spacing",               
+                                                               "Mul_spacing",  "Cyc_spacing", "DOMAIN_spacing",  "one_spacing",  "two_spacing",                
+                                                               "curation_spacing" )]=curated_spacing[match( fromYimeng$ID2[which(is.na(fromYimeng$curation_both))], curated_spacing$ID2)[notna_ind],1:11]
+
+fromYimeng$curation_both=NA
+fromYimeng$curation_both[(!is.na(fromYimeng$curation_spacing))]=fromYimeng$curation_spacing[(!is.na(fromYimeng$curation_spacing))]
+fromYimeng$curation_both[(!is.na(fromYimeng$curation_composite))]=fromYimeng$curation_composite[(!is.na(fromYimeng$curation_composite))]
+
+#Are there still some motifs for which the curation is missing
+missing2=fromYimeng$ID[which(is.na(fromYimeng$curation_both))]
+
+#Do I even find the correspondence of the proteins
+
+my_list=strsplit(curated_composites$TF_pairs,"_")
+my_list=strsplit(curated_spacing$HGNC,"_")
+max_length <- max(sapply(my_list, length))
+
+# Pad shorter vectors with NA
+padded_list <- lapply(my_list, function(x) {
+  length(x) <- max_length
+  x
+})
+
+TF_pairs=do.call(rbind, padded_list)
+
+
+missing3=fromYimeng$ID[which(is.na(fromYimeng$curation_both))][which(fromYimeng$symbol[which(is.na(fromYimeng$curation_both))] %in% paste(TF_pairs[,1], TF_pairs[,2],sep="_"))]
+fromYimeng$symbol[which(fromYimeng$symbol %in% fromYimeng$symbol[which(is.na(fromYimeng$curation_both))][which(fromYimeng$symbol[which(is.na(fromYimeng$curation_both))] %in% paste(TF_pairs[,1], TF_pairs[,2],sep="_"))])]
+
+missing2=missing2[-which(missing2 %in% missing3)]
+
+which(fromYimeng$symbol[which(fromYimeng$ID %in% missing2)] %in% paste(TF_pairs[,1], TF_pairs[,2],sep="_"))
+
+
+length(fromYimeng$ID[which(is.na(fromYimeng$curation_both))]) #37
+
+
+missing1[which(!(missing1 %in% missing2))]
+
+
+
+
+#Are there some composite motifs still not mapped
+
+#fromYimeng$ID[which( is.na(fromYimeng$TF_pairs.x) & is.na(fromYimeng$TF_pairs.y) & (is.na(fromYimeng$curation.x)) ) ] #70
+
+test=fromYimeng %>% select(ID, symbol, Lambert2018_families, ligand, batch, seed, multinomial, filename, consensus,type, type_computation, ID2,HGNC_spacing, Length_spacing, Barcode_spacing, Batch_spacing,              
+                           Seed_spacing,                Mul_spacing,                 Cyc_spacing,               DOMAIN_spacing,              one_spacing,                 two_spacing,                
+                           curation_spacing,            ID_composite,                TF_pairs_composite,        consensus_composite,         p_values_composite,          comments_composite,         
+                           Batch_composite,            curation_composite, curation_both     )
+
+library(openxlsx)
+
+# Write the tibble to an Excel file
+write.xlsx(test, "../../PWMs_final/final_curation.xlsx")
+########### Old stuff below #########################
+
+#length(unique(curated_composites$TF_pairs))
+#384
+#which are not unique
+which(table(curated_composites$TF_pairs)>1)
+#CEBPD_ATF4_TTACCC40NGCT   CEBPE_TBX21_TGGGCT40NGTT CEBPE_TGIF2LX_TGGGCT40NGTT                 ELK1_TBX21  HOXD10_TBX20_TAGCTG40NCTA     PAX2_EVX2_TAAACT40NTGA                PAX2_NKX6-1 
+#2                          2                          2                          2                          2                          2                          2 
+
+grep("ATF4_CEBPD",paste0(fromYimeng$symbol,"_", fromYimeng$ligand)) #10
+grep("ATF4_CEBPD", curated_composites$TF_pairs) #24
+grep("CEBPD_ATF4", curated_composites$TF_pairs) #21 276
+
+
+#TF pairs have ligand in their name
+notna_ind=which(!is.na(match(curated_composites$TF_pairs,paste0(fromYimeng$symbol,"_", fromYimeng$ligand)))) #188
+head(curated_composites[notna_ind,])
+head(paste0(fromYimeng$symbol,"_", fromYimeng$ligand)[match(curated_composites$TF_pairs,paste0(fromYimeng$symbol,"_", fromYimeng$ligand))[notna_ind]])
+
+#The other way around
+notna_ind=which(!is.na( match( paste0(fromYimeng$symbol,"_", fromYimeng$ligand), curated_composites$TF_pairs) )) #268
+
+head(paste0(fromYimeng$symbol,"_", fromYimeng$ligand, "_", fromYimeng$consensus, "_", fromYimeng$batch)[notna_ind])
+target_ind=match( paste0(fromYimeng$symbol,"_", fromYimeng$ligand), curated_composites$TF_pairs)[notna_ind]
+
+curated_composites[grep("ATF3_FLI1", curated_composites$TF_pairs),]
+
+head(curated_composites$TF_pairs[target_ind])
+
+match(paste0(fromYimeng$symbol,"_", fromYimeng$ligand), curated_composites$TF_pairs)[notna_ind]
+
+
+
+head(paste0(fromYimeng$symbol,"_", fromYimeng$ligand)[match(curated_composites$TF_pairs,paste0(fromYimeng$symbol,"_", fromYimeng$ligand))[notna_ind]])
+
+
+
+#TF pairs do not have ligend in their name 
+notna_ind=which(!is.na(match(curated_composites$TF_pairs,paste0(fromYimeng$symbol)))) #188
+
+
+match(paste0(fromYimeng$symbol,"_", fromYimeng$ligand), curated_composites$TF_pairs) #144
+
+stop()
 
 tmp=capselex[grep("OLIG2_NKX6.1",capselex$ID),]
 
