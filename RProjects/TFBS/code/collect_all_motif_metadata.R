@@ -26,9 +26,15 @@ Yin2017 <- read_delim("~/projects/TFBS/PWMs_final/Yin2017/metadata.csv",
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #23
 
-fromYimeng <- read_delim("~/projects/TFBS/PWMs_final/fromYimeng/metadata.csv", 
-                            delim = "\t", escape_double = FALSE, 
-                            trim_ws = TRUE) #22
+# fromYimeng <- read_delim("~/projects/TFBS/PWMs_final/fromYimeng/metadata.csv", 
+#                             delim = "\t", escape_double = FALSE, 
+#                             trim_ws = TRUE) #22
+
+fromYimeng_version2 <- read_delim("~/projects/TFBS/PWMs_final_version2/fromYimeng/metadata.csv", 
+                             delim = "\t", escape_double = FALSE, 
+                             trim_ws = TRUE) #22
+
+
 
 column_order=c( "ID", "symbol", "clone","family", "Lambert2018_families", "organism", "study","experiment",          
 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
@@ -38,7 +44,7 @@ metadata<- rbind( Jolma2013[, column_order],
                   Jolma2015[, column_order],
                   Nitta2015[, column_order],
                   Morgunova2015[, column_order],
-                  fromYimeng[,column_order]
+                  fromYimeng_version2[,column_order]
                   )
 
 metadata$Methyl.SELEX.Motif.Category=""
@@ -49,6 +55,9 @@ metadata=rbind(metadata, Yin2017) #3294
 table(metadata$Lambert2018_families)
 
 #metadata[which(metadata$Lambert2018_families=="Unknown"), 1:7]
+
+metadata[which(metadata$Lambert2018_families=="Unknown"), "Lambert2018_families"]=metadata[which(metadata$Lambert2018_families=="Unknown"), "family"]
+
 tmp=metadata[which(is.na(metadata$Lambert2018_families)), "family"]
 
 #family	Lambert2018_families
@@ -75,42 +84,7 @@ metadata$family=gsub("p53l", "p53", metadata$family)
 
 metadata[which(is.na(metadata$Lambert2018_families)), "Lambert2018_families"]=metadata[which(is.na(metadata$Lambert2018_families)), "family"]
 
-write.table(metadata, file="../../PWMs_final/metadata.csv", row.names = FALSE, sep="\t")
-
-#Remove .pfm files which are not in the metadata
-
-#dir("../../PWMs_final/*/pwms/*/")
-
-files=system('ls ../../PWMs_final/*/pwms/*/*.pfm', intern=TRUE)
-
-#length(which(!(files %in% metadata$filename)))
-#3920-626
-
-rm_list=which(!(files %in% metadata$filename))
-
-file.remove(files[rm_list])
-
-#Remove also from pwms_space and transfac
-
-
-files=system('ls ../../PWMs_final/*/pwms_space/*/*.pfm', intern=TRUE)
-
-IDs=gsub(".pfm", "", do.call(rbind, strsplit(files, "/"))[,7])
-
-#length(which(!(files %in% metadata$filename)))
-#3920-626
-
-rm_list=which(!(IDs %in% metadata$ID))
-
-file.remove(files[rm_list])
-
-files=system('ls ../../PWMs_final/*/transfac/*/*.pfm', intern=TRUE) #3919?
-
-IDs=gsub(".pfm", "", do.call(rbind, strsplit(files, "/"))[,7]) #3919
-
-rm_list=which(!(IDs %in% metadata$ID))
-
-file.remove(files[rm_list])
+write.table(metadata, file="../../PWMs_final_version2/metadata.csv", row.names = FALSE, sep="\t")
 
 #Create scdc files from all
 
@@ -118,7 +92,7 @@ file.remove(files[rm_list])
 
 append=FALSE
 
-for(i in 1:nrow(metadata)){
+for(i in 1:nrow(metadata)){ #3854
   
   PWM=read.table(paste0( metadata$filename[i]))
   PWM=as.matrix(PWM, dimnames=NULL)
@@ -126,19 +100,19 @@ for(i in 1:nrow(metadata)){
   
   write.table(paste0(">",  metadata$ID[i]),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final/all", ".scpd"))
+              file=paste0("../../PWMs_final_version2/all", ".scpd"))
   append=TRUE
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final/all", ".scpd"))
+              file=paste0("../../PWMs_final_version2/all", ".scpd"))
   }
 
 
 #save filenames, without "../../
 
-write.table(gsub("../../","",metadata$filename), file="../../PWMs_final/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(gsub("../../","",metadata$filename), file="../../PWMs_final_version2/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
-write.table(metadata$ID, file="../../PWMs_final/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(metadata$ID, file="../../PWMs_final_version2/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
 #save motifnames
 
