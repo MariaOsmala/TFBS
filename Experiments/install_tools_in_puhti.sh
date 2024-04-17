@@ -1,5 +1,7 @@
 
 
+sinteractive --account project_2006472 --cores 1 --time 08:00:00 --mem 5000 --tmp 100
+
 cd /projappl/project_2006203/softwares
 
 module load tykky

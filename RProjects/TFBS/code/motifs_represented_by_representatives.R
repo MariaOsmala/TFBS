@@ -11,19 +11,12 @@ library("igraph")
 library("readr")
 
 TFBS_path="/Users/osmalama/projects/TFBS/"
-representatives <- read_tsv(paste0(TFBS_path, "PWMs_final/","metadata_representatives.tsv"), col_names=TRUE)
+representatives <- read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/","metadata_representatives.tsv"), col_names=TRUE)
 
+n=nrow(representatives)
+n*(n-1)/2
 
-# similarities=read.table("../../../motif-clustering-Viestra-private/metadata/motifsimilarity_to_DSA.tsv", header = TRUE, sep = "\t")
-# 
-# readLines(          "../../../motif-clustering-Viestra-private/metadata/motifsimilarity_to_DSA.tsv", n=5)              
-# 
-# read.tsv("../../../motif-clustering-Viestra-private/metadata/motifsimilarity.tsv", header = FALSE, sep = " ")
-# 
-# df_motifsimilarity=read_tsv(paste0('../../../motif-clustering-Viestra-private/','/metadata/motifsimilarity.tsv')) #5_423_571 rows
-
-
-df_motifsimilarity=read_tsv(paste0('../../../motif-clustering-Viestra-private/','/metadata/sstat.tsv')) #5_423_571 rows
+df_motifsimilarity=read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/", "sstat.tsv")) #7732278 rows
 
 sim_lt=pivot_wider(df_motifsimilarity, id_cols="Query_ID",
                    names_from="Target_ID", values_from="Ssum")
@@ -47,7 +40,8 @@ rownames(sim_sym)=a
 colnames(sim_sym)=a
 
 #In this case, if the distance is less than or equal to the threshold, 
-#there is an edge between the nodes (represented by 1); otherwise, there is not (represented by 0). The diagonal is set to 0 to remove self-loops?
+#there is an edge between the nodes (represented by 1); otherwise, there is not (represented by 0). 
+#The diagonal is set to 0 to remove self-loops?
 
 #Convert this distance matrix into an adjacency matrix using a threshold:
 
@@ -60,15 +54,50 @@ g <- graph_from_adjacency_matrix(adj_mat, mode = "undirected", diag = FALSE)
 
 plot(g)
 
-#Read in the representatives
-
-node <- "your_node"  # replace with your node
 
 #representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/motifsimilarity_05_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
-representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/SELEX_all_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
+representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/SELEX_all_version2.2_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
 
 represented_by_representatives=lapply(representatives, function(x, g) neighbors(g, x)$name, g )
-saveRDS(represented_by_representatives, file="RData/represented_by_representatives.RDS")
+
+#Remove "nonrepresentatives" that are actually representatives
+
+# Initialize a list to keep track of indices where changes occur
+indices <- list()
+
+# Function to remove items and capture indices
+process_vectors <- function(x) {
+  # Find indices of elements to remove
+  ind_to_remove <- which(x %in% unlist(representatives))
+  
+  # Store indices if not empty
+  if (length(ind_to_remove) > 0) {
+    return(list(cleaned = x[!x %in% unlist(representatives)], removed_indices = ind_to_remove))
+  } else {
+    return(list(cleaned = x, removed_indices = NULL))
+  }
+}
+
+# Apply the function to each element of the list
+processed_list <- lapply(represented_by_representatives, process_vectors)
+
+# Extract cleaned lists and indices separately
+cleaned_list <- lapply(processed_list, `[[`, "cleaned")
+table(sapply(cleaned_list, length))
+
+removed_indices <- lapply(processed_list, `[[`, "removed_indices")
+
+name=names(which(lapply(removed_indices, length)!=0)[1])
+
+removed_indices[[name]]
+
+represented_by_representatives[[name]][removed_indices[[name]]] %in% unlist(representatives)
+
+represented_by_representatives=cleaned_list
+
+
+
+saveRDS(represented_by_representatives, file="RData/represented_by_representatives_version2.2.RDS")
 
 names(represented_by_representatives)=representatives
 
@@ -85,5 +114,15 @@ tmp=do.call(rbind, padded_list) #1031 x 122
 
 tmp2 <- cbind(data.frame(representative=df$representative), data.frame(tmp))
 
-write.table(tmp2, file=paste0(TFBS_path, "PWMs_final/","sstat_represented_by_representatives.tsv"), row.names = FALSE, col.names = FALSE, sep="\t")
+#Does the represented by representatives contain the representative itself? No, because they were removed above.
+non_representatives=unique(as.vector(unlist(tmp2[,2:ncol(tmp2)])))
+#remove na
+non_representatives=non_representatives[!is.na(non_representatives)]
+representatives_in_unrepresentatives=unlist(representatives)[which(unlist(representatives) %in% non_representatives)]
+
+#Convert na values to "" 
+
+tmp2[is.na(tmp2)] <- ""
+
+write.table(tmp2, file=paste0(TFBS_path, "PWMs_final_version2.2/","sstat_represented_by_representatives.tsv"), row.names = FALSE, col.names = FALSE, sep="\t")
 

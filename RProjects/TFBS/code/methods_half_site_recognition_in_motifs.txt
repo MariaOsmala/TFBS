@@ -1,0 +1,76 @@
+For each CAP-SELEX motif (Jolma et al. 2015 and new from Yimeng), 
+we aimed to obtain the monomeric motifs of the individual TFs from the motif collection. 
+
+Those monomers with the following type were removed from the set: 
+"dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", 
+"monomer or dimer","trimeric", "putatively multimeric"
+
+Methyl-SELEX motifs were excluded from the set.
+
+If there were both representative and non-representative motifs, consider only representative motifs. 
+
+If there are still multiple motifs, consider the shortest.
+
+IF there are still multiple motifs, consider the one with the highest information content. 
+
+If there are no single motif, consider also the dimeric motifs and repeat the steps above. 
+
+Then, if there are motif for either individual TFs, see whether tomtom was able to find an alignment between them.
+If tomtom was able to find an alignment, tomtom reports the Optimal_offset, Optimal_overlap, and Optimal_Orientation
+
+Based on this information, the start and end positions of the alignment of the individual TFs were identified, also
+their order and orientation. 
+
+Distance between the individual motif alignments were computed, distances less than zero (overlap) could be considered as
+composite motifs (unknown) and distances larger or equal to zero as spacing motifs. 
+
+Plot the figures of the alignment
+
+For a given TF pair, find the matches in correct order, orientation, and spacing in the genome
+
+The orders of the TFs are TF1 and TF2, they can be in ++, +-, -+, or -- orientation.
+
+For + + motif (head to tail 1), define the starts and ends of TF1 and TF2 matches as the heads of TF1 matches and tails of TF2 matches. 
+
+For + - motif (head to head), define the starts and ends of TF1 and TF2 matches as the heads of TF1 and TF2 matches.
+
+For - + motif (tail to tail ), define the starts and ends of TF1 and TF2 matches as the tails of TF1 and TF2 matches.
+
+For - - motif (head to tail 2/tail to head ), define the starts and ends of TF1 and TF2 matches as the tails of TF1 and heads of TF2 matches.
+
+These can be in either strands
+
+Orientation       TF1 match end    TF2 match start
+
+++                TF1 match head     TF2 match tail
++-                TF1 match head     TF2 match head
+-+                TF1 match tail     TF2 match tail
+++                TF1 match tail     TF2 match head
+
+
+For ++ (head to tail 1) and -- motifs (head to tail 2 (tail to head))
+For each TF1 match end, find the nearest TF2 match start that is in the same strand. Report the distance.
+#HOW THE DISTANCE IS CALCULATED? Is it both downstream and upstream?
+
+For +- (head to head) and -+ motifs (tail to tail )
+For each TF 1 match end, find the nearest TF2 match start. Ignore the strand. Report the distance.
+Remove those pairs that are in the same strand. 
+
+Remove those pairs for which the distance(spacing) exceeds 12. The distance of overlapping motifs is zero.
+
+Collect the motif matches that are paired based on the distance. Loop through the pairs and check if the
+matches of individual TFs overlap. For ++ and -- pairs, findOverlaps with ignore.strand=FALSE is used, otherwise ignore.strand==TRUE.
+
+If the motifs overlap, compute the amount of overlap. This again depends on the whether the heterodimer is ++/-- or +-/-+. 
+
+if(first.orientation==second.orientation){
+      tmp_dist=c(tmp_dist, -distance( TF1_end[distances$queryHits[i]], TF2_start[distances$subjectHits[i] ], ignore.strand=FALSE)-1) 
+    }else{
+      tmp_dist=c(tmp_dist, -distance( TF1_end[distances$queryHits[i]], TF2_start[distances$subjectHits[i] ], ignore.strand=TRUE)-1) 
+    }
+
+
+If the motifs do not overlap, compute the distance between the motifs.
+
+
+

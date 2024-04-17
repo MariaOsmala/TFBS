@@ -3,13 +3,67 @@ rm(list=ls())
 source("~/projects/TFBS/RProjects/TFBS/code/artificial_motif_functions.R")
 
 library(readr)
-metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata.csv", 
-                           delim = "\t", escape_double = FALSE, 
-                           trim_ws = TRUE)
+#metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata.csv", 
+#                           delim = "\t", escape_double = FALSE, 
+#                           trim_ws = TRUE)
 
-#How to check which motif is heterodimeric and which is composite?
+#Previous artificial motifs are in 
+#~/projects/TFBS/artificial_motifs/
+#~/projects/TFBS/artificial_motifs_space/
+#~/projects/TFBS/artificial_motifs_transfac/
+
+# Generate the following folders  and save the motifs in them
+
+
+if (!dir.exists("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs/")) {
+  dir.create("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs/")
+}
+
+if (!dir.exists("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_space/")) {
+  dir.create("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_space/")
+}
+
+if (!dir.exists("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_transfac/")) {
+  dir.create("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_transfac/")
+}
+
+#Need to also generate individual motifs of the half-sites, but need to check 
+#that these do not correspond to any true motifs?
+
+
+#metadata_union <- read_delim("~/projects/TFBS/PWMs_final_union/metadata_4003_motifs.csv", 
+#                           delim = "\t", escape_double = FALSE, 
+#                           trim_ws = TRUE)
+
+
+metadata <- read_delim("~/projects/TFBS/PWMs_final_version2.2/metadata_3993_motifs.csv", 
+                       delim = "\t", escape_double = FALSE, 
+                       trim_ws = TRUE)
+
+
+#Move those artificial motifs that correspond to union that are also in the final version2.2
+
+# earlier_ind=which(metadata$ID %in% metadata_union$ID) #3867
+# 
+# new_ind=which(!(metadata$ID %in% metadata_union$ID)) #66
+# 
+# which(metadata$ID=="ZBTB2_HT-SELEX_TTAAAT40NAAT_KT_NTTTMCGGTWAN_1_4")
+# 
+# for(ei in earlier_ind){
+#   #ei=earlier_ind[1]
+#   files=grep(metadata$ID[ei], list.files("~/projects/TFBS/PWMS_final_union/artificial_motifs/"), value=TRUE)
+#   file.copy(paste0("~/projects/TFBS/PWMS_final_union/artificial_motifs/", files), "~/projects/TFBS/PWMS_final_version2.2/artificial_motifs/", overwrite = TRUE )
+#   
+#   files=grep(metadata$ID[ei], list.files("~/projects/TFBS/PWMS_final_union/artificial_motifs_space/"), value=TRUE)
+#   file.copy(paste0("~/projects/TFBS/PWMS_final_union/artificial_motifs_space/", files), "~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_space/", overwrite = TRUE )
+#   
+#   files=grep(metadata$ID[ei], list.files("~/projects/TFBS/PWMS_final_union/artificial_motifs_transfac/"), value=TRUE)
+#   file.copy(paste0("~/projects/TFBS/PWMS_final_union/artificial_motifs_transfac/", files), "~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_transfac/", overwrite = TRUE )
+# }
 
 artificial_all<-list()
+
+# metadata=metadata[new_ind,]
 
 for(i in 1:nrow(metadata) ){
   #i=1
@@ -31,15 +85,15 @@ for(i in 1:nrow(metadata) ){
   
   for(motif in names(artificial)){
     print(motif)
-    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../artificial_motifs/", motif, ".pfm"), sep="\t")
-    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../artificial_motifs_space/", motif, ".pfm"), sep=" ")
+    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../PWMs_final_version2.2/artificial_motifs/", motif, ".pfm"), sep="\t")
+    write.table(artificial[[motif]],row.names = FALSE, col.names=FALSE, quote=FALSE,file=paste0("../../PWMs_final_version2.2/artificial_motifs_space/", motif, ".pfm"), sep=" ")
     
     
-    transfac=universalmotif::read_matrix(file=paste0("../../artificial_motifs/", motif, ".pfm"), sep="\t", header=FALSE)
+    transfac=universalmotif::read_matrix(file=paste0("../../PWMs_final_version2.2/artificial_motifs/", motif, ".pfm"), sep="\t", header=FALSE)
     transfac@name=motif
     
 
-    transfac_file=paste0("../../artificial_motifs_transfac/", motif,".pfm")
+    transfac_file=paste0("../../PWMs_final_version2.2/artificial_motifs_transfac/", motif,".pfm")
     universalmotif::write_transfac(transfac, file=transfac_file, overwrite = TRUE, append = FALSE)
     
     
@@ -52,11 +106,49 @@ for(i in 1:nrow(metadata) ){
 
 }
 
-saveRDS(artificial_all, file="RData/artificial_all.Rds")
+#saveRDS(artificial_all, file="RData/artificial_all.Rds")
+saveRDS(artificial_all, file="RData/artificial_version2.2.Rds")
 
 stop()
 
+#Do we have artifical motifs for all true motifs
 
+files=strsplit(dir("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_transfac/"), "_")
+
+max_length <- max(sapply(files, length))
+
+# 2. Pad shorter elements with NA to match the longest element
+padded_list <- lapply(files, function(x) {
+  length(x) <- max_length
+  x
+})
+
+# 3. Combine the list elements into a matrix/data frame
+combined_data <- do.call(rbind, padded_list)
+
+remove_ind=which(combined_data %in% c("HH.pfm", "HT2.pfm",  "TT.pfm"))
+combined_data[remove_ind]=NA
+
+#combined_data=apply(combined_data, 1, function(x) paste0(x, collapse="_") )
+
+
+#The index of last non-na element in each row
+last_non_na=apply(combined_data, 1, function(x) max(which(!is.na(x))) )
+#convert the last non-na elements into na 
+for(i in 1:nrow(combined_data)){
+  combined_data[i,last_non_na[i]]=NA
+  
+}
+
+combined_data=apply(combined_data, 1, function(x) paste0(x, collapse="_") )
+combined_data <- sub("_NA$", "", combined_data)
+combined_data <- sub("_NA$", "", combined_data)
+combined_data <- sub("_NA$", "", combined_data)
+combined_data <- sub("_NA$", "", combined_data)
+
+length(unique(combined_data))# 3933 CORRECT
+
+combined_data[which(!(unique(combined_data) %in% metadata$ID))]
 
 data_path="/scratch/project_2006203/"
 

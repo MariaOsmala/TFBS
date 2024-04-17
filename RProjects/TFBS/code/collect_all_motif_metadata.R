@@ -26,16 +26,29 @@ Yin2017 <- read_delim("~/projects/TFBS/PWMs_final/Yin2017/metadata.csv",
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #23
 
+#This was used for the version 1
 # fromYimeng <- read_delim("~/projects/TFBS/PWMs_final/fromYimeng/metadata.csv", 
 #                             delim = "\t", escape_double = FALSE, 
 #                             trim_ws = TRUE) #22
 
-fromYimeng_version2 <- read_delim("~/projects/TFBS/PWMs_final_version2/fromYimeng/metadata.csv", 
-                             delim = "\t", escape_double = FALSE, 
-                             trim_ws = TRUE) #22
+#fromYimeng_version2 <- read_delim("~/projects/TFBS/PWMs_final_version2/fromYimeng/metadata.csv", 
+#                             delim = "\t", escape_double = FALSE, 
+#                             trim_ws = TRUE) #22
 
 
+#Union from all fromYimeng motifs
 
+#fromYimeng <- read_delim("~/projects/TFBS/PWMs_final_union/fromYimeng/metadata.csv", 
+#                            delim = "\t", escape_double = FALSE, 
+#                            trim_ws = TRUE) #22
+
+#Version 2.2
+fromYimeng <- read_delim("~/projects/TFBS/PWMs_final_version2.2/fromYimeng/metadata.csv", 
+                                                     delim = "\t", escape_double = FALSE, 
+                                                     trim_ws = TRUE) #22
+                         
+                         
+                         
 column_order=c( "ID", "symbol", "clone","family", "Lambert2018_families", "organism", "study","experiment",          
 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
 "type", "comment",  "filename", "IC", "IC_universal", "length","consensus")  
@@ -44,11 +57,11 @@ metadata<- rbind( Jolma2013[, column_order],
                   Jolma2015[, column_order],
                   Nitta2015[, column_order],
                   Morgunova2015[, column_order],
-                  fromYimeng_version2[,column_order]
+                  fromYimeng[,column_order]
                   )
 
 metadata$Methyl.SELEX.Motif.Category=""
-metadata=rbind(metadata, Yin2017) #3294
+metadata=rbind(metadata, Yin2017) #3933
 
 #Families are missing
 
@@ -84,7 +97,7 @@ metadata$family=gsub("p53l", "p53", metadata$family)
 
 metadata[which(is.na(metadata$Lambert2018_families)), "Lambert2018_families"]=metadata[which(is.na(metadata$Lambert2018_families)), "family"]
 
-write.table(metadata, file="../../PWMs_final_version2/metadata.csv", row.names = FALSE, sep="\t")
+write.table(metadata, file="../../PWMs_final_version2.2/metadata_3993_motifs.csv", row.names = FALSE, sep="\t")
 
 #Create scdc files from all
 
@@ -100,19 +113,19 @@ for(i in 1:nrow(metadata)){ #3854
   
   write.table(paste0(">",  metadata$ID[i]),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final_version2/all", ".scpd"))
+              file=paste0("../../PWMs_final_version2.2/all", ".scpd"))
   append=TRUE
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final_version2/all", ".scpd"))
+              file=paste0("../../PWMs_final_version2.2/all", ".scpd"))
   }
 
 
 #save filenames, without "../../
 
-write.table(gsub("../../","",metadata$filename), file="../../PWMs_final_version2/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(gsub("../../","",metadata$filename), file="../../PWMs_final_version2.2/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
-write.table(metadata$ID, file="../../PWMs_final_version2/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+write.table(metadata$ID, file="../../PWMs_final_version2.2/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
 #save motifnames
 

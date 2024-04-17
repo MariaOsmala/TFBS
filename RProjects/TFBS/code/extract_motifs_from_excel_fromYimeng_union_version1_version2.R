@@ -638,6 +638,195 @@ write.table(datas_union, file="../../PWMs_final_union/metadata_google_drive_supp
 
 stop()
 
+# The computational type annotation was added by half_site_recognition_in_motifs_and_artificial_spacing.R
+#capselex=read_tsv(file="../../PWMs_final_union/metadata_google_drive_supplement.tsv")
+
+capselex=read_tsv(file="../../PWMs_final_union/metadata_google_drive_supplement_with_type_computation.tsv")
+
+# read the manual annotation of CAP-SELEX motifs
+
+library(readr)
+manual_curation_spacing_composite <- read_csv("~/projects/TFBS/PWMs_final_union/metadata_google_drive_supplement_manual_curation_spacing_composite.csv")
+
+test=cbind(capselex[,1:15], manual_curation_spacing_composite[,9:19], capselex[,16:20])
+
+library("tidyverse")
+test <- add_column(test, `manual annotation` = "", .before = which(names(test)=="comment"))
+
+test$`manual annotation`[which(test$FINAL_results=="C")]="composite"
+test$`manual annotation`[which(test$FINAL_results=="S")]="spacing"
+test$`manual annotation`[which(test$FINAL_results=="U")]="unclear"
+
+test=test[,-which(names(test) %in% c( "IS_labels", "IS_commets", "YY_lables", "YY_comments",                      
+                                      "JT_labels", "JT_comments",  "YC_labels",   "YC_comments"  ,                    
+                                      "Comparison", "FINAL_results" , "res_y" ))]
+
+# Add info for version 2.1, do I need to include the HT-SELEX motifs?
+
+datas_union=readRDS(file="RData/fromYimeng_union.Rds")
+
+length(dir("/Users/osmalama/projects/TFBS/PWMs_final_version2.2/novel_motif_HT-SELEX/")) #12
+
+types=dir("/Users/osmalama/projects/TFBS/PWMs_final_version2.2/fromYimeng/")
+
+
+path="../../PWMs_final_version2.2/fromYimeng/"
+
+datas=tibble()
+
+for(t in types){
+  #t=types[1]
+  data=as_tibble(do.call(rbind,strsplit(dir(paste0(path, t, "/")),split="_")))
+  data$V7=gsub(".pfm", "", data$V7)
+  data$symbol=paste(data$V1, data$V2,sep="_")
+  data=data[,-c(1,2)]
+  names(data)=c("ligand", "batch", "seed", "multinomial", "cycle", "symbol")
+  data=data %>% relocate(symbol, .before=ligand)
+  data$study="fromYimeng"
+  data$type=t #composite   spacing   unclear
+  data$organism="Homo_sapiens"
+  data$clone=NA
+  data$family=NA
+  data$experiment="CAP-SELEX"
+  data$representative=NA
+  data$comment=NA
+  data$filename=paste0("PWMs_final_version2.1/fromYimeng/", t,"/", dir(paste0(path, t, "/")))
+  data$ID=gsub(".pfm", "",do.call(rbind, strsplit(data$filename, "/"))[,4])
+  data=data %>% relocate(ID, .before=symbol)
+  datas=rbind(datas, data)
+}
+
+
+
+datas=datas[, c("ID","symbol",	"clone","family",	"organism","study","experiment",
+                "ligand",	"batch", "seed",	"multinomial",
+                "cycle","representative", "type","comment","filename")]
+
+datas$`manual annotation`=NA
+table(datas$type)
+# Composite_motif_version2.1   Spacing_motif_version2.1   
+# 1131                        205                          
+datas$`manual annotation`[which(datas$type=="Composite_motif_version2.2")]="composite"
+datas$`manual annotation`[which(datas$type=="Spacing_motif_version2.2")]="spacing"
+
+table(datas$`manual annotation`)
+length(unique(datas$ID)) #IDs are unique
+
+datas_union$version1="NO"
+datas_union$version1[which(datas_union$version=="Version 1")]="YES"
+
+match_ind=match(datas_union$ID, datas$ID) #1418
+notna_ind=which(!(is.na(match_ind))) #1282
+
+match_ind=match(datas$ID, datas_union$ID) #1336
+notna_ind=which(!(is.na(match_ind))) #1284
+na_ind=which((is.na(match_ind))) #54
+
+#Which are not matching
+head(datas$ID)
+head(datas_union$ID[match_ind[notna_ind]])
+
+head(datas$ID[na_ind])
+
+#"ATOH1_FOXD2_TCCATG40NCAC_YWI_NWRNRYAAACANCAGCTGTYN_m2_c3b0"  "CDX1_T_TCACTC40NCAG_YAFIIII_RGGTGYTAATTRN_m1_c3b0"          
+#"CREB1_IRF7_TAACTG40NCGCG_YAEIIII_NRTGACGNNNCGAAAN_m1_c3b0"   "CREB3L1_ELF1_TAGGGT40NGTT_YADIIII_NMYACGTNNNCGGAWRY_m1_c3b0"
+#"CREB5_ELK1_TCCAGA40NCTCC_YRII_NRMCGGAWRTGACGTNNN_m1_c3b0"    "CREB5_ERG_TCCAGA40NCTCC_YYII_NRMCGGAARTGACGTNNN_m1_c3b0"  
+
+datas$ID[grep("ATOH1_FOXD2",datas$ID)]
+# "ATOH1_FOXD2_TCCATG40NCAC_YWI_NWRNRYAAACANCAGCTGTYN_m2_c3b0"
+datas_union$ID[grep("ATOH1_FOXD2",datas_union$ID)]
+# "ATOH1_FOXD2_TCCATG40NCAC_YWI_NWRNRYAAACANCAGCTGN_m1_c3b0"
+
+as.matrix(read_table(datas$filename[grep("ATOH1_FOXD2",datas$ID)], col_names = FALSE))
+# X1  X2   X3  X4  X5  X6   X7   X8   X9  X10  X11 X12  X13  X14  X15  X16  X17  X18  X19 X20 X21
+#[1,] 144 383 1026 671 814 444 1257 1261 1271  109 1274 820   83 1289  110 1130   55   32  189 112 412
+#[2,] 369 129   94 209 204 546  291  225  141 1274   37 303 1327   13  247 1073   94   20  400 518 181
+#[3,] 117  82  275 221 510 154   82   72  160   89  239 137    1   51 1135  199   45 1327  318 144 440
+#[4,] 696 926  148 226 112 753  362  207   38  294   27  67   42  174  863  102 1321   63 1172 756 293
+
+as.matrix(read_table(gsub("../../","",datas_union$filename[grep("ATOH1_FOXD2",datas_union$ID)]), col_names = FALSE))
+#X1  X2  X3  X4  X5  X6  X7  X8  X9 X10 X11 X12 X13 X14 X15 X16 X17 X18 X19
+#[1,]  61 224 504 275 326  61 638 638 638  22 638 414  29 638  32 410  56   9 104
+#[2,] 159  47  27  62  22 204 112  72  12 638  20 102 638   0  61 638  75  12  92
+#[3,]  89  15 134 157 313  15  14   0  61  25  77  77   0  25 638  59   2 638  50
+#[4,] 328 414  33 144  20 434  45  55   4  99   7  45   5  70 388  12 638   2 393
+
+datas$ID[grep("CDX1_T_",datas$ID)]
+#"CDX1_T_TCACTC40NCAG_YAFIIII_RGGTGYTAATTRN_m1_c3b0"
+datas_union$ID[grep("CDX1_T_",datas_union$ID)]
+#"CDX1_T_TCACTC40NCAG_YAFIIII_AGGTGTTAATT_m1_c3b0"
+
+#Add also representatives info for version 1 motifs
+
+metadata_representatives=read_tsv(file="../../PWMs_final/metadata_representatives.tsv")
+
+
+
+metadata_representatives$new_ID=metadata_representatives$ID
+metadata_representatives$new_ID=gsub("_short_20230420", "", metadata_representatives$new_ID)
+metadata_representatives$new_ID=gsub("_short_composite_new", "", metadata_representatives$new_ID)
+metadata_representatives$new_ID=gsub("_short_spacing_new", "", metadata_representatives$new_ID)
+
+tmp=metadata_representatives %>% filter(study=="fromYimeng") %>% select(new_ID) 
+
+which(table(tmp$new_ID)>1)
+
+#These are not representatives
+tmp=metadata_representatives %>% filter(new_ID %in% c("HOXB13_MEIS3_TGCGAT40NGAT_YRIIII_MATAAANNTGTCA_m1_c3b0u", "HOXD10_TBX6_TCTACT40NACA_YAAII_NYMRTAAAANAGGTGTNA_m1_c3b0"))
+
+match_ind=match( test$ID, metadata_representatives$new_ID) #1418
+notna_ind=which(!is.na(match_ind)) #707
+
+head(test$ID)
+head(metadata_representatives$new_ID[match_ind[notna_ind]])
+
+test$representative[notna_ind]=metadata_representatives$new_representative[match_ind[notna_ind]]
+
+write.table(test, file="../../PWMs_final_union/metadata_google_drive_supplement_with_type_computation_manual_annotation.tsv",
+            quote=FALSE, sep="\t", row.names = FALSE, na = "")
+
+#How many version 1 motifs
+
+table(test$version) #707
+
+#How many are spacing and how many composites
+
+test %>% filter(version=="Version 1") %>% count(`manual annotation`)
+#manual annotation   n
+#1         composite 607
+#2           spacing  93
+#3           unclear   7
+
+#For how many the computational type(if possible to predict) and manual annotation match
+
+test %>% filter(version=="Version 1" & `type computation`!="") %>% count(`type computation`, `manual annotation`)
+#type computation manual annotation   n
+#1        composite         composite 561
+#2        composite           spacing  31
+#3        composite           unclear   5
+#4          spacing         composite  30
+#5          spacing           spacing  57
+#6          spacing           unclear   1
+
+
+test %>% count(`manual annotation`)
+#manual annotation    n
+#1         composite 1188
+#2           spacing  222
+#3           unclear    8
+
+#How many representatives spacing and composite motifs in Version 1
+
+test %>% filter(version=="Version 1") %>% count( `manual annotation`,representative)
+#manual annotation representative   n
+#1         composite             NO 424
+#2         composite            YES 183
+#3           spacing             NO  37
+#4           spacing            YES  56
+#5           unclear             NO   1
+#6           unclear            YES   6
+
+
 #Missing from Ilya
 
 library(readr)

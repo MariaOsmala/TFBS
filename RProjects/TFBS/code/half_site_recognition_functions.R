@@ -1,3 +1,5 @@
+# q: what does these function do?
+
 find_common_prefix <- function(strings) {
   # If the vector is empty, return an empty string
   if (length(strings) == 0) return("")
@@ -70,6 +72,7 @@ find_representative_monomer <- function(monomer, monomers, represented_by_repres
 
 find_monomer <- function(monomer, monomers, metadata) {
   representative_bool=FALSE
+  dimeric_bool=FALSE
   
   #Include also mouse motifs, do not mind about the upper/lowercase characters in the name
   mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),]
@@ -111,6 +114,7 @@ find_monomer <- function(monomer, monomers, metadata) {
   
   #If no motif found, try also dimeric
   if(length(motif1)==0){
+    dimeric_bool=TRUE
     mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),]
     
     if(length(which(mono1$experiment=="Methyl-HT-SELEX"))!=0){
@@ -142,7 +146,7 @@ find_monomer <- function(monomer, monomers, metadata) {
     
   }
   
-  list(motif=motif1, representative_bool=representative_bool)
+  list(motif=motif1, representative_bool=representative_bool, dimeric_bool=dimeric_bool)
 }
 
 monomer_start_end <- function(tomtom_reverse_order, optimal_offset, optimal_orientation, optimal_overlap, dimer_length) {

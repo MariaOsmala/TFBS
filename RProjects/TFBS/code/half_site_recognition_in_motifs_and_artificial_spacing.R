@@ -9,74 +9,82 @@ library(tidyverse)
 
 #TFBS_path='/Users/osmalama/projects/TFBS/'
 # These were able to be computed only part of the motif pairs ~3 million, there should be 16 million (both directions)
-tomtom = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_final/tomtom.all.txt') #2_722_099 rows
+# Old data
+# tomtom = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_final/tomtom.all.txt') # 2 044 865
+# tomtom_relaxed = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_final/tomtom_relaxed/tomtom.tsv') # 10 850 439 rows
+
+#tomtom = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_union_final/tomtom/tomtom.all.txt') # 3 518 938
+tomtom = read_tsv('/Users/osmalama/projects/TFBS/Results/tomtom_union_final/tomtom_relaxed/tomtom.tsv') # 16 024 009 rows
+
 #remove three last rows
-tomtom <- tomtom %>% slice(1:(n()-3)) #2044862
+tomtom <- tomtom %>% dplyr::slice(1:(n()-3)) #10 850 439
 
 
-metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata_representatives.tsv", 
-                           delim = "\t", escape_double = FALSE, 
-                           trim_ws = TRUE)
+# metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata_representatives.tsv", 
+#                            delim = "\t", escape_double = FALSE, 
+#                            trim_ws = TRUE)
+
+
+metadata <- read_delim("~/projects/TFBS/PWMs_final_union/metadata_4003_motifs.csv", 
+                       delim = "\t", escape_double = FALSE, 
+                       trim_ws = TRUE)
 
 #monomers
-
-
-
 monomers=metadata[metadata$experiment!="CAP-SELEX",]
 
-monomers_representative=monomers[which(monomers$new_representative=="YES"),]
+#monomers_representative=monomers[which(monomers$new_representatives=="YES"),]
 
-#How to check which motif is heterodimeric and which is composite?
+#How to check which motif is spacing and which is composite?
 
-representatives=metadata[which(metadata$new_representative=="YES"),]
+#representatives=metadata[which(metadata$new_representative=="YES"),] #metadata for 1031 representatives
 
 #represented_by_representatives <- read_table("~/projects/TFBS/PWMs_final/sstat_represented_by_representatives.tsv")
 
-represented_by_representatives <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/represented_by_representatives.RDS")
+#represented_by_representatives <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/represented_by_representatives.RDS")
 
-#which are heterodimeric or composite motifs
+#which are spacing or composite motifs
+#capselex=metadata[metadata$experiment=="CAP-SELEX",]
 
-#capselex=representatives[representatives$experiment=="CAP-SELEX",]
-capselex=metadata[metadata$experiment=="CAP-SELEX",]
+capselex=read_delim("~/projects/TFBS/PWMs_final_union/metadata_google_drive_supplement.tsv", 
+                    delim = "\t", escape_double = FALSE, 
+                    trim_ws = TRUE)
 
-capselex$type[grep("composite",capselex$ID)]="composite"
-capselex$type[grep("spacing",capselex$ID)]="spacing"
-capselex$type[grep("20230420",capselex$type)]="spacing"
+#capselex$type[grep("composite",capselex$ID)]="composite"
+#capselex$type[grep("spacing",capselex$ID)]="spacing"
+#capselex$type[grep("20230420",capselex$type)]="spacing"
 
 capselex$first.monomer=""
 capselex$second.monomer=""
 
 capselex$First_representative_bool=NA
+capselex$First_dimeric_bool=NA
 capselex$First_tomtom_reverse_order=NA
 capselex$First_Optimal_offset=NA
 capselex$First_Optimal_Overlap=NA
 capselex$First_Optimal_Orientation=""
 
 capselex$Second_representative_bool=NA
+capselex$Second_dimeric_bool=NA
 capselex$Second_tomtom_reverse_order=NA
 capselex$Second_Optimal_offset=NA
 capselex$Second_Optimal_Overlap=NA
 capselex$Second_Optimal_Orientation=""
 
-
-#i=which(capselex$ID=="FOXC2_TCF3_TGACGT40NAGC_YIII_NCACCTGNRTAAAYAN_m1_c3b0u_short_composite_new")
-#i=which(capselex$ID=="FOXB1_SOX11_TAAGGG40NACC_YUIII_NGYAAACAAWGN_m1_c3b0_short_composite_new")
+missing_monomers=c()
 
 for(i in 1:nrow(capselex)){
+  #i=1
   print(i)
   dimer_ID=capselex$ID[i]
   
-  #which(capselex$ID=="ATF3_TEAD4_TGAGAG40NTGTG_YJII_CATTCCNNNNNNNTGACGTMA_m1_c3b0_short_spacing_new") #477
-  
-  #which(capselex$ID=="OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420") #1268
   #monomers
   monomers_symbols=unlist(strsplit(capselex$symbol[i],"_"))
   
-  #Find representative monomers
-  #motif1=find_representative_monomer(monomer=monomers_symbols[1], monomers, represented_by_representatives, metadata)
-  #motif2=find_representative_monomer(monomer=monomers_symbols[2], monomers, represented_by_representatives, metadata)
+  # Find representative monomers, experimental
+  # motif1=find_representative_monomer(monomer=monomers_symbols[1], monomers, represented_by_representatives, metadata)
+  # motif2=find_representative_monomer(monomer=monomers_symbols[2], monomers, represented_by_representatives, metadata)
   
-  #FInd monomers by symbol only
+  #Find monomers by symbol only, for which motifs this fails.
   
   motif1=try(find_monomer(monomer=monomers_symbols[1], monomers, metadata), silent=TRUE)
   motif2=try(find_monomer(monomer=monomers_symbols[2], monomers, metadata), silent=TRUE)
@@ -98,16 +106,18 @@ for(i in 1:nrow(capselex)){
   }
   
   capselex$first.monomer[i]=motif1$motif
-  
-  
   capselex$First_representative_bool[i]=motif1$representative_bool
+  capselex$First_dimeric_bool[i]=motif1$dimeric_bool
   capselex$First_tomtom_reverse_order[i]=tomtom_reverse_order
+  
+  
   if(length(indices)!=0){
     capselex[i, c("First_Optimal_offset","First_Optimal_Overlap","First_Optimal_Orientation")]=tomtom[indices,c("Optimal_offset", "Overlap", "Orientation")]
   }
   
   }else{
     print("No first monomer found")
+    missing_monomers=c(missing_monomers, monomers_symbols[1])
   }
   
   if(length(motif2$motif)==1){
@@ -130,6 +140,7 @@ for(i in 1:nrow(capselex)){
   
   capselex$second.monomer[i]=motif2$motif
   capselex$Second_representative_bool[i]=motif2$representative_bool
+  capselex$Second_dimeric_bool[i]=motif2$dimeric_bool
   capselex$Second_tomtom_reverse_order[i]=tomtom_reverse_order
   if(length(indices)!=0){
     capselex[i, c("Second_Optimal_offset","Second_Optimal_Overlap","Second_Optimal_Orientation")]=tomtom[indices,c("Optimal_offset", "Overlap", "Orientation")]
@@ -137,34 +148,49 @@ for(i in 1:nrow(capselex)){
   
   }else{
     print("No second monomer found")
+    missing_monomers=c(missing_monomers, monomers_symbols[2])
   }
   
 }
 
-#For the new spacing motifs, for how many 
-  #both monomers were found
-  #only one monomer was found
-  #both were not found
 
-spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
+print(unique(missing_monomers))
+# "BHLHB8" "DBX2"   "FOXK2"  "FOXO3A" "OTP"    "PROX2"  "BHLHB5" "NKX2-6" "NKX2-4" "PBX2"   "gntR"   "ZBTB33" "ESR2"  
 
-length(which(!spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) #198
-length(which( (!spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="") | (spacing_motifs$first.monomer=="" & !spacing_motifs$second.monomer=="")) )#8
-length(which(spacing_motifs$first.monomer=="" & spacing_motifs$second.monomer=="")) #0
+#For how many CAP-selex motifs, either TF of the pair are in missing_monomers
+pairs=as.data.frame(do.call(rbind, strsplit(capselex$symbol, split="_")))
+names(pairs)=c("TF1", "TF2")
+length(which(pairs$TF1 %in% unique(missing_monomers) | pairs$TF2 %in% unique(missing_monomers))) #46, 3.24% of all CAP-selex motifs
 
-#For How many of these, tomtom did not find the match
-length(which(!spacing_motifs$first.monomer=="" & is.na(spacing_motifs$First_Optimal_offset))) #34
-length(which(!spacing_motifs$second.monomer=="" & is.na(spacing_motifs$Second_Optimal_offset))) #27
+tmp=capselex[(which(pairs$TF1 %in% unique(missing_monomers) | pairs$TF2 %in% unique(missing_monomers))),] #46
 
-#How many with both info
-length(which(!is.na(spacing_motifs$First_Optimal_offset) & !is.na(spacing_motifs$Second_Optimal_offset))) #142 of 206, 70 %
+table(capselex$first.monomer=="" | capselex$second.monomer=="" )
+#FALSE  TRUE 
+#1372    46 
+#For how many CAP-selex motifs, there are individual TF motifs but tomtom fails, NONE for relaxed set 
+
+table(capselex$first.monomer!="" & capselex$second.monomer!="" )
+#FALSE  TRUE 
+#46  1372 
+
+tmp=capselex[which(capselex$first.monomer!="" & capselex$second.monomer!="" ),] #There are 1372 for which both monomers were found
+#For how many of these 1245 motifs, tomtom did not find the match for either of the monomers  
+#For the relaxed setting, all monomers are found
+table( (capselex$first.monomer!="" & capselex$second.monomer!="" ) & (is.na(capselex$First_Optimal_offset) | is.na(capselex$Second_Optimal_offset)))
+#FALSE  TRUE 
+#1392.  26
+
+tmp=capselex[which( (capselex$first.monomer!="" & capselex$second.monomer!="" ) & (is.na(capselex$First_Optimal_offset) | is.na(capselex$Second_Optimal_offset))),]
+
+#In total there are 26+202=389? motifs for which there are no full info for the alignment
+table(is.na(capselex$First_Optimal_offset) | is.na(capselex$Second_Optimal_offset))
+# FALSE  TRUE 
+# 1356   72 (26+46)
+
+#FALSE  TRUE 
+#1245    26 
 
 
-
-
-# tmp=tomtom[tomtom$Query_ID==dimer_ID,]
-# tmp$Target_experiment=metadata$experiment[match(tmp$Target_ID, metadata$ID)]
-# tmp=tmp %>% filter(Target_experiment=="HT-SELEX")
 
 #match for both motifs
 
@@ -174,8 +200,6 @@ capselex$first_end=NA
 
 capselex$second_start=NA
 capselex$second_end=NA
-
-
 
 capselex$type_computation=""
 capselex$overlap_length=NA
@@ -226,7 +250,7 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
   
   #cap length
   #Left and rightmost
-  if(first_se$start< second_se$start){
+  if(first_se$start < second_se$start){
     
     gap=second_se$start-first_se$end #0
     
@@ -287,20 +311,68 @@ for (i in which( paste0(capselex$First_Optimal_Orientation, " ", capselex$Second
        capselex$overlap_end[i]=second_se$end
        
      }
-     
-     
-    
   }
-  
-    
-  
 }
+
+
+capselex$`type computation`=capselex$type_computation
+capselex$overlap_length=-capselex$overlap_length
+
+composite_ind=which(!is.na(capselex$overlap_length))
+spacing_ind=which(!is.na(capselex$gap_length))
+
+capselex$`type computation overlap or gap`[composite_ind]=capselex$overlap_length[composite_ind]
+capselex$`type computation overlap or gap`[spacing_ind]=capselex$gap_length[spacing_ind]
+
+saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom.RDS")
+
+write.table(capselex, file="../../PWMs_final_union/metadata_google_drive_supplement_with_type_computation.tsv",quote=FALSE, sep="\t", row.names = FALSE)
+
+
+
+#Reorder the first.monomer and second.monomer columns if switched_order==TRUE
+
+#capselex=read_tsv(file="../../PWMs_final_union/metadata_google_drive_supplement_with_type_computation.tsv")
+
+capselex$switched_order=FALSE
+capselex$switched_order=capselex$first_start > capselex$second_start
+table(capselex$switched_order)
+
+capselex_tomtom=capselex
+capselex_tomtom[which(capselex_tomtom$switched_order), c("first.monomer", "second.monomer")]=capselex_tomtom[which(capselex_tomtom$switched_order), c("second.monomer", "first.monomer")]
+
+capselex_tomtom=capselex_tomtom[,c("ID", "first.monomer", "second.monomer")]
+
+
+
+metadata <- read_delim("~/projects/TFBS/PWMs_final_union/metadata_4003_motifs.csv", 
+                                     delim = "\t", escape_double = FALSE, 
+                                        trim_ws = TRUE)
+
+
+matches=match(metadata$ID,capselex_tomtom$ID) 
+nona_ind=which(!is.na(matches))
+
+capselex_tomtom$filename_dimer=metadata$filename[nona_ind]
+
+matches=match(capselex_tomtom$first.monomer, metadata$ID) 
+nona_ind=which(!is.na(matches))
+
+capselex_tomtom$filename_monomer1=metadata$filename[matches]
+
+matches=match(capselex_tomtom$second.monomer, metadata$ID) 
+nona_ind=which(!is.na(matches))
+
+capselex_tomtom$filename_monomer2=metadata$filename[matches]
+
+
+write.table(capselex_tomtom, file="../../PWMs_final_union/metadata_google_drive_supplement_for_tomtom_figures.tsv",quote=FALSE, sep="\t", row.names = FALSE)
 
 #How many of the new spacing motifs are predicted as composites
 spacing_motifs=capselex %>% filter(study=="fromYimeng" & type=="spacing") #206
 
-length(which(spacing_motifs$type_computation!="" & spacing_motifs$type==spacing_motifs$type_computation)) #44 CORRECT
-length(which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation)) #98 UNCORRECT
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type==spacing_motifs$type_computation)) #58 CORRECT
+length(which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation)) #140 UNCORRECT
 
 inconsistent=spacing_motifs[which(spacing_motifs$type_computation!="" & spacing_motifs$type!=spacing_motifs$type_computation),]
 
@@ -324,8 +396,8 @@ table(inconsistent_unique$composite)
 #How many of the new composite motifs are predicted as spacing motifs
 composite_motifs=capselex %>% filter(study=="fromYimeng" & type=="composite") #206
 
-length(which(composite_motifs$type_computation!="" & composite_motifs$type==composite_motifs$type_computation)) #407 CORRECT
-length(which(composite_motifs$type_computation!="" & composite_motifs$type!=composite_motifs$type_computation)) #12 UNCORRECT
+length(which(composite_motifs$type_computation!="" & composite_motifs$type==composite_motifs$type_computation)) #475 CORRECT
+length(which(composite_motifs$type_computation!="" & composite_motifs$type!=composite_motifs$type_computation)) #14 UNCORRECT
 
 inconsistent=composite_motifs[which(composite_motifs$type_computation!="" & composite_motifs$type!=composite_motifs$type_computation),]
 
@@ -358,8 +430,38 @@ table(capselex$first_start > capselex$second_start)
 #FALSE  TRUE 
 #584   459
 
+tmp=capselex[(capselex$study=="fromYimeng"),c("type", "type_computation", "gap_length", "overlap_length")]
+
+# Draw figures using tomtom
+# print the name of the CAP-selex motif and the corresponding monomeric motif
+
+#both monomers
+
+for_tomtom=capselex[which(capselex$first.monomer!="" & capselex$second.monomer!="" ), c("ID", "first.monomer", "second.monomer")]
+#Need to swap the monomer order?
+
+write.table(for_tomtom, file="/Users/osmalama/projects/TFBS/RProjects/TFBS/for_tomtom.txt", quote=FALSE, row.names=FALSE, col.names=FALSE)
 
 #saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom.RDS")
+
+stop()
+
+#Do the information with the original tomtom parameters and the relaxed tomtom parameters agree?
+
+capselex_orig=readRDS(file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")
+capselex_relaxed=readRDS(file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom.RDS")
+
+notna_ind_first=which(!is.na(capselex_orig$First_Optimal_offset))
+notna_ind_second=which(!is.na(capselex_orig$Second_Optimal_offset))
+
+inconclusive=which(!(capselex_orig$First_Optimal_offset[notna_ind_first]==capselex_relaxed$First_Optimal_offset[notna_ind_first]))
+
+capselex_orig[notna_ind_first[inconclusive],c("ID", "First_Optimal_offset", "First_Optimal_Overlap", "First_Optimal_Orientation", "First_tomtom_reverse_order")]
+capselex_relaxed[notna_ind_first[inconclusive],c("ID", "First_Optimal_offset", "First_Optimal_Overlap", "First_Optimal_Orientation", "First_tomtom_reverse_order")]
+
+
+stop()
 
 
 #capselex=readRDS(file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs.RDS")

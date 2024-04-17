@@ -135,7 +135,7 @@ for(m in 1:nrow(datas)){
     }
     
   
-    ID=gsub(".pfm", "",filename_final)
+    ID=gsub("_short.pfm", "",filename_final)
     datas$ID[m]=ID
     
     #write if to pwms, tab separated
