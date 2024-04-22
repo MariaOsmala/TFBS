@@ -1,18 +1,43 @@
+#invisible(lapply(paste0('package:', names(sessionInfo()$otherPkgs)), detach, character.only=TRUE, unload=TRUE))
+#or 
+#lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)
+#invisible(lapply(paste0('package:', names(sessionInfo()$otherPkgs)), detach, character.only=TRUE, unload=TRUE, force=TRUE))
+
+ unload_pkgs <- \(exc=NULL) {
+   bpk <- c("splines", "compiler", "tools", "parallel",  "grid", "stats4", "stats", "graphics",  "grDevices", "utils",  "datasets",
+"methods",   "base") |> c(exc)
+   while (length(setdiff(loadedNamespaces(), bpk)) > 0) {
+     lapply(setdiff(loadedNamespaces(), bpk), \(x) {
+       try(unloadNamespace(x), silent=FALSE)
+     })
+   }
+ }
+
+
 library("rtracklayer")
 library("dbplyr")
 library("dplyr")
 #library("motifStack")
 #library("universalmotif")
 library("ggplot2")
-library(ggbreak)
-#install.packages("ggbreak")
+
+
 #library("GRanges")
 library("readr")
 library("caret")
 library("glmnet")
 library("purrr")
 
+.libPaths("/projappl/project_2006203/project_rpackages_4.2.1/")
+library(ggbreak)
+
 cell_line_nro <- as.numeric(commandArgs(trailingOnly = TRUE))
+
+#features_type="presence_matrix"
+features_type="max_score_matrix"
+
+
+
 
 #The logistic regression model predicts whether a cCRE i is specific to certain cell type (Class 1) or not (0). 
 #The model is trained for all 111 cell types.
@@ -26,7 +51,8 @@ cell_line_nro <- as.numeric(commandArgs(trailingOnly = TRUE))
 setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
 data_path="/scratch/project_2006203/TFBS/"
 
-representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+#representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294 version 1
+representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3933
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 length(unique(rep_motifs))
@@ -63,9 +89,19 @@ N=length(all_cCREs) #all possible cCREs #435142
 
 
 
+if(features_type=="presence_matrix"){
+  presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix_version2.2.Rds")) #
+  
+}else{
+  #features_type="max_score_matrix"  
+  presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix_version2.2.Rds")) #
+}
+
+
+
 #presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/presence_matrix.Rds")) #
 #saveRDS(count_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/count_matrix.Rds")) #
-presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
+#presence_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/max_score_matrix.Rds")) #
 
 #Consider only those that are truly unique
 
@@ -223,8 +259,16 @@ cvfits <- lapply(combined_folds, function(test_indices) {
 
 cvfit_final <- cv.glmnet(x=presence_sparse, y=Class,family = "binomial", alpha=1,trace.it = TRUE, type.measure="auc", keep=TRUE)
 
-#save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData"))
+#save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData")) #version 1
+#save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData")) #version 1
+
+if(features_type=="presence_matrix"){
+  save.image(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_",cell_type,"_version2.2.RData")) #version 2.2
+  
+}else{
+  #features_type="max_score_matrix" 
+  save.image(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_max_score",cell_type,"_version2.2.RData")) #version 2.2
+}
 
 # stop()
 # 

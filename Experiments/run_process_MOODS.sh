@@ -1,55 +1,33 @@
 #!/bin/bash -l
 #SBATCH --job-name=process_MOODS
-#SBATCH --account=project_2007567
+#SBATCH --account=project_2006203
 #SBATCH --output=outs/process_MOODS_%A_%a.txt
 #SBATCH --error=errs/process_MOODS_%A_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=08:00:00
+#SBATCH --time=24:00:00 #08:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=300G #3G with database
-#SBATCH --gres=nvme:100
-#SBATCH --array=616,684,726 
+#SBATCH --mem-per-cpu=150G #300G
+#SBATCH --gres=nvme:50
+#SBATCH --array=21 #0:39
+
+#21202202_[0-39] #OK
+
+#21202202_5 TIMEOUT 
+#21213510_[5] #OK
+
+#21 timeout
+#21216798_[21]  #OK
+
+#0_21182975
+#sacct --format JobID%-20,State -j 21182975
+# MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID=0-40
+# srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificial_results_to_database.R $SLURM_ARRAY_TASK_ID=0-1030
 
 
 
-
-# 19184582_[1-300] #OK
-
-#301-500: OK
-
-#501-600: OK
-
-#19209909_[601-800]
-
-#FAILED: 616,684,726 #19386445
-
-#OK 642,685,
-
-
-
-#19235452_[901-1000 OK!
-
-#1001-1031: 19322725_[0-30] OK!
-
-#0-32 human and mouse true motifs
-
-#0-1030 artificial representative motifs
-
-#0-15: 18913194 #DONE
-
-#16-32: 18919036 Memory runs out, rerun 17-19,21-24,26-27,29,31
-
-#rerun 18930020
-
-#Figure out which artificial results are still missing and their job array numbers
-
-
-
-
-#0-10
-#3,4,5,6,11 #SBATCH --gres=nvme:50
+##SBATCH --gres=nvme:50
 #with 1 CPU required 1-04:33:39
 #Memory Utilized: 55.83 GB 55.83% of 100.00 GB
 
@@ -75,8 +53,8 @@ echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 
 # Run the R script
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/collect_MOODS_results.R $SLURM_ARRAY_TASK_ID
-#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID
-srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificial_results_to_database.R $SLURM_ARRAY_TASK_ID
+srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID
+#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificial_results_to_database.R $SLURM_ARRAY_TASK_ID
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database_mouse.R $SLURM_ARRAY_TASK_ID
 
 seff $SLURM_JOBID

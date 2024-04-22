@@ -3,6 +3,7 @@
 #Before this you need to run code/run_scpd2meme.sh
 
 export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
+#meme -version 5.4.1
 
 
 results_dir="/scratch/project_2006203/Results/tomtom_final"

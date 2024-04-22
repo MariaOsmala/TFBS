@@ -1,11 +1,12 @@
+export PATH="/projappl/project_2006203/softwares/conda_envs/motif-clustering-Vierstra/bin:$PATH"
+
 i=./PWMs_final/all.scpd
 
-scpd2meme $i -pseudo 1 > ${i/scpd/meme}
+scpd2meme $i -pseudo 1 > ${i/scpd/meme} #-pseudo <total pseudocounts>  add <total pseudocounts> times letter background to each frequency; default: 0
 
 grep "^MOTIF" ./PWMs_final/all.meme | awk '{print $2}' > code/motifs_in_meme.txt
 
 find ./PWMs_final -name "*.scpd*"
-
 
 
 paths=($(find ./PWMs_final -name "*.scpd"))

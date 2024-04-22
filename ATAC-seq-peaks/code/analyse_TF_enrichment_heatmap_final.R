@@ -1,7 +1,5 @@
 #lapply(paste('package:',names(sessionInfo()$otherPkgs),sep=""),detach,character.only=TRUE,unload=TRUE)
 
-#.libPaths("/projappl/project_2006203/project_rpackages_4.2.1")
-
 
 library("rtracklayer")
 library("dbplyr")
@@ -13,14 +11,18 @@ library("cluster")
 library("readr")
 library("grid")
 library("RColorBrewer")
-#library("heatmaply")
+library("ggplot2")
 library("ggrepel") #
 library("circlize")
 library(gridExtra)
 library(grid) # for textGrob
 #install.packages("latex2exp")
 #library("latex2exp")
-
+.libPaths("/projappl/project_2006472/project_rpackages_4.3.0_new")
+#install.packages("heatmaply")
+library("heatmaply")
+library("openxlsx")
+library("gridExtra")
 #source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
 source("../code/heatmap_motor.R")
 
@@ -31,8 +33,8 @@ source("../code/heatmap_motor.R")
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
-Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
-                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
+# Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
+#                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 
 #typo
@@ -454,7 +456,7 @@ spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_typ
 #with 33 of 125 representative composite motifs and 23 of 120 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 1).
 #with 79 of 125 representative composite motifs and 71 of 120 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 0.75).
 
-library("openxlsx")
+
 
 # Create a new workbook
 wb <- createWorkbook()
@@ -1202,7 +1204,7 @@ for( ct_group in names(cell_type_groups) ){
 #Volcano plots, separate figure for each cell type group
 
 # Sample data
-library("gridExtra")
+
 options(ggrepel.max.overlaps = Inf)
 
 # Thresholds
@@ -1390,7 +1392,7 @@ plot(silhouette(cutree(ehc,10),ed))
 min(p_matrix_depleted) #-264.5894
 max(p_matrix_depleted) #1578.851
 
-library("RColorBrewer")
+
 paletteLength=100
 color = colorRampPalette(rev(brewer.pal(n = 7, name =
                                           "RdBu")))(paletteLength)
@@ -1566,6 +1568,7 @@ myBreaks <- c(seq(-100, 0, length.out=ceiling(paletteLength/2) + 1),
               seq(100/paletteLength, max(100), length.out=floor(paletteLength/2)))
 
 
+#Experimental
 library(d3heatmap)
 #install.packages("d3heatmap")
 #if (!require("devtools")) install.packages("devtools")
@@ -1684,8 +1687,6 @@ gradient_col <- ggplot2::scale_fill_gradient2(
 
 
 
-library(heatmaply)
-library(RColorBrewer)
 
 # Generate sample data
 data <- matrix(rnorm(100), nrow = 10)

@@ -29,19 +29,21 @@ data_path="/scratch/project_2006203/TFBS/"
 #representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294 Version 1
 representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3933
 
-rep_motifs=representatives$ID
+bHLHhomeo_all=representatives[which(representatives$Lambert2018_families %in% c("bHLH_Homeodomain","Homeodomain_bHLH")),] #59
+rep_motifs=bHLHhomeo_all$ID
 
 
 #grep("CTCF",rep_motifs) CTCF is in representative motif
 
 length(unique(rep_motifs))
-#3294
+#59
 
 
 representative_motif_matches <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_human_final_version2.2.Rds")
 
 
-motifs=names(representative_motif_matches)
+#motifs=names(representative_motif_matches)
+motifs=rep_motifs
 
 
 cCREs_list<- readRDS(file = paste0(data_path, "ATAC-seq-peaks/RData/cCREs_list.Rds") ) #
@@ -69,7 +71,7 @@ all_cCREs=unique(all_cCREs)
 N=length(all_cCREs) #all possible cCREs #435142
 
 #m: a list of all cCREs that have a motif match#
-i=1
+
 
 for(hits in motifs){
   print(hits)
@@ -128,14 +130,7 @@ for(hits in motifs){
     
   }
   
-  if(i%%500==0){
-    saveRDS(p_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_",i,".Rds")) #version 1
-    saveRDS(e_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_",i,".Rds")) #version 1
-    
-    
-  }
   
-  i=i+1
   
   
 }
@@ -143,8 +138,8 @@ for(hits in motifs){
 #saveRDS(p_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs.Rds")) #version 1
 #saveRDS(e_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs.Rds")) #version 1
 
-saveRDS(p_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2.Rds")) #version 1
-saveRDS(e_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2.Rds")) #version 1
+saveRDS(p_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds")) #version 1
+saveRDS(e_matrix,  file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds")) #version 1
 
 
 

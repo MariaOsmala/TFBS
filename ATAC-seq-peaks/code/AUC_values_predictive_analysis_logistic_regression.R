@@ -1,12 +1,10 @@
-.libPaths("/projappl/project_2006203/project_rpackages_4.2.1")
-
 library("rtracklayer")
 library("dbplyr")
 library("dplyr")
 #library("motifStack")
 #library("universalmotif")
 library("ggplot2")
-library(ggbreak)
+
 #install.packages("ggbreak")
 #library("GRanges")
 library("readr")
@@ -15,8 +13,13 @@ library("glmnet")
 library("reshape2")
 library(ggrepel) #
 library("gridExtra")
+library("openxlsx")
 
-cell_type_group_nro <- as.numeric(commandArgs(trailingOnly = TRUE)) #1:15
+
+
+.libPaths("/projappl/project_2007567/project_rpackages_4.3.0")
+library(ggbreak)
+
 
 #The logistic regression model predicts whether a cCRE i is specific to certain cell type (Class 1) or not (0). 
 #The model is trained for all 111 cell types.
@@ -36,10 +39,7 @@ representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 representatives$new_motif=FALSE
-
 representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
-
-
 length(unique(rep_motifs))
 #1031
 
@@ -221,90 +221,126 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
 # cvfits_maxscore_ctg=list()
 # cvfit_maxscore_final_ctg=list()
 
+aucs_test_all=data.frame()
 
+for( cell_type_group in names(cell_type_groups) ){ 
 
-#for( cell_type_group in names(cell_type_groups) ){ 
-
-  cell_type_group=names(cell_type_groups)[cell_type_group_nro]
+  #cell_type_group=names(cell_type_groups)[1]
   print(cell_type_group)
-  aucs=list()
-  assessments_list=list()
+  load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
   
-  cvfits_list=list()
-  cvfit_final_list=list()
+  aucs_test$`Celltype group`=cell_type_group
   
-  aucs_maxscore=list()
-  assessments_list_maxscore=list()
-  
-  cvfits_list_maxscore=list()
-  cvfit_final_list_maxscore=list()
-  
-  #presence-absence
-  for(cell_type in cell_type_groups[[cell_type_group]] ){
-    print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
-    cvfits_list[[cell_type]]=cvfits
-    cvfit_final_list[[cell_type]]=cvfit_final
-    assessments=list()
-  
-    for(i in 1:length(cvfits)){
-      print(i)
-      assessments[[i]]=assess.glmnet(cvfits[[i]], newx = presence_sparse[combined_folds[[i]], ], 
-                             newy = Class[combined_folds[[i]]],s = "lambda.1se", family="binomial")
+  aucs_test = aucs_test %>% select(id, `Celltype group`, everything())
+
+  aucs_test_all=rbind(aucs_test_all, aucs_test)
     
-    
-    }
-    assessments_list[[cell_type]]=assessments
-    aucs[[cell_type]]=sapply(assessments, function(x) x[["auc"]])
-    
+}
+  
+saveRDS(aucs_test_all, paste0( data_path, "ATAC-seq-peaks/RData/AUCs_all.RData"))
+
+#Compute mean and standard deviation for each Cell type, need to add cell type group info
+aucs_summary_cell_types <- aucs_test_all %>%
+  group_by(`Cell type`, method) %>%
+  summarize(
+    mean_value = mean(AUC, na.rm = TRUE),
+    sd_value = sd(AUC, na.rm = TRUE)
+  )
+
+aucs_summary_cell_types$`Celltype group`=names(cell_type_groups)[apply(sapply(aucs_summary_cell_types$`Cell type`, 
+                                                    function(y) sapply(cell_type_groups, function(x) y %in% x)),
+                                             2, 
+                                             function(x) which(x==TRUE)) ]
+aucs_summary_cell_types = aucs_summary_cell_types %>% select(`Celltype group`, everything())
+
+#Compute mean and standard deviation for each Cell type group, order the results based on this (maxscore)
+aucs_summary_cell_type_groups <- aucs_test_all %>%
+  group_by(`Celltype group`, method) %>%
+  summarize(
+    mean_value = mean(AUC, na.rm = TRUE),
+    sd_value = sd(AUC, na.rm = TRUE)
+  ) %>% filter(method=="score") %>% arrange(desc(mean_value))
+
+
+# Assuming your data frame is named my_data_frame
+# and the column you want to convert is named my_column
+
+
+
+
+ct_group_order=unique(aucs_summary_cell_type_groups$`Celltype group`)
+aucs_summary_cell_types$`Celltype group` <- factor(aucs_summary_cell_types$`Celltype group`, levels = ct_group_order)
+
+aucs_summary_cell_types <- aucs_summary_cell_types[order(aucs_summary_cell_types$`Celltype group`), ]
+
+library(tidyverse)
+aucs_summary_cell_types=aucs_summary_cell_types %>% pivot_wider(names_from=method, values_from=c(mean_value, sd_value))
+
+aucs_summary_cell_types = aucs_summary_cell_types %>% select(`Celltype group`, `Cell type`, mean_value_score, sd_value_score, mean_value_presence, sd_value_presence)
+
+#Write table in excel and highlight the higher mean
+library(openxlsx)
+wb <- createWorkbook()
+addWorksheet(wb, "Sheet1")
+# Assuming your data frame is named my_data_frame
+writeData(wb, "Sheet1", aucs_summary_cell_types)
+# Assume column A (index 1) and column B (index 2) are the columns to compare
+# Loop through the rows of the data frame
+for (row in 1:nrow(aucs_summary_cell_types)) {
+  if (aucs_summary_cell_types[row, "mean_value_score"] > aucs_summary_cell_types[row, "mean_value_presence"]) {
+    # Apply bold formatting to the cell in column A for this row
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration = "bold"), rows = row + 1, cols = 3, gridExpand = FALSE)
+  }else{
+    addStyle(wb, "Sheet1", style = createStyle(textDecoration = "bold"), rows = row + 1, cols = 5, gridExpand = FALSE)
   }
-  
-  #maxscore
-  for(cell_type in cell_type_groups[[cell_type_group]] ){
-    print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData"))
-    cvfits_list_maxscore[[cell_type]]=cvfits
-    cvfit_final_list_maxscore[[cell_type]]=cvfit_final
-    assessments_maxscore=list()
-    
-    for(i in 1:length(cvfits)){
-      print(i)
-      assessments_maxscore[[i]]=assess.glmnet(cvfits[[i]], newx = presence_sparse[combined_folds[[i]], ], #the name of the matrix is the same
-                                     newy = Class[combined_folds[[i]]],s = "lambda.1se", family="binomial")
-      
-      
-    }
-    assessments_list_maxscore[[cell_type]]=assessments_maxscore
-    aucs_maxscore[[cell_type]]=sapply(assessments_maxscore, function(x) x[["auc"]])
-    
-  }
-  
-  
-  # aucs_ctg[[cell_type_group]]=aucs
-  # assessments_ctg[[cell_type_group]]=assessments_list
-  # cvfits_ctg[[cell_type_group]]=cvfits_list
-  # cvfit_final_ctg[[cell_type_group]]=cvfit_final_list
-  # 
-  # aucs_maxscore_ctg[[cell_type_group]]=aucs_maxscore
-  # assessments_maxscore_ctg[[cell_type_group]]=assessments_list_maxscore
-  # cvfits_maxscore_ctg[[cell_type_group]]=cvfits_list_maxscore
-  # cvfit_maxscore_final_ctg[[cell_type_group]]=cvfit_final_list_maxscore
-  
-  
-  aucs_test=as.data.frame(do.call(cbind, aucs))
-  aucs_test$id=1:nrow(aucs_test)
-  aucs_test=reshape2::melt(aucs_test,id.vars=c("id"), value.name="AUC", variable.name = "Cell type")
-  aucs_test$method="presence"
-  
-  aucs_test_maxscore=as.data.frame(do.call(cbind, aucs_maxscore))
-  aucs_test_maxscore$id=1:nrow(aucs_test_maxscore)
-  aucs_test_maxscore=reshape2::melt(aucs_test_maxscore,id.vars=c("id"), value.name="AUC", variable.name = "Cell type")
-  aucs_test_maxscore$method="score"
-  
-  aucs_test=rbind(aucs_test, aucs_test_maxscore)
-  
-  
-  reshape2::melt(aucs_test, )
+}
+
+saveWorkbook(wb, "AUCS.xlsx", overwrite = TRUE)
+
+
+library("broom")
+#t-test for the difference between the maxscore and presence (highlight the significantly higher, or just highlight the mean)
+test=aucs_test_all  %>% pivot_wider(names_from=method, values_from=AUC)
+
+result <-test  %>%
+  group_by(`Cell type`) %>%
+  do(tidy(t.test(.$presence, .$score, paired=F, alternative="two.sided") ))
+
+result %>% filter(p.value < 0.05)
+
+
+result <-test  %>%
+  group_by(`Cell type`) %>%
+  do(tidy(t.test( .$score, .$presence, paired=F, alternative="greater") ))
+
+aucs_summary_cell_types %>% filter(`Cell type` %in% c("Basal Epithelial (Mammary)",      
+                                   "Mammary Luminal Epithelial Cell 1",
+                                   "Colon Epithelial Cell 3" ))
+
+
+t.test(test$presence,test$score , paired=F, alternative = "two.sided")
+
+
+# In the second step, we run another t-test as:
+#   
+#   (stutest <- t.test( all_auc, binding_auc, paired=T, alternative = c("less")))
+# 
+# Paired t-test
+# 
+# data:  all_auc and binding_auc
+# t = -11.555, df = 99, p-value < 2.2e-16
+# alternative hypothesis: true difference in means is less than 0
+# 95 percent confidence interval:
+#   -Inf -0.006235253
+# sample estimates:
+#   mean of the differences 
+# -0.007281619 
+# Here, since p-value is less than 0.05, significance level, we can reject H0 and accept H1. 
+#Here H1 says that mean of samples in the first group is less than mean of samples in the second group.
+# 
+
+
+
   
   pdf(file = paste0(scratch, "Figures/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=12*(length(cell_type_groups[[cell_type_group]])/7), height=4 )
   
@@ -316,12 +352,23 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   plot(gg)
   
   dev.off()
+  
+  #write excel
+  
+  
+  # Create a new workbook
+  wb = createWorkbook()
+  
+  # Add a worksheet
+  addWorksheet(wb, "presence")
 
   #Importance of the regression weights
   #Presence
   plots=list()
   plots_new=list()
   options(ggrepel.max.overlaps = Inf)
+  
+  i=1
   
   for(cell_type in names(cvfit_final_list) ){
     #cell_type=names(cvfit_final_list)[1]  
@@ -339,6 +386,25 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     
     # 
     # #Plot regression coefficient as the function of the feature importance
+    
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+1, startRow=1)
+    addStyle(wb, "presence", style=createStyle(border="left"), cols=(i-1)*5+1, rows=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+2, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+3, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+4, startRow=1)
+    writeData(wb, "presence", x=cell_type, startCol=(i-1)*5+5, startRow=1)
+    addStyle(wb, "presence", style=createStyle(border="right"), cols=(i-1)*5+5, rows=1)
+    
+    writeData(wb, "presence", x=regression_coef, startCol=(i-1)*5+1, startRow=2, 
+              borders="surrounding", headerStyle = createStyle(border=c("left","right")) )
+    
+    # Define the style for the rows you want to color (e.g., red background)
+    style_red <- createStyle(fgFill = "red")  # FF0000 is the hex code for red
+    
+    # Apply the style to the desired rows (e.g., rows 2 and 4)
+    addStyle(wb, "presence", style = style_red, rows = 2+which(regression_coef$new_motif==TRUE), cols = ((i-1)*5+1):((i-1)*5+5), gridExpand = TRUE)
+    
+   
     
     # 
     plots[[cell_type]]=ggplot(regression_coef,aes(x=order, y=coef))+geom_point(aes(color = new_motif))+
@@ -369,7 +435,12 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     
     
   # 
+    i=i+1
   }
+  
+  
+  
+ 
   
   #grid size
   grid_size=ceiling(sqrt(length(names(cvfit_final_list))))
@@ -383,6 +454,10 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   dev.off()
   
   
+  # Add a worksheet
+  addWorksheet(wb, "scores")
+  
+  i=1
   
   #Scores
   plots=list()
@@ -403,6 +478,29 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
     # 
     
     regression_coef$new_motif=representatives$new_motif[match(regression_coef$name, representatives$ID)]
+    
+    
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+1, startRow=1)
+    addStyle(wb, "scores", style=createStyle(border="left"), cols=(i-1)*5+1, rows=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+2, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+3, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+4, startRow=1)
+    writeData(wb, "scores", x=cell_type, startCol=(i-1)*5+5, startRow=1)
+    addStyle(wb, "scores", style=createStyle(border="right"), cols=(i-1)*5+5, rows=1)
+    
+    writeData(wb, "scores", x=regression_coef, startCol=(i-1)*5+1, startRow=2, 
+              borders="surrounding", headerStyle = createStyle(border=c("left","right")) )
+    
+    # Define the style for the rows you want to color (e.g., red background)
+    style_red <- createStyle(fgFill = "red")  # FF0000 is the hex code for red
+    
+    # Apply the style to the desired rows (e.g., rows 2 and 4)
+    addStyle(wb, "scores", style = style_red, rows = 2+which(regression_coef$new_motif==TRUE), cols = ((i-1)*5+1):((i-1)*5+5), gridExpand = TRUE)
+    
+    
+    
+    
+    
     # #Plot regression coefficient as the function of the feature importance
     
     # 
@@ -429,7 +527,7 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
            x="Features sorted by importance",y="Regression coefficient", color="New motif")+
       theme_minimal()
     
-    
+    i=i+1
     
     
     # 
@@ -446,11 +544,8 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   do.call(grid.arrange, c(plots_new, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
-  
+  # Save the workbook to a file
+  saveWorkbook(wb, paste0("/scratch/project_2006203/TFBS/ATAC-seq-peaks/reg_coeff_excels/",cell_type_group,".xlsx"), overwrite = TRUE)
   
 #}
-
-
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
-stop()
 

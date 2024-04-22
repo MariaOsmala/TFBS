@@ -5,7 +5,6 @@ array=$1 #this varies between 0 and 399 when 3982 motifs
 #When 3294 motifs varies between 0 and 329
 
 
-
 export PATH="/projappl/project_2006203/softwares/conda_envs/MOODS/bin:$PATH"
 
 

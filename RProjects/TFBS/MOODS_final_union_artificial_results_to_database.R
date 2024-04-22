@@ -14,15 +14,16 @@ library("dplyr")
 
 print(sessionInfo())
 print(.libPaths())
+.libPaths("/projappl/project_2007567/project_rpackages_4.3.0")
 
-arrays <- as.numeric(commandArgs(trailingOnly = TRUE)) #0-400
+arrays <- as.numeric(commandArgs(trailingOnly = TRUE)) #644
 
 #arrays=arrays+1000
 
 print(arrays)
 setwd("/scratch/project_2006203/TFBS/")
 
-representatives=read_tsv(file="/projappl/project_2006203/TFBS/PWMs_final_union/metadata_4003_motifs.csv",col_names=TRUE)
+representatives=read_csv(file="/projappl/project_2006203/TFBS/PWMs_final/representatives.csv",col_names=FALSE)
 
 #MOODS_PROX1_HOXA2_TCATAA40NAGC_YJI_NTAATTAAAGAN_m1_c3b0_short_composite_new.csv.gz
 #which(representatives$X1=="ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420") 767
@@ -51,14 +52,11 @@ representatives=read_tsv(file="/projappl/project_2006203/TFBS/PWMs_final_union/m
 # read data set from the in-memory csv
 #dt <- fread(rawToChar(raw_vec_decompressed))
 
-MOODS_file=dir("/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_union") #401
-
-MOODS_file=paste0("MOODS_",arrays, ".csv.gz")
-
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_processed/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_union_processed/"
 
 
+MOODS_file=paste0("MOODS_",representatives[arrays+1,]$X1, ".csv.gz")
+
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_processed/"
 
 
 
@@ -88,9 +86,7 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #Is this the right genome version, YES, the genome lengths of gtf and bsg from Bsgenome are the same
 gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 
-
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_union/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final/"
 
 path_local_scratch=Sys.getenv("LOCAL_SCRATCH")
 system(paste0("cp ",MOODS_path,MOODS_file, " ",path_local_scratch, "/"))
@@ -106,7 +102,31 @@ tb=read_csv(file = gzfile(paste0(path_local_scratch, "/",MOODS_file)),
 #              col_names = FALSE, num_threads = 40, altrep = TRUE)
   
 #system(paste0("rm ",path_local_scratch, strsplit(MOODS_file, ".gz")[[1]] ))
+
+library(processx)
+
+read_zstd_csv <- function(file_path, ...) {
+  # Create a process to decompress the file using zstd
+  p <- process$new("zstd", args = c("-d", "--stdout", file_path), stdout = "|")
   
+  # Use the connection to read the decompressed data into R
+  data <- read.csv(p$get_output_connection(), ...)
+  
+  # Ensure the external process is terminated
+  p$kill()
+  
+  return(data)
+}
+
+# Example usage:
+# Replace 'path/to/your/data.zst' with the actual path to your zstd compressed file
+data_frame <- read_fst(path="/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_union_zstd/MOODS_0.zst")
+
+data_file <- file.path("/scratch/project_2006203/TFBS/Results/MOODS_artificial_human_final_union_zstd/MOODS_0.zst")
+data <- readBin(data_file, raw(), file.info(data_file)$size)
+decomp=zstdDecompress(data,file.info(data_file)$size)
+
+library(fst)
   
 tb=tb[,-7]
   

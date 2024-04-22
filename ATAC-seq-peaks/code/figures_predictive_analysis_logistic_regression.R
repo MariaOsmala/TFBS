@@ -1,4 +1,4 @@
-.libPaths("/projappl/project_2006203/project_rpackages_4.2.1")
+#.libPaths("/projappl/project_2006203/project_rpackages_4.2.1")
 
 library("rtracklayer")
 library("dbplyr")
@@ -16,6 +16,7 @@ library("reshape2")
 library(ggrepel) #
 library("gridExtra")
 library("openxlsx")
+
 
 
 cell_type_group_nro <- as.numeric(commandArgs(trailingOnly = TRUE)) #1:15

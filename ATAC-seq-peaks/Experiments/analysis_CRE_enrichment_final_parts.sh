@@ -1,17 +1,17 @@
 #!/bin/bash -l
-#SBATCH --job-name=CRE_enrichment
+#SBATCH --job-name=parts_CRE_enrichment
 #SBATCH --account=project_2006203
-#SBATCH --output=outs/CRE_enrichment.out
-#SBATCH --error=errs/CRE_enrichment.err
-#SBATCH --partition=longrun
-#SBATCH --time=5-00:00:00
+#SBATCH --output=outs/parts_CRE_enrichment_%A_%a.txt
+#SBATCH --error=errs/parts_CRE_enrichment_%A_%a.txt
+#SBATCH --partition=small
+#SBATCH --time=12:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=200G
+#SBATCH --mem-per-cpu=100G
+#SBATCH --array=1 #1:394
 
-
-#21243025     
+#21291104_[1]
 
 # Load r-env
 #module load r-env/421
@@ -28,6 +28,6 @@ echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 # Run the R script
 
 #srun apptainer_wrapper exec Rscript --no-save ../code/enrichment_at_CREs_final.R #only representatives
-srun apptainer_wrapper exec Rscript --no-save ../code/enrichment_at_CREs_final_all_motifs.R #all 3294 motifs
+srun apptainer_wrapper exec Rscript --no-save ../code/enrichment_at_CREs_final_all_motifs_parts.R $SLURM_ARRAY_TASK_ID #all 3294 motifs
 
 seff $SLURM_JOBID

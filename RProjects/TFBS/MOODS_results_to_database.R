@@ -1,3 +1,9 @@
+#invisible(lapply(paste0('package:', names(sessionInfo()$otherPkgs)), detach, character.only=TRUE, unload=TRUE))
+#or 
+#lapply(names(sessionInfo()$loadedOnly), require, character.only = TRUE)
+#invisible(lapply(paste0('package:', names(sessionInfo()$otherPkgs)), detach, character.only=TRUE, unload=TRUE, force=TRUE))
+
+
 print(sessionInfo())
 print(.libPaths())
 
@@ -11,6 +17,7 @@ library(GenomicFeatures)
 library(rtracklayer)
 library("dbplyr")
 library("dplyr")
+library(BSgenome.Hsapiens.UCSC.hg38)
 
 print(sessionInfo())
 print(.libPaths())
@@ -20,14 +27,10 @@ arrays <- as.numeric(commandArgs(trailingOnly = TRUE))
 print(arrays)
 setwd("/scratch/project_2006203/TFBS/")
 
-#results_path="/scratch/project_2006472/MOODS/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Vierstra_processed/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_processed/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4_processed/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3_processed/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2_processed/"
-#results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final_processed/"
+
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final_processed/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final_union_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final_version2.2_correct_processed/"
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
@@ -47,7 +50,7 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 #17        18        19        20        21        22         X         Y 
 #83257441  80373285  58617616  64444167  46709983  50818468 156040895  57227415 
 
-#library(BSgenome.Hsapiens.UCSC.hg38)
+#
 #bsg <- BSgenome.Hsapiens.UCSC.hg38
 #seq_len_GRCh38=seqlengths(bsg)[paste0("chr",c(as.character(seq(1,22,1)), "X", "Y"))]
 #chr1      chr2      chr3      chr4      chr5      chr6      chr7      chr8      chr9     chr10     chr11     chr12     chr13     chr14     chr15     chr16 
@@ -55,25 +58,21 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 #chr17     chr18     chr19     chr20     chr21     chr22      chrX      chrY 
 #83257441  80373285  58617616  64444167  46709983  50818468 156040895  57227415 
 
-#Uncomment if writing to database
-#con <- DBI::dbConnect(RSQLite::SQLite(), "Results/MOODS_Vierstra_SQLite/motif-hits.sqlite")
 
-#con <- DBI::dbConnect(RSQLite::SQLite(), "Results/MOODS_Teemu_SQLite/motif-hits.sqlite")
-
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Vierstra/"
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu/"
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_4/"
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_3/"
-#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_Teemu_2/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results//MOODS_human_final_union/" 
+MOODS_path="/scratch/project_2006203/TFBS/Results//MOODS_human_final_version2.2_correct/" 
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 
 
 #for(arrays in 0:33){ #0:39 0:10 0:7 0:5
 
-start_ind=arrays*10 #100
-end_ind=(arrays+1)*10-1 #100
-len=10 #100
+ start_ind=arrays*10 #100
+ end_ind=(arrays+1)*10-1 #100
+ len=10 #100
+
+#start_ind=arrays
+#end_ind=arrays
 
 #3982+15=3997
 
@@ -88,27 +87,21 @@ len=10 #100
 
 #3294 motifs
 
-if(end_ind>329){ # 398 
-  end_ind=329
-}
-
-#if(end_ind>102){ #  102
-#  end_ind=102
+#if(end_ind>329){ # 398 
+#  end_ind=329
 #}
 
-#if(end_ind>76){ #  76
-#  end_ind=76
+#4003 motifs
+#if(end_ind>400){ # 398 
+#  end_ind=400
 #}
 
-#if(end_ind>57){ #  57
-#  end_ind=57
-#}
-
-
-#DBI::dbDisconnect(con)
-
-
-#MOODS_results=dir(MOODS_path)
+ #3933 motifs
+ if(end_ind>393){ # 398 
+   end_ind=393
+ }
+ 
+ 
 
 for(index in seq(start_ind, end_ind, 1)){ #0-9
   #index=0
@@ -147,40 +140,18 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
 
 
   tb=tb %>% mutate(motif_id=recode(motif_id,!!!level_key))
-  #Uncomment if using database ########################
-  
-  # Uncomment if writing to database
-   # if(DBI::dbExistsTable(con, "motif-hits")){
-   #   #TRUE
-   #   DBI::dbAppendTable(con, "motif-hits", tb)
-   # }else{
-   #   #FALSE
-   #   DBI::dbWriteTable(con, "motif-hits", tb )
-   # }
-   # 
-   # if(DBI::dbExistsTable(con, "motifs")){
-   #   #TRUE
-   #   DBI::dbAppendTable(con, "motifs", motifs)
-   # }else{
-   #   #FALSE
-   #   DBI::dbWriteTable(con, "motifs", motifs )
-   # }
-   # 
-   # 
   
   #MOODS output is 0-based, GRanges is 1-based
   
   #motif_matches<-GRangesList()
-   motif_matches_top<-GRangesList()
+  motif_matches_top<-GRangesList()
    
    for(pwm in PWMs){
    #   #pwm=PWMs[1]
       print(pwm)
-     #pwm="ZSCAN16_HT-SELEX_TCCACC40NTTA_KR_NANTGTTAACAGAGCCTCN_2_4_YES.pfm"
-      #level_key[pwm]
       tmp=tb[tb$motif_id==level_key[pwm],]
       tmp_GRanges=GRanges(seqnames = Rle( tmp$chr, rep(1, nrow(tmp)) ),
-      ranges = IRanges(start=tmp$position+1, end = tmp$position+ nchar(tmp$sequence[1]) ),
+      ranges = IRanges(start=tmp$position+1, end = tmp$position+nchar(tmp$sequence[1]) ),
       strand = Rle(strand(tmp$strand  ), rep(1, nrow(tmp))  ))
       rm_index=which(names(tmp) %in% c("chr", "motif_id", "position", "strand"))
       elementMetadata(tmp_GRanges)=tmp[, -rm_index]
@@ -227,6 +198,4 @@ for(index in seq(start_ind, end_ind, 1)){ #0-9
 #} #0-39
 
 
-#DBI::dbDisconnect(con)
 
-#One could also try to store these as parquet files

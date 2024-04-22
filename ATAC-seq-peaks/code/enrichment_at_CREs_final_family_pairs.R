@@ -11,7 +11,7 @@ library("cluster")
 library("readr")
 library("grid")
 library("RColorBrewer")
-#library("heatmaply")
+library("heatmaply")
 library("ggrepel") #
 library("circlize")
 library(gridExtra)
@@ -35,7 +35,7 @@ data_path="/scratch/project_2006203/TFBS/"
 #Motif metadata with ICs and length
 representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
 
-p_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs.Rds")) #
+p_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs.Rds")) # #The TFs are in alphabetical order
 e_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs.Rds")) #
 
 
@@ -222,9 +222,9 @@ p_matrix_depleted=-p_matrix #1031 x 11
 p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
 
-#family_pair=c("Ets_Runt", "Runt_Ets")
+family_pair=c("Ets_Runt", "Runt_Ets") #These are spacing motifs
 
-family_pair=c("Forkhead_Ets", "Ets_ForkHead")
+#family_pair=c("Forkhead_Ets", "Ets_ForkHead") #These are composite motifs
 
 family_pair_metadata=representatives[which(representatives$Lambert2018_families %in% family_pair),]
 final_matrix=p_matrix_depleted[ which(rownames(p_matrix_depleted) %in% family_pair_metadata$ID), ]
@@ -380,6 +380,48 @@ names(Protein_family_colors)=c("AP-2","TFAP","bHLH","Grainyhead","bZIP","EBF1",
 result=as.data.frame(do.call(rbind, strsplit(family_pair_metadata$Lambert2018_families,"_")))
 names(result)=c("X1", "X2")
 
+#Cell type group names
+
+#Colors for 15 cell type groups, use these in all figures
+
+palette_colors <- brewer.pal(8, "Set2")
+
+ct_group_colors=c("#66C2A5", #Stromal
+                  "#FC8D62", #Islet
+                  "#8DA0CB", #Brain glia
+                  "#E78AC3", #Brain neuron
+                  "#A6D854", #"Epithelial 1" 
+                  "#FFD92F", #"Smooth Muscle" 
+                  "#E5C494", #"Myocyte"        
+                  "#B3B3B3", #  "Mural" 
+                  "#E41A1C", #"Adrenal Cortical"
+                  "#377EB8", #"Immune Lymp" 
+                  "#FFFF33", #"Immune Myelo"  
+                  "#A65628", #"Endothelial" 
+                  "#000000", #"Epithelial 2" 
+                  "#CCEBC5", #"Epithelial 3"
+                  "#BEAED4") #"GI Epithelial"   
+                  #"#FFFF99") 
+
+names(ct_group_colors)=c( "Stromal", 
+                          "Islet",
+                          "Brain glia",
+                          "Brain neuron", 
+                          "Epithelial 1",
+                          "Smooth Muscle",
+                          "Myocyte",
+                          "Mural",         
+                          "Adrenal Cortical",
+                          "Immune Lymp",
+                          "Immune Myelo",
+                          "Endothelial",
+                          "Epithelial 2",
+                          "Epithelial 3",
+                          "GI Epithelial")          
+           
+
+
+
 ct_group_names=names(cell_type_groups)[apply(sapply(colnames(final_matrix), 
                                                     function(y) sapply(cell_type_groups, function(x) y %in% x)),
                                              2, 
@@ -392,11 +434,12 @@ final_matrix=final_matrix[,col_order]
 ct_group_names=ct_group_names[col_order]
 
 # Generate a color palette
-num_colors <- length(unique(ct_group_names))
-palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
+#num_colors <- length(unique(ct_group_names))
+#palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
 
 # Create a named vector of colors
-annotation_colors <- setNames(palette_colors, unique(ct_group_names))
+#annotation_colors <- setNames(palette_colors, unique(ct_group_names))
+annotation_colors=ct_group_colors
 
 library(proxy)
 # Calculate cosine similarity
@@ -555,11 +598,11 @@ final_matrix=final_matrix[,col_order]
 ct_group_names=ct_group_names[col_order]
 
 # Generate a color palette
-num_colors <- length(unique(ct_group_names))
-palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
+#num_colors <- length(unique(ct_group_names))
+#palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
 
 # Create a named vector of colors
-annotation_colors <- setNames(palette_colors, unique(ct_group_names))
+#annotation_colors <- setNames(palette_colors, unique(ct_group_names))
 
 
 row_label_color=representatives$study[match(row_name_info$ID, representatives$ID)]
@@ -575,7 +618,7 @@ pdf(file = paste0(scratch, "Figures/regression_coeffs_",family_pair[1],".pdf"), 
 
 draw(ComplexHeatmap::Heatmap(final_matrix, 
                              #col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
-                             col=colorRamp2(c(-ceiling(max(abs(final_matrix))*10)/10 , 0, ceiling(max(abs(final_matrix))*10)/10 ), c("navy", "white", "firebrick3")), 
+                             col=colorRamp2(c(-ceiling(max(abs(final_matrix))*100)/100 , 0, ceiling(max(abs(final_matrix))*100)/100 ), c("navy", "white", "firebrick3")), 
                              #col=colorRamp2(c(-1, 0, 1), c("navy", "white", "firebrick3")), 
                              cluster_rows = FALSE,
                              cluster_columns = FALSE, 
@@ -626,7 +669,7 @@ draw(ComplexHeatmap::Heatmap(final_matrix,
                                #border = NULL,
                                #at = object@levels,
                                #labels = at,
-                               #at = c(0, 100),
+                               at = c(-ceiling(max(abs(final_matrix))*100)/100 , 0, ceiling(max(abs(final_matrix))*100)/100 ), #c(-0.05, 0, 0.05),
                                #labels = c("0",">100 (Enriched)"),
                                labels_gp = gpar(fontsize = fontsize),
                                #labels_rot = 0,
@@ -672,23 +715,29 @@ final_matrix=final_matrix[,col_order]
 ct_group_names=ct_group_names[col_order]
 
 # Generate a color palette
-num_colors <- length(unique(ct_group_names))
-palette_colors <- brewer.pal(num_colors, "Set3")  # Or any other palette
+#num_colors <- length(unique(ct_group_names))
+#palette_colors <- brewer.pal(num_colors, "Set3")  # Or any other palette
 
 # Create a named vector of colors
-annotation_colors <- setNames(palette_colors, unique(ct_group_names))
+#annotation_colors <- setNames(palette_colors, unique(ct_group_names))
 
 row_label_color=representatives$study[match(row_name_info$ID, representatives$ID)]
 row_name_fontfaces <- ifelse(bold %in% c("YES"), "bold", "plain")
 row_name_colors <- ifelse(row_label_color %in% c("fromYimeng"), "red", "black")
 
+#Do not draw protein family and seed
+
+#rownames(final_matrix)=paste0(row_name_info$V1,"_",row_name_info$V2)
+rownames(final_matrix)=row_name_info$symbol
 
 pdf(file = paste0(scratch, "Figures/scaled_regression_coeffs_",family_pair[1],".pdf"), width=16, 
     height=7)
 
+
+
 draw(ComplexHeatmap::Heatmap(final_matrix, 
                              #col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
-                             col=colorRamp2(c(-ceiling(max(abs(final_matrix))*10)/10 , 0, ceiling(max(abs(final_matrix))*10)/10 ), c("navy", "white", "firebrick3")), 
+                             col=colorRamp2(c(-ceiling(max(abs(final_matrix))*100)/100 , 0, ceiling(max(abs(final_matrix))*100)/100 ), c("navy", "white", "firebrick3")), 
                              #col=colorRamp2(c(-1, 0, 1), c("navy", "white", "firebrick3")), 
                              cluster_rows = FALSE,
                              cluster_columns = FALSE, 
@@ -697,21 +746,21 @@ draw(ComplexHeatmap::Heatmap(final_matrix,
                              column_names_side = "top",
                              row_names_side = "left",
                              column_names_rot=45, #315,
-                             row_names_gp = gpar(col = row_name_colors, fontface=row_name_fontfaces),
+                             #row_names_gp = gpar(col = row_name_colors, fontface=row_name_fontfaces),
                              clustering_distance_rows = "euclidean",
                              clustering_method_rows = "complete",
                              clustering_distance_columns = "euclidean",
                              clustering_method_columns = "complete",
-                             left_annotation=rowAnnotation(`Protein family 1`=result$X1, `Protein family 2`= result$X2,  na_col = "white",
-                                                           col=list(`Protein family 1`=Protein_family_colors,`Protein family 2`=Protein_family_colors ),
-                                                           annotation_legend_param=list(#at=names(sort(table(c(anno$X1, anno$X2)), decreasing = TRUE)),
-                                                             gp=gpar(fontsize=fontsize)),
-                                                           annotation_name_side="top",
-                                                           #annotation_name_rot=0,
-                                                           annotation_label=c("Protein family 1","Protein family 2"),
-                                                           #annotation_label="Protein\nfamily",
-                                                           gp=gpar(fontsize=fontsize),
-                                                           width = unit(10, "cm")),
+                             # left_annotation=rowAnnotation(`Protein family 1`=result$X1, `Protein family 2`= result$X2,  na_col = "white",
+                             #                               col=list(`Protein family 1`=Protein_family_colors,`Protein family 2`=Protein_family_colors ),
+                             #                               annotation_legend_param=list(#at=names(sort(table(c(anno$X1, anno$X2)), decreasing = TRUE)),
+                             #                                 gp=gpar(fontsize=fontsize)),
+                             #                               annotation_name_side="top",
+                             #                               #annotation_name_rot=0,
+                             #                               annotation_label=c("Protein family 1","Protein family 2"),
+                             #                               #annotation_label="Protein\nfamily",
+                             #                               gp=gpar(fontsize=fontsize),
+                             #                               width = unit(10, "cm")),
                              top_annotation=columnAnnotation(`Cell type group`=ct_group_names,
                                                              col=list(`Cell type group`=annotation_colors),
                                                              annotation_legend_param=list(#at=names(sort(table(c(anno$X1, anno$X2)), decreasing = TRUE)),
@@ -725,8 +774,8 @@ draw(ComplexHeatmap::Heatmap(final_matrix,
                              show_column_dend = FALSE,
                              show_row_dend = FALSE,
                              #row_names_gp = gpar(col = row_name_colors, fontface=row_name_fontfaces),
-                             height = nrow(final_matrix)*unit(0.618,"cm"), 
-                             width = ncol(final_matrix)*unit(1, "cm"),
+                             height = nrow(final_matrix)*unit(1,"cm"), 
+                             width = ncol(final_matrix)*unit(0.8, "cm"),
                              heatmap_legend_param=list(
                                #title = "-Log_10(P-val)",
                                #title = expression(-log[10](P-val)),
@@ -739,7 +788,7 @@ draw(ComplexHeatmap::Heatmap(final_matrix,
                                #border = NULL,
                                #at = object@levels,
                                #labels = at,
-                               #at = c(0, 100),
+                               at = c(-floor(max(abs(final_matrix))) , 0, floor(max(abs(final_matrix))) ),
                                #labels = c("0",">100 (Enriched)"),
                                labels_gp = gpar(fontsize = fontsize),
                                #labels_rot = 0,
