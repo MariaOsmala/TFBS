@@ -2,7 +2,7 @@ library("rtracklayer")
 library("dbplyr")
 library("dplyr")
 library("tidyverse")
-library("pheatmap")
+#library("pheatmap")
 library("ComplexHeatmap")
 library("cluster")
 library("readr")
@@ -18,9 +18,10 @@ library(grid) # for textGrob
 
 
 
-setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
-data_path="/scratch/project_2006203/TFBS/"
-
+#setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
+setwd("~/projects/TFBS/ATAC-seq-peaks/RProjects/")
+#data_path="/scratch/project_2006203/TFBS/"
+data_path="~/projects/TFBS/"
 
 
 representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3933
@@ -28,15 +29,20 @@ representatives=read.table("../../PWMs_final_version2.2/metadata_representatives
 bHLHhomeo_all=representatives[which(representatives$Lambert2018_families %in% c("bHLH_Homeodomain","Homeodomain_bHLH")),] #59
 rep_motifs=bHLHhomeo_all$ID
 
-data_path="/scratch/project_2006203/TFBS/"
-p_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs.Rds")) #
-e_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs.Rds")) #
+# Read data from full matrix
+#data_path="/scratch/project_2006203/TFBS/"
+#p_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs.Rds")) #
+#e_matrix=readRDS(file = paste0( data_path, "ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs.Rds")) #
+#p_matrix=p_matrix[which(rownames(p_matrix) %in% rep_motifs),]
+#e_matrix=e_matrix[which(rownames(e_matrix) %in% rep_motifs),]
 
-p_matrix=p_matrix[which(rownames(p_matrix) %in% rep_motifs),]
-e_matrix=e_matrix[which(rownames(e_matrix) %in% rep_motifs),]
+
+p_matrix=readRDS(file = "~/projects/TFBS/ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds") #
+e_matrix=readRDS(file = "~/projects/TFBS/ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds") #
+
 
 #source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
-setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
+#setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
 source("../code/heatmap_motor.R")
 
 #Cell type names mapping
@@ -189,9 +195,11 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
 
 length(cell_type_groups) #15, in the paper they mention 17
 
-scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
-data_path="/scratch/project_2006203/"
+#scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
+#data_path="/scratch/project_2006203/"
 
+scratch="~/projects/TFBS/ATAC-seq-peaks/"
+data_path="~/projects/TFBS/"
 
 #bHLH-homeodomain TF-pairs
 #Which motifs are highlighted in the heatmap, do they include non-representative
@@ -234,11 +242,7 @@ max(depletions, na.rm=TRUE) #-1.704847e-06
 p_matrix_depleted=-p_matrix #1031 x 11
 p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
-
-
-
-
-
+ #version 1
 bHLHhomeo=c(
   "OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420",
   "OLIG2_NKX6-1_TGGCCG40NCTTT_YVIII_NMCATATGNNNNNNTAATTAN_m2_c3b0_short_20230420",
@@ -257,10 +261,25 @@ bHLHhomeo=c(
 
 bHLHhomeo_metadata=representatives[match( bHLHhomeo,representatives$ID),c("ID","Lambert2018_families", "study","new_representative", "type")] #15
 
-final_matrix=p_matrix_depleted[ which(rownames(p_matrix_depleted) %in% bHLHhomeo), ]
+#version 2.2
+
+#The new motifs, only representatives
+
+bHLHhomeo_metadata=bHLHhomeo_all %>% filter(study=="fromYimeng")
+bHLHhomeo=bHLHhomeo_metadata$ID #40 33 spacing, 7 composite, 17 representatives
+table(bHLHhomeo_metadata$new_representative) #17 representatives
+bHLHhomeo_metadata %>% filter(new_representative=="YES") %>% count(type)# 13 spacing, 4 composite
+
+#Select only the spacing motifs
+bHLHhomeo=bHLHhomeo_metadata %>% filter(type=="spacing")  # 33 spacing, 13 representatives
+
+
+final_matrix=p_matrix_depleted[ which(rownames(p_matrix_depleted) %in% bHLHhomeo$ID), ]
 
 #remove uninteresting cells
-final_matrix=final_matrix[,-which( colSums((abs(final_matrix) < 50)) == nrow(final_matrix))]
+#final_matrix=final_matrix[,-which( colSums((abs(final_matrix) < 50)) == nrow(final_matrix))]
+
+final_matrix=final_matrix[,-which( colSums( ( abs(final_matrix) < 50  | (final_matrix < 0) ) )== nrow(final_matrix) )]
 
 #Convert the motif names (row labels) name + 5th column, Ns shortened
 my_list=strsplit(rownames(final_matrix), "_")
@@ -275,8 +294,8 @@ padded_list <- lapply(my_list, function(x) {
 
 # Convert the list to a data frame
 row_name_info <- do.call(rbind, padded_list)
-row_name_info[is.na(row_name_info[,9]),5]=row_name_info[is.na(row_name_info[,9]),6]
-row_name_info=as.data.frame(row_name_info[,-seq(6,10,1)])
+#row_name_info[is.na(row_name_info[,9]),5]=row_name_info[is.na(row_name_info[,9]),6]
+row_name_info=as.data.frame(row_name_info)
 row_name_info$ID=rownames(final_matrix)
 
 # Regular expression for a sequence of 'N's in the middle
@@ -298,7 +317,7 @@ for(i in 1:length(row_name_info[,5])){
 
 row_name_info$new_name=matches_info$new_name
 
-rownames(final_matrix)=apply(row_name_info[,c(1,2,7)],1,paste0,collapse="_")
+rownames(final_matrix)=apply(row_name_info[,c(1,2,9)],1,paste0,collapse="_")
 
 #Rotate column labels to that they can be read from up to down
 #Add protein family info
@@ -402,9 +421,9 @@ names(Protein_family_colors)=c("AP-2","TFAP","bHLH","Grainyhead","bZIP","EBF1",
 pdf(file = paste0(scratch, "Figures/bHLH_homeo_selected.pdf"), width=10, 
     height=7)
 
-ComplexHeatmap::Heatmap(final_matrix, 
-                        col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
-                        #col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+ht_list=ComplexHeatmap::Heatmap(final_matrix, 
+                        #col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
+                        col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
                         cluster_rows = TRUE,
                         cluster_columns = TRUE, 
                         show_row_names = TRUE,
@@ -413,6 +432,7 @@ ComplexHeatmap::Heatmap(final_matrix,
                         row_names_side = "left",
                         column_names_rot=45, #315,
                         #row_names_gp = gpar(col = row_name_colors),
+                        row_title_gp=gpar(fontface=row_name_fontfaces ),
                         clustering_distance_rows = "pearson",
                         clustering_method_rows = "complete",
                         clustering_distance_columns = "pearson",
@@ -450,9 +470,15 @@ ComplexHeatmap::Heatmap(final_matrix,
                         )
 )
 
+
+ht_list=draw(ht_list)
+
 dev.off()
 
+r.dend <- row_dend(ht_list)  #Extract row dendrogram
+rcl.list <- row_order(ht_list)  #Extract clusters (output is a list)
 
+rownames(final_matrix[rcl.list,])
 
 #Try to use cosine-angle correlation as a distance measure
 # row_order=c("OLIG2_OTP_NTAATTA4NCATATGN",     
@@ -470,6 +496,242 @@ dev.off()
 #             "NHLH1_HOXD8_NCASCTG8NYAATTRN",
 #             "PTF1A_NKX6-1_NCASCTG3NTMATTAN") 
 
+############ New stuff 
+
+row_order=c(
+  "VSX2_TCF4_NCACCTG4NYAATTAN",       #Stromal 4
+"VSX2_TCF12_NCACCTG4NYAATTAN",     #Stromal 4
+"BARHL1_TCF12_NTAAACG4NCACCTGN", #Stromal 4
+"BARHL1_TCF12_NTAATTG4NCACCTGN", #Stromal 4
+"BARHL2_TCF4_NTAATTG4NCACCTGN",     #Stromal 4
+"BARHL2_TCF4_NTAAACG4NCACCTGN", #Stromal 4
+"VSX2_TCF12_NYAATTA4NCACCTGN",      #Stromal 4
+"OLIG2_ISX_NTAATTR4NCAKMTGN",
+"OLIG2_OTP_NTAATTA4NCATATGN",  
+"BHLHB5_OTP_NCATATG4NTAATTAN",
+"BHLHE22_EVX2_NRNCATATGNY2NTAATTAN", #17
+"BHLHE22_ISX_NTAATTR4NCAKMTGN",  
+"NEUROG1_OTP_NCATATG4NYAATTAN", 
+"BHLHA15_ISX_NTAATTR4NCAKMTGN",     
+"BHLHB8_ISX_NTAATTR4NCAKMTGN",   
+"ATOH1_HOXB5_NTAATTA4NCAKMTGN",  
+"OLIG2_EVX2_NTAATTA4NCATATGN",   
+
+
+
+"BHLHA15_EN2_TAATTA3NCATATG",  #18
+
+"BHLHE22_EVX2_NRNCATATGNY3NTAATTAN", #19 #5N
+"BHLHB8_OTP_NTAATT5NCATATGN", #20
+"ATOH1_HOXC10_NYMRTAAA5NCATATGN", 
+"BHLHB5_MEIS3_NCATATG5NTGTCAN",  #21   
+"NHLH1_EVX2_NMNCAKSTG5NTAATTAN",    
+"NEUROG2_EVX2_NYMATTA5NCATATGN",
+"OLIG2_EVX2_NTAATTA5NCATATGN",   
+"ATOH1_EVX2_NTAATTA5NCAKMTGN", 
+"OLIG2_MEIS3_NCATATG5NTGTCAN",  #27
+
+"ATOH1_EVX2_NTAATTA6NCAKMTGN", 
+"NHLH1_EVX2_NMNCAKSTG6NTAATTAN", 
+"OLIG2_HOXB5_NCATATG6NYMATTAN", 
+
+"CLOCK_ISL2_NCAMTTA6NCACGTGN",  #31
+
+"HOXD10_TFEC_MRTAAA7NCACGTG",   #32    
+
+"NHLH1_HOXD8_NCASCTG8NYAATTRN")    #33
+    
+
+
+#Use this order
+# row_order=c("OLIG2_EVX2_NTAATTA4NCATATGN", #Stromal 4
+#             "OLIG2_OTP_NTAATTA4NCATATGN",     #Stromal 4
+#             "BHLHE22_EVX2_NCATATG4NTAATTAN", #Stromal 4
+#             "PTF1A_NKX6-1_NCASCTG3NTMATTAN", #Pancreas 3
+#             "ATOH1_EVX2_NTAATTA5NCAKMTGN",  #Astrocyte 5
+#             "NHLH1_EVX2_NCAKSTG5NTAATTAN",#Astrocyte 5
+#             
+#             "NEUROG2_EVX2_NYMATTA5NCATATGN", #Astrocyte 5
+#             "OLIG2_EVX2_NTAATTA5NCATATGN",#Astrocyte 5
+#             "BHLHE22_EVX2_NCATATG5NTAATTAN", #Astrocyte 5
+#             "OLIG2_HOXB5_NCATATG6NYMATTAN", #YM=(C/T)(A/T)
+#             "OLIG2_NKX6-1_NMCATATG6NTAATTAN",
+#             "ATOH1_EVX2_NTAATTA6NCAKMTGN", #KM=(G/T)(A/C)
+#             "NHLH1_EVX2_NCAKSTG6NTAATTAN", #KS=(G/T)(G/C)
+#             "NHLH1_HOXD8_NCASCTG8NYAATTRN")
+
+
+
+
+row_split = rep("4", length(row_order))
+row_split[18] = "3"
+row_split[19:27]="5"
+row_split[28:31]="6"
+row_split[32]="7"
+row_split[33]="8"
+
+row_split=factor(row_split, levels=c("4", "3", "5", "6","7", "8"))
+
+final_matrix=final_matrix[row_order,]
+
+#Add the protein family and cell_type_group info
+
+row_name_info$new_name_full=apply(row_name_info[,c(1,2,9)],1,paste0,collapse="_")
+
+#same order for all, do not draw family info
+#representatives$Lambert2018_families[match( row_name_info$ID[match(rownames(final_matrix),row_name_info$new_name_full)], representatives$ID)]
+#result=as.data.frame(do.call(rbind, strsplit(family_pair_metadata$Lambert2018_families,"_")))
+#names(result)=c("X1", "X2")
+
+#Stromal first, then Islet, Then Brain glia, Then Brain neuron  
+column_order=c("Fibroblast (Epithelial)",  "Fibroblast (General)" ,  "Peripheral Nerve Stromal", "Pancreatic Beta Cell 1", "Pancreatic Beta Cell 2", 
+                "Pancreatic Delta,Gamma cell","Pancreatic Acinar Cell",
+               "Astrocyte 1", "Astrocyte 2",  "Glutamatergic Neuron 1", "Glutamatergic Neuron 2",  "GABAergic Neuron 1", "GABAergic Neuron 2",
+               "Plasma Cell"  )     
+
+
+final_matrix=final_matrix[, column_order]
+
+#CEll type groups
+ct_group_names=names(cell_type_groups)[apply(sapply(colnames(final_matrix), 
+                                                    function(y) sapply(cell_type_groups, function(x) y %in% x)),
+                                             2, 
+                                             function(x) which(x==TRUE)) ]
+
+#One needs to order the row_name_info also
+row_name_info=row_name_info[match( row_order,row_name_info$new_name_full),]
+bold=representatives$new_representative[match(row_name_info$ID, representatives$ID)]
+row_name_fontfaces <- ifelse(bold %in% c("YES"), "bold", "plain")
+
+
+# Generate a color palette
+num_colors <- length(unique(ct_group_names))
+palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
+
+# Create a named vector of colors
+annotation_colors <- setNames(palette_colors, unique(ct_group_names))
+
+#PWMs. 
+pwms_list_final_version2.2 <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/pwm_list_final_version2.2.Rds")
+
+pwms=pwms_list_final_version2.2[match( row_name_info$ID, names(pwms_list_final_version2.2))]
+
+
+# sample(dir("~/projects/IcoMoon-Free/PNG/64px", full.names = TRUE), 10)
+# image_svg = sample(dir("~/projects/IcoMoon-Free/SVG/", full.names = TRUE), 10)
+# image_eps = sample(dir("~/projects/IcoMoon-Free/EPS/", full.names = TRUE), 10)
+# image_pdf = sample(dir("~/projects/IcoMoon-Free/PDF", full.names = TRUE), 10)
+
+# panel_fun = function(index, nm) {
+#   grid.rect()
+#   grid.text(paste0(length(index), " rows"), 0.5, 0.5)
+# }
+# align_to = list("A" = 2:4, "B" = 7:9)
+# ht=Heatmap(matrix(rnorm(100), 10), name = "mat", cluster_rows = FALSE) 
+# #rowAnnotation(foo = anno_block(
+#  align_to = align_to,
+#panel_fun = panel_fun,
+#   width = unit(3, "cm")
+#  )
+#)
+
+image_png = paste0("../../PWMs_final_version2.2/Logos_puhti/Logos_final2/png/prob/", row_name_info$ID, ".png")
+image_pdf = paste0("../../PWMs_final_version2.2/Logos_mac/Logos_final2/pdf/prob/", row_name_info$ID, ".pdf")
+image_pdf = paste0("../../PWMs_final_version2.2/Logos_puhti/Logos_final2/pdf/prob/", row_name_info$ID, ".pdf")
+image_svg = paste0("~/spacek/Figures_version2.2_Logos/svg/", row_name_info$ID, ".svg")
+
+convert image_pdf[1] test.svg
+
+
+# we only draw the image annotation for PNG images, while the others are the same
+#install.packages("grImport")
+install.packages("rsvg")
+ha = HeatmapAnnotation(Logo = anno_image(image_svg, height= unit(8, "cm"), 
+                                         border = FALSE,
+                                         width= unit(8, "cm"),
+                                         space = unit(0, "mm")), which="row") #, height=unit(0.618,"cm")) #, 
+
+
+ha = HeatmapAnnotation(Logo = anno_image(image_pdf, height= unit(8, "cm"), 
+                                         border = FALSE,
+                                         width= unit(8, "cm"),
+                                         space = unit(0, "mm")), which="row") #, height=unit(0.618,"cm")) #, 
+
+
+pdf(file = paste0(scratch, "Figures/bHLH_homeo_all_representative_info_ordered.pdf"), width=14, 
+    height=12)
+
+ht_list=ComplexHeatmap::Heatmap(final_matrix, 
+                                #col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
+                                col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 
+                                cluster_rows = FALSE,
+                                cluster_columns = FALSE, 
+                                show_row_names = TRUE,
+                                show_column_names = TRUE,
+                                column_names_side = "top",
+                                row_names_side = "left",
+                                column_names_rot=45, #315,
+                                row_split=row_split,
+                                cluster_row_slices=FALSE,
+                                row_gap = unit(1.5, "mm"),
+                                #row_title="spacing",
+                                row_title_rot=0,
+                                row_title_gp=gpar(fontface="bold"),
+                                row_names_gp = gpar(fontface = row_name_fontfaces),
+                                clustering_distance_rows = "pearson",
+                                clustering_method_rows = "complete",
+                                clustering_distance_columns = "pearson",
+                                clustering_method_columns = "complete",
+                                show_column_dend = FALSE,
+                                show_row_dend = FALSE,
+                                height = nrow(final_matrix)*unit(0.618,"cm"), 
+                                width = ncol(final_matrix)*unit(1, "cm"), 
+                                top_annotation=HeatmapAnnotation(`Cell type group`=ct_group_names,
+                                                                 col=list(`Cell type group`=annotation_colors),
+                                                                 annotation_legend_param=list(#at=names(sort(table(c(anno$X1, anno$X2)), decreasing = TRUE)),
+                                                                   gp=gpar(fontsize=fontsize)),
+                                                                 annotation_name_side="left",
+                                                                 #annotation_name_rot=0,
+                                                                 #annotation_label=c("Protein family 1","Protein family 2"),
+                                                                 #annotation_label="Protein\nfamily",
+                                                                 gp=gpar(fontsize=fontsize)),
+                                heatmap_legend_param=list(
+                                  #title = "-Log_10(P-val)",
+                                  #title = expression(-log[10](P-val)),
+                                  title = expression(paste(-log[10],"(P-value)")),
+                                  title_gp = gpar(fontsize = fontsize+2, fontface = "bold"),
+                                  #title_position = "topleft",
+                                  grid_height = unit(8, "mm"),
+                                  grid_width = unit(8, "mm"),
+                                  #tick_length = unit(0.8, "mm"),
+                                  #border = NULL,
+                                  #at = object@levels,
+                                  #labels = at,
+                                  at = c(-100, 0, 100),
+                                  labels = c("-100", "0",">100 (Enriched)"),
+                                  labels_gp = gpar(fontsize = fontsize),
+                                  #labels_rot = 0,
+                                  #nrow = NULL,
+                                  #ncol = 1,
+                                  #by_row = FALSE,
+                                  legend_gp = gpar(fontsize = fontsize),
+                                  #legend_height = NULL,
+                                  #legend_width = NULL,
+                                  legend_direction = c("horizontal")
+                                  # break_dist = NULL,
+                                  #graphics = NULL,
+                                  #param = NULL
+                                )
+)
+
+draw(ht_list+ha, row_title="spacing", 
+     row_title_gp=gpar(fontface="bold"), 
+     heatmap_legend_side = "bottom", annotation_legend_side = "bottom")
+# + ha
+
+dev.off()
+
+########### Old stuff below
 
 #Use this order
 row_order=c("OLIG2_EVX2_NTAATTA4NCATATGN", #Stromal 4
