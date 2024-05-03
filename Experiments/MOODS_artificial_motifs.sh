@@ -29,9 +29,9 @@ readarray -t lines < /projappl/project_2006203/TFBS/PWMs_final_version2.2/motifn
 start_ind=$(($array*5)) 
 end_ind=$((($array+1)*5 ))
 
-if [ "$end_ind" -gt 3932 ]; then
+if [ "$end_ind" -gt 3933 ]; then
    
-   end_ind=3932
+   end_ind=3933
 fi
 
 pwms_all=()

@@ -35,13 +35,13 @@ data_path="/scratch/project_2006203/TFBS/"
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
 
-representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 representatives$new_motif=FALSE
-representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
+representatives$new_motif[representatives$study=="fromYimeng"]=TRUE   
 length(unique(rep_motifs))
-#1031
+#1232
 
 #representative_motif_matches <- readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/representative_motif_matches_human_final.Rds")
 
@@ -227,7 +227,7 @@ for( cell_type_group in names(cell_type_groups) ){
 
   #cell_type_group=names(cell_type_groups)[1]
   print(cell_type_group)
-  load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
+  load(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_processed_",cell_type_group,".RData"))
   
   aucs_test$`Celltype group`=cell_type_group
   
@@ -237,7 +237,7 @@ for( cell_type_group in names(cell_type_groups) ){
     
 }
   
-saveRDS(aucs_test_all, paste0( data_path, "ATAC-seq-peaks/RData/AUCs_all.RData"))
+saveRDS(aucs_test_all, paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/AUCs_all.RData"))
 
 #Compute mean and standard deviation for each Cell type, need to add cell type group info
 aucs_summary_cell_types <- aucs_test_all %>%
@@ -295,7 +295,7 @@ for (row in 1:nrow(aucs_summary_cell_types)) {
   }
 }
 
-saveWorkbook(wb, "AUCS.xlsx", overwrite = TRUE)
+saveWorkbook(wb, "AUCS_version2.2.xlsx", overwrite = TRUE)
 
 
 library("broom")
@@ -308,14 +308,13 @@ result <-test  %>%
 
 result %>% filter(p.value < 0.05)
 
-
 result <-test  %>%
   group_by(`Cell type`) %>%
   do(tidy(t.test( .$score, .$presence, paired=F, alternative="greater") ))
 
 aucs_summary_cell_types %>% filter(`Cell type` %in% c("Basal Epithelial (Mammary)",      
-                                   "Mammary Luminal Epithelial Cell 1",
-                                   "Colon Epithelial Cell 3" ))
+                                   "Foveolar Cell",
+                                   "Fibroblast (Peripheral Nerve" ))
 
 
 t.test(test$presence,test$score , paired=F, alternative = "two.sided")
@@ -340,11 +339,9 @@ t.test(test$presence,test$score , paired=F, alternative = "two.sided")
 # 
 
 
-
+pdf(file = paste0(scratch, "Figures/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=12*(length(cell_type_groups[[cell_type_group]])/7), height=4 )
   
-  pdf(file = paste0(scratch, "Figures/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=12*(length(cell_type_groups[[cell_type_group]])/7), height=4 )
-  
-  gg=ggplot(aucs_test, aes(x=factor(`Cell type`), y=AUC, fill=method)) + 
+gg=ggplot(aucs_test, aes(x=factor(`Cell type`), y=AUC, fill=method)) + 
       geom_boxplot() + 
       labs(title="Cell-type-specific cCRE prediction based on motif matches, cross-validation,\nPerformance of logistic regression on test data",
            x="Cell type ",y="AUC") +

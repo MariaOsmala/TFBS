@@ -4,11 +4,11 @@
 #SBATCH --output=outs/pred_matrix.out
 #SBATCH --error=errs/pred_matrix.err
 #SBATCH --partition=longrun
-#SBATCH --time=5-00:00:00
+#SBATCH --time=5-00:00:00 #1-12:46:56
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=100G
+#SBATCH --mem-per-cpu=100G #54.02 GB
 
 #    21298579  
 

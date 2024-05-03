@@ -17,7 +17,7 @@ library(grid) # for textGrob
 #library("latex2exp")
 
 
-
+.libPaths(c("/projappl/project_2006203/project_rpackages_4.3.0/"))
 #setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
 setwd("~/projects/TFBS/ATAC-seq-peaks/RProjects/")
 #data_path="/scratch/project_2006203/TFBS/"
@@ -40,9 +40,14 @@ rep_motifs=bHLHhomeo_all$ID
 p_matrix=readRDS(file = "~/projects/TFBS/ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds") #
 e_matrix=readRDS(file = "~/projects/TFBS/ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds") #
 
+p_matrix=readRDS(file = paste0(data_path,"ATAC-seq-peaks/RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds")) #
+e_matrix=readRDS(file = paste0(data_path, "/ATAC-seq-peaks/RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_bHLH_homeo.Rds")) #
+
+
 
 #source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
 #setwd("/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/")
+
 source("../code/heatmap_motor.R")
 
 #Cell type names mapping
@@ -243,23 +248,23 @@ p_matrix_depleted=-p_matrix #1031 x 11
 p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
  #version 1
-bHLHhomeo=c(
-  "OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420",
-  "OLIG2_NKX6-1_TGGCCG40NCTTT_YVIII_NMCATATGNNNNNNTAATTAN_m2_c3b0_short_20230420",
-  "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420",
-  "OLIG2_OTP_TGGCCG40NCTTT_YPIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420",
-  "PTF1A_NKX6-1_TCTGCC40NCAC_YVIII_NCASCTGNNNTMATTAN_m1_c3b0_short_20230420",
-  "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420", 
-  "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNNTAATTAN_m1_c3b0_short_20230420", 
-  "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNNCATATGN_m1_c3b0_short_20230420",
-  "NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420",
-  "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420",
-  "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNNCAKMTGN_m1_c3b0_short_20230420",
-  "NHLH1_HOXD8_TGAGAA40NGCG_YZIII_NCASCTGNNNNNNNNYAATTRN_m1_c3b0_short_20230420",
-  "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNNTAATTAN_m1_c3b0_short_20230420",
-  "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNTAATTAN_m1_c3b0_short_20230420")
-
-bHLHhomeo_metadata=representatives[match( bHLHhomeo,representatives$ID),c("ID","Lambert2018_families", "study","new_representative", "type")] #15
+# bHLHhomeo=c(
+#   "OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420",
+#   "OLIG2_NKX6-1_TGGCCG40NCTTT_YVIII_NMCATATGNNNNNNTAATTAN_m2_c3b0_short_20230420",
+#   "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420",
+#   "OLIG2_OTP_TGGCCG40NCTTT_YPIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420",
+#   "PTF1A_NKX6-1_TCTGCC40NCAC_YVIII_NCASCTGNNNTMATTAN_m1_c3b0_short_20230420",
+#   "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420", 
+#   "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNNTAATTAN_m1_c3b0_short_20230420", 
+#   "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNNCATATGN_m1_c3b0_short_20230420",
+#   "NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420",
+#   "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420",
+#   "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNNCAKMTGN_m1_c3b0_short_20230420",
+#   "NHLH1_HOXD8_TGAGAA40NGCG_YZIII_NCASCTGNNNNNNNNYAATTRN_m1_c3b0_short_20230420",
+#   "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNNTAATTAN_m1_c3b0_short_20230420",
+#   "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNTAATTAN_m1_c3b0_short_20230420")
+# 
+# bHLHhomeo_metadata=representatives[match( bHLHhomeo,representatives$ID),c("ID","Lambert2018_families", "study","new_representative", "type")] #15
 
 #version 2.2
 
@@ -271,8 +276,45 @@ table(bHLHhomeo_metadata$new_representative) #17 representatives
 bHLHhomeo_metadata %>% filter(new_representative=="YES") %>% count(type)# 13 spacing, 4 composite
 
 #Select only the spacing motifs
-bHLHhomeo=bHLHhomeo_metadata %>% filter(type=="spacing")  # 33 spacing, 13 representatives
+bHLHhomeo=bHLHhomeo_metadata %>% filter(type=="spacing")  # 33 spacing, 13 representatives, 20 non representatives
 
+#What are the old CAP-SELEX motifs that represent the new non-representatives?
+represented_by_representatives <- readRDS("/projappl/project_2006203/TFBS/RProjects/TFBS/RData/represented_by_representatives_version2.2.RDS")
+non_reps=bHLHhomeo %>% filter(new_representative=="NO") %>% pull(ID)
+
+indices=list()
+for(non_rep in non_reps){
+  indices[[non_rep]] <- names(which(sapply(represented_by_representatives, function(x) any(grepl(non_rep, x))))  )
+}
+
+# 1. Find the maximum length of the list elements
+max_length <- max(sapply(indices, length))
+
+# 2. Pad shorter elements with NA to match the longest element
+padded_list <- lapply(indices, function(x) {
+  length(x) <- max_length
+  x
+})
+
+# 3. Combine the list elements into a matrix/data frame
+indices_df <- do.call(rbind, padded_list)
+rownames(indices_df)=NULL
+
+reps=c(indices_df[,1], indices_df[,2])
+reps=unique(reps[!is.na(reps)]) #7
+
+#which of these representatives are in the new set
+representatives %>% filter(ID %in% reps) %>% select(study)
+#which are in the old set
+representatives %>% filter(ID %in% reps & study!="fromYimeng") %>% select(ID)
+
+#Remove the HT-SELEX motif from Yin 2017
+reps=reps[-which(reps=="NEUROG1_HT-SELEX_TTGCCA40NGTG_KAE_RNCATATGNY_1_2")]
+
+#Are all these already in the set
+reps %in% bHLHhomeo$ID
+
+representatives %>% filter(ID %in% reps) %>% select(type)
 
 final_matrix=p_matrix_depleted[ which(rownames(p_matrix_depleted) %in% bHLHhomeo$ID), ]
 
@@ -612,9 +654,9 @@ palette_colors <- brewer.pal(num_colors, "Set2")  # Or any other palette
 annotation_colors <- setNames(palette_colors, unique(ct_group_names))
 
 #PWMs. 
-pwms_list_final_version2.2 <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/pwm_list_final_version2.2.Rds")
+#pwms_list_final_version2.2 <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/pwm_list_final_version2.2.Rds")
 
-pwms=pwms_list_final_version2.2[match( row_name_info$ID, names(pwms_list_final_version2.2))]
+#pwms=pwms_list_final_version2.2[match( row_name_info$ID, names(pwms_list_final_version2.2))]
 
 
 # sample(dir("~/projects/IcoMoon-Free/PNG/64px", full.names = TRUE), 10)
@@ -636,19 +678,23 @@ pwms=pwms_list_final_version2.2[match( row_name_info$ID, names(pwms_list_final_v
 #)
 
 image_png = paste0("../../PWMs_final_version2.2/Logos_puhti/Logos_final2/png/prob/", row_name_info$ID, ".png")
-image_pdf = paste0("../../PWMs_final_version2.2/Logos_mac/Logos_final2/pdf/prob/", row_name_info$ID, ".pdf")
+image_png=paste0("/scratch/project_2006203/TFBS/PWMs_final_version2.2/Logos_final2/png/prob/", row_name_info$ID, ".png")
+#image_pdf = paste0("../../PWMs_final_version2.2/Logos_mac/Logos_final2/pdf/prob/", row_name_info$ID, ".pdf")
 image_pdf = paste0("../../PWMs_final_version2.2/Logos_puhti/Logos_final2/pdf/prob/", row_name_info$ID, ".pdf")
-image_svg = paste0("~/spacek/Figures_version2.2_Logos/svg/", row_name_info$ID, ".svg")
+image_pdf= paste0("/scratch/project_2006203/TFBS/PWMs_final_version2.2/Logos_final2/pdf/prob/", row_name_info$ID, ".png")
 
-convert image_pdf[1] test.svg
+image_svg = paste0("~/spacek/Figures_version2.2_Logos/svg/", row_name_info$ID, ".svg")
+image_svg = paste0("/scratch/project_2006203/spacek/Figures_version2.2_Logos/svg/", row_name_info$ID, ".svg")
+
+
 
 
 # we only draw the image annotation for PNG images, while the others are the same
-#install.packages("grImport")
+install.packages("grImport2")
 install.packages("rsvg")
 ha = HeatmapAnnotation(Logo = anno_image(image_svg, height= unit(8, "cm"), 
                                          border = FALSE,
-                                         width= unit(8, "cm"),
+                                         width= unit(4, "cm"),
                                          space = unit(0, "mm")), which="row") #, height=unit(0.618,"cm")) #, 
 
 

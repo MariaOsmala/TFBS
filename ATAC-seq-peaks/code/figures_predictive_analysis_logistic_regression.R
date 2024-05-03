@@ -35,12 +35,12 @@ data_path="/scratch/project_2006203/TFBS/"
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
 
-representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 representatives$new_motif=FALSE
 
-representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
+representatives$new_motif[representatives$study=="fromYimeng"]=TRUE   
 
 
 length(unique(rep_motifs))
@@ -230,11 +230,13 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
 
   cell_type_group=names(cell_type_groups)[cell_type_group_nro]
   
-  load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
+  load(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_processed_",cell_type_group,".RData"))
+  
+  table(representatives$new_motif)
   
   representatives$new_motif=FALSE
   
-  representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
+  representatives$new_motif[representatives$study=="fromYimeng"]=TRUE   
   
   
   

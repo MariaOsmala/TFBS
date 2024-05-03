@@ -33,8 +33,8 @@ library(ggbreak)
 
 cell_line_nro <- as.numeric(commandArgs(trailingOnly = TRUE))
 
-#features_type="presence_matrix"
-features_type="max_score_matrix"
+features_type="presence_matrix"
+#features_type="max_score_matrix"
 
 
 

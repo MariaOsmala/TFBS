@@ -11,7 +11,8 @@
 #SBATCH --mem-per-cpu=20G  #200G
 
 # Load r-env
-module load r-env
+
+module load r-env/421
 
 # Clean up .Renviron file in home directory
 if test -f ~/.Renviron; then
@@ -22,6 +23,7 @@ fi
 echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 
 # Run the R script
-srun apptainer_wrapper exec Rscript --no-save ../code/motif_logos_better.R
+#srun apptainer_wrapper exec Rscript --no-save ../code/motif_logos_better.R
+srun apptainer_wrapper exec Rscript --no-save ../code/motif_logos_better_version2.2.R
 
 seff $SLURM_JOBID

@@ -16,300 +16,126 @@ library("ggrepel") #
 library("circlize")
 library(gridExtra)
 library(grid) # for textGrob
-#install.packages("latex2exp")
-#library("latex2exp")
-.libPaths("/projappl/project_2006472/project_rpackages_4.3.0_new")
-#install.packages("heatmaply")
-library("heatmaply")
 library("openxlsx")
 library("gridExtra")
-#source("/scratch/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R")
+
+.libPaths("/projappl/project_2007567/project_rpackages_4.3.0")
+#install.packages("heatmaply")
+library("heatmaply")
+
 source("../code/heatmap_motor.R")
 
 #short names for TFs
 
 #Cell type names mapping
 
-Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
-                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
-
-# Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
-#                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
-
-
-#typo
-Adult_Celltypes_mapping$`Cell type`[grep("Alverolar Type 2,Immune", Adult_Celltypes_mapping$`Cell type`)]="Alveolar Type 2,Immune"
+source("/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/cell_type_names.R")
 
 
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
-scratch="../"
+#scratch="../"
 
 data_path="/scratch/project_2006203/"
 
-#representatives=read.table("/scratch/project_2006203/motif-clustering-Viestra-private/metadata/new_representatives_IC_length_better_ID_filenames_match_numbers_MOODS_threshold.tsv", sep="\t", header=TRUE)
-representatives=read.table( "../../PWMs_final/metadata_representatives_match_numbers_thresholds.tsv",sep="\t", header=TRUE) #3294 the order differs!
 
-#representatives=read.table( "../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294 the order differs! This is the same order as in p_matrix
-#representatives2=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+representatives=read.table( "../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3294 the order differs?
 
-#bHLH-homeodomain TF-pairs
-#Which motifs are highlighted in the heatmap, do they include non-representative
-#OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420 YES 6N
-#OLIG2_NKX6-1_TGGCCG40NCTTT_YVIII_NMCATATGNNNNNNTAATTAN_m2_c3b0_short_20230420 NO 6N OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420"
-#BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420 YES 4N
 
-#OLIG2_OTP_TGGCCG40NCTTT_YPIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420 NO 4N BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420"
-#PTF1A_NKX6-1_TCTGCC40NCAC_YVIII_NCASCTGNNNTMATTAN_m1_c3b0_short_20230420 YES 3N
-#OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420 NO 4N BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420"
-#BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNNTAATTAN_m1_c3b0_short_20230420 NO 5N ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420"  NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420"
+represented_by_representatives <- readRDS("../../RProjects/TFBS/RData/represented_by_representatives_version2.2.RDS")
 
-#OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNNCATATGN_m1_c3b0_short_20230420 NO 5N ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420"  NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420" 
-#NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420 YES 5N
-#ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420 YES 5N
-#ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNNCAKMTGN_m1_c3b0_short_20230420 YES 6N
 
-#NHLH1_HOXD8_TGAGAA40NGCG_YZIII_NCASCTGNNNNNNNNYAATTRN_m1_c3b0_short_20230420 YES 8N
-#NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNNTAATTAN_m1_c3b0_short_20230420 YES 6N
-#NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNTAATTAN_m1_c3b0_short_20230420 NO 5N ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420"
+#indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
+#print(paste0(motif, " ", names(represented_by_representatives)[indices]))
 
-bHLHhomeo=c(
-  "OLIG2_HOXB5_TCTAAA40NCGC_YVIII_NCATATGNNNNNNYMATTAN_m1_c3b0_short_20230420",
-  "OLIG2_NKX6-1_TGGCCG40NCTTT_YVIII_NMCATATGNNNNNNTAATTAN_m2_c3b0_short_20230420",
-  "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNTAATTAN_m1_c3b0_short_20230420",
-  "OLIG2_OTP_TGGCCG40NCTTT_YPIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420",
-  "PTF1A_NKX6-1_TCTGCC40NCAC_YVIII_NCASCTGNNNTMATTAN_m1_c3b0_short_20230420",
-  "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNCATATGN_m1_c3b0_short_20230420", 
-  "BHLHE22_EVX2_TACGAT40NCCG_YZIIII_NCATATGNNNNNTAATTAN_m1_c3b0_short_20230420", 
-  "OLIG2_EVX2_TGGCCG40NCTTT_YZIIII_NTAATTANNNNNCATATGN_m1_c3b0_short_20230420",
-  "NEUROG2_EVX2_TCACAT40NATG_YZIIII_NYMATTANNNNNCATATGN_m1_c3b0_short_20230420",
-  "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNCAKMTGN_m1_c3b0_short_20230420",
-  "ATOH1_EVX2_TTCGGG40NGAG_YZIIII_NTAATTANNNNNNCAKMTGN_m1_c3b0_short_20230420",
-  "NHLH1_HOXD8_TGAGAA40NGCG_YZIII_NCASCTGNNNNNNNNYAATTRN_m1_c3b0_short_20230420",
-  "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNNTAATTAN_m1_c3b0_short_20230420",
-  "NHLH1_EVX2_TGCGCG40NTAG_YZIIII_NCAKSTGNNNNNTAATTAN_m1_c3b0_short_20230420")
-
-bHLHhomeo_metadata=representatives[match( bHLHhomeo,representatives$ID),c("ID","Lambert2018_families", "study","new_representative", "type")] #15
-
-#How many bHLH_Homeodomain there are
-nrow(representatives[(which(representatives$Lambert2018_families=="bHLH_Homeodomain")), c("ID", "study", "new_representative", "type")]) #25)
-nrow(representatives[(which(representatives$Lambert2018_families=="Homeodomain_bHLH")),  c("ID", "study", "new_representative", "type")]) #13
-
-bHLHhomeo_all=representatives[which(representatives$Lambert2018_families %in% c("bHLH_Homeodomain","Homeodomain_bHLH")),] #38
-
-#which represent the non-representatives
-
-represented_by_representatives <- readRDS("../../RProjects/TFBS/RData/represented_by_representatives.RDS")
-
-motif=bHLHhomeo[bHLHhomeo_metadata$new_representative=="NO"][1]
-
-for(motif in bHLHhomeo[bHLHhomeo_metadata$new_representative=="NO"]){
-  #print(motif)
-indices <- which(sapply(represented_by_representatives, function(x) any(grepl(motif, x))))
-#can be many, Let's take the shortes, or the one with highest information content?
-print(paste0(motif, " ", names(represented_by_representatives)[indices]))
-}
 
 
 #These are log_10(p-values)
-#p_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_p_matrix_human_cell_type_restricted.Rds")) #
+#p_matrix=readRDS(file = paste0(scratch,"RData/final_p_matrix_human_cell_type_restricted.Rds")) #
 
-p_matrix=readRDS(file = paste0(scratch,"RData/final_p_matrix_human_cell_type_restricted.Rds")) #
 
-#sort the representatives table according to the rownames of p_matrix
-representatives <- representatives[order(match(representatives$ID, rownames(p_matrix))), ]
+p_matrix=readRDS(paste0(scratch, "RData/final_p_matrix_human_cell_type_restricted_all_motifs_version2.2_fromParts.Rds")) #
 
-#test=gsub(".pfm", "", do.call(rbind, strsplit(representatives$filename,"/"))[,5])
+
+
+#sort the representatives table according to the rownames of p_matrix, they should be already ordered
+#representatives <- representatives[order(match(representatives$ID, rownames(p_matrix))), ]
+
+library("tidyverse")
 test=representatives$ID
-rep_motifs=test[which(representatives$new_representative=="YES")]
-#rep_dimers=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX")] #591
-#rep_Yimeng=test[which(representatives$new_representative=="YES"& representatives$experiment=="CAP-SELEX"& representatives$study=="fromYimeng")] #238
-length(which(rep_motifs %in% rownames(p_matrix))) #1031
+rep_motifs= representatives %>% filter(new_representative=="YES") %>% pull (ID)
+  
+rep_dimers= representatives %>% filter(new_representative=="YES" & experiment=="CAP-SELEX") %>% pull (ID) #793
+  
+rep_Yimeng=representatives %>% filter(new_representative=="YES" & experiment=="CAP-SELEX" & study=="fromYimeng") %>% pull (ID) #459
 
-
-#remove _pfm_composite_new and _pfm_spacing_new
-#rep_motifs=gsub("_pfm_composite_new", "", rep_motifs)
-#rep_motifs=gsub("_pfm_spacing_new", "", rep_motifs)
-
-length(unique(rep_motifs)) #1031
-
-#dim(p_matrix) 1062 x 111
-#length(which(rep_dimers %in% rownames(p_matrix))) #595
-#length(which(rep_Yimeng %in% rownames(p_matrix))) #238
-
-shorter_names=representatives %>% filter(test %in% rownames(p_matrix)) %>% select(symbol, ID, experiment, 
+#?
+shorter_names=representatives %>% select(symbol, ID, experiment, 
                                               new_representative, Lambert2018_families, type)
 #table(shorter_names)
 
-shorter_names$new_motif=FALSE
-shorter_names$new_motif[which(shorter_names$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420") )]=TRUE #245
+representatives$new_motif=FALSE
+representatives$new_motif[which(representatives$study=="fromYimeng")]=TRUE 
 
-#"pfm_composite_new" "pfm_spacing_new"       "20230420"
+#FDR correction for the p-values? Correct across all motifs and cell types (YES), for each motif(NO), or for each cell type(YES)?
 
-#FDR correction for the p-values?
+#p_matrix #log_10(p-values)
+
+#Adjust all p-values
+test=p.adjust(10^as.vector(p_matrix), method="BH")
+
+p_matrix_adjusted_all <- matrix(log10(test), nrow = nrow(p_matrix), ncol = ncol(p_matrix))
+
+#Adjust p-values for each cell type
+p_matrix_adjusted_celltype=log10(apply(10^p_matrix, 2, p.adjust, method="BH"))
+
+
+rownames(p_matrix_adjusted_all)=rownames(p_matrix_adjusted_celltype)=rownames(p_matrix)
+colnames(p_matrix_adjusted_all)=colnames(p_matrix_adjusted_celltype)=colnames(p_matrix)
+
+#table(10^p_matrix<0.01)
+#<0.05
+#FALSE   TRUE 
+#146292 290271
+
+# 0.01
+# FALSE   TRUE 
+# 195695 240868
+
+#table(10^p_matrix_adjusted_all<0.01)
+# 0.05
+# FALSE   TRUE 
+# 162709 273854 
+
+# 0.01
+# FALSE   TRUE 
+# 211615 224948 
+
+#table(10^p_matrix_adjusted_celltype<0.01) This is stricter
+
+# 0.05
+#FALSE   TRUE 
+#167808 268755 
+
+# 0.01
+# FALSE   TRUE 
+# 215357 221206 
 
 #These are log2( (k / n) / (m / N) )
 #e_matrix=readRDS(  file = paste0(scratch, "RData/Teemu_e_matrix_human_cell_type_restricted.Rds")) #
-e_matrix=readRDS(  file = paste0(scratch, "RData/final_e_matrix_human_cell_type_restricted.Rds")) #
+#e_matrix=readRDS(  file = paste0(scratch, "RData/final_e_matrix_human_cell_type_restricted.Rds")) #
 
-#dimnames(e_matrix)[[2]] #What column in Adult_Celltypes_mapping correspond to there
-#dimnames(e_matrix)[[2]] %in% Adult_Celltypes_mapping$celltype
-
-
-
-#Cell type groups from Zhang et al. Figure 1
-
-cell_type_groups<-list()
-cell_type_groups[["Epithelial 1"]]=c("Parietal Cell",
-                                     "Chief Cell",
-                                     "Pancreatic Acinar Cell",
-                                     "Ductal Cell (Pancreatic)",
-                                     "Gastric Neuroendocrine Cell",
-                                     "Foveolar Cell",
-                                     "Hepatocyte")
-cell_type_groups[["Stromal"]]=c("Mesothelial Cell", #Divide this into two groups
-                                "Adipocyte",
-                                "Luteal Cell (Ovarian)",
-                                "Schwann Cell (General)",
-                                "Pericyte (General) 1",
-                                "Fibroblast (Peripheral Nerve)",
-                                "Smooth Muscle (Uterine)",
-                                "Smooth Muscle (General)",
-                                "Vascular Smooth Muscle 2",
-                                "Vascular Smooth Muscle 1",
-                                "Pericyte (General) 2",
-                                "Melanocyte",
-                                "Smooth Muscle (Esophageal Muscularis) 3", #This would be the first of the second group
-                                "Fibroblast (Gastrointestinal)",
-                                "Cardiac Fibroblasts",
-                                "Fibroblast (General)",
-                                "Fibroblast (Epithelial)",
-                                "Fibroblast (Sk Muscle Associated)",
-                                "Peripheral Nerve Stromal",
-                                "Satellite Cell")
-
-cell_type_groups[["Smooth Muscle"]]=c("Smooth Muscle (Esophageal Muscularis) 2",
-                                      "Smooth Muscle (Esophageal Muscularis) 1",
-                                      "Smooth Muscle (GE Junction)",
-                                      "Smooth Muscle (Colon) 2",
-                                      "Smooth Muscle (Colon) 1",
-                                      "Smooth Muscle (General Gastrointestinal)",
-                                      "Smooth Muscle (Esophageal Mucosal)",
-                                      "Smooth Muscle (Vaginal)")
-
-cell_type_groups[["Myocyte"]]=c("Atrial Cardiomyocyte",
-                                "Ventricular Cardiomyocyte",
-                                "Type II Skeletal Myocyte",
-                                "Type I Skeletal Myocyte")
-
-cell_type_groups[["Mural"]]=c("Pericyte (General) 3",
-                              "Cardiac Pericyte 1",
-                              "Pericyte (Esophageal Muscularis)",
-                              "Cardiac Pericyte 2",
-                              "Pericyte (General) 4",
-                              "Cardiac Pericyte 3",
-                              "Fibroblast (Liver Adrenal)",
-                              "Cardiac Pericyte 4"
-)
-
-cell_type_groups[["Adrenal Cortical"]]=c("Zona Fasciculata Cortical Cell",
-                                       "Transitional Zone Cortical Cell",
-                                       "Zona Glomerulosa Cortical Cell",
-                                       "Cortical Epithelial-like"
-)
-
-cell_type_groups[["Immune Lymp"]]=c("Mast Cell",
-                                    "Naive T cell",
-                                    "T lymphocyte 2 (CD4+)",
-                                    "T Lymphocyte 1 (CD8+)",
-                                    "Natural Killer T Cell",
-                                    "Memory B Cell",
-                                    "Plasma Cell"
-)
-
-cell_type_groups[["Immune Myelo"]]=c("Macrophage (General,Alveolar)",
-                                     "Macrophage (General)",
-                                     "Microglia")
-
-cell_type_groups[["Endothelial"]]=c("Endothelial Cell (Myocardial)",
-                                    "Endothelial Cell (General) 1",
-                                    "Endothelial Cell (General) 2",
-                                    "Lymphatic Endothelial Cell",
-                                    "Alveolar Capillary Endothelial Cell",
-                                    "Endocardial Cell",
-                                    "Endothelial (Exocrine Tissues)",
-                                    "Endothelial Cell (General) 3",
-                                    "Blood Brain Barrier Endothelial Cell")
-
-cell_type_groups[["Brain glia"]]=c("Oligodendrocyte",
-                                   "Oligodendrocyte Precursor",
-                                   "Astrocyte 1",
-                                   "CNS,Enteric Neuron",
-                                   "Astrocyte 2"
-)
-
-cell_type_groups[["Brain neuron"]]=c("GABAergic Neuron 2",
-                                     "GABAergic Neuron 1",
-                                     "Glutamatergic Neuron 2",
-                                     "Glutamatergic Neuron 1")
-
-cell_type_groups[["Islet"]]=c("Pancreatic Alpha Cell 2",
-                              "Pancreatic Beta Cell 2",
-                              "Pancreatic Delta,Gamma cell",
-                              "Pancreatic Beta Cell 1",
-                              "Pancreatic Alpha Cell 1")
-
-
-
-cell_type_groups[["Epithelial 2"]]=c("Alveolar Type 1 (AT1) Cell",
-                                     "Alveolar Type 2 (AT2) Cell",
-                                     "Alveolar Type 2,Immune",
-                                     "Club Cell",
-                                     "Thyroid Follicular Cell",
-                                     "Cilliated Cell")
-
-cell_type_groups[["Epithelial 3"]]=c("Keratinocyte 1",
-                                     "Esophageal Epithelial Cell",
-                                     "Keratinocyte 2",
-                                     "Basal Epidermal (Skin)",
-                                     "Airway Goblet Cell",
-                                     "Eccrine Epidermal (Skin)",
-                                     "Mammary Epithelial",
-                                     "Basal Epithelial (Mammary)",
-                                     "Granular Epidermal (Skin)",
-                                     "Mammary Luminal Epithelial Cell 2",
-                                     "Mammary Luminal Epithelial Cell 1",
-                                     "Myoepithelial (Skin)")
-
-
-cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
-                                      "Enterochromaffin Cell",
-                                      "Tuft Cell",
-                                      "Small Intestinal Goblet Cell",
-                                      "Small Intestinal Enterocyte",
-                                      "Colonic Goblet Cell",
-                                      "Colon Epithelial Cell 1",
-                                      "Colon Epithelial Cell 2",
-                                      "Colon Epithelial Cell 3")
-
+e_matrix=readRDS(file = paste0( scratch, "RData/final_e_matrix_human_cell_type_restricted_all_motifs_version2.2_fromParts.Rds")) #
 
 length(cell_type_groups) #15, in the paper they mention 17
-
-as.vector(unlist(cell_type_groups))[which(as.vector(unlist(cell_type_groups)) %in% Adult_Celltypes_mapping$`Cell type`==FALSE)]
-
-
-#unlist(cell_type_groups) %in% Adult_Celltypes_mapping$`Cell type` all are contained
-
-#Adult_Celltypes_mapping$`Cell type`[which(Adult_Celltypes_mapping$`Cell type` %in% unlist(cell_type_groups) ==FALSE)] # are all contained
 
 
 #rename e_matrix and p_matrix
 
-#v=match(dimnames(e_matrix)[[2]], Adult_Celltypes_mapping$celltype)
-#test=data.frame(dimnames(e_matrix)[[2]], Adult_Celltypes_mapping$celltype[v], Adult_Celltypes_mapping$`Cell type`[v])
-
 colnames(e_matrix)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(e_matrix), Adult_Celltypes_mapping$celltype) ]
 colnames(p_matrix)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(p_matrix), Adult_Celltypes_mapping$celltype) ]
+colnames(p_matrix_adjusted_all)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(p_matrix_adjusted_all), Adult_Celltypes_mapping$celltype) ]
+colnames(p_matrix_adjusted_celltype)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(p_matrix_adjusted_celltype), Adult_Celltypes_mapping$celltype) ]
 
 #Heatmaps showing Gene Ontology TF motifs with maximal enrichment in cell-type-restricted cCREs of selected cell types. 
 #Only the most enriched TF motif in each of the previously identified motif archetypes (Vierstra et al., 2020) was selected as the representative and 
@@ -319,8 +145,8 @@ colnames(p_matrix)=Adult_Celltypes_mapping$`Cell type`[ match(colnames(p_matrix)
 
 infinites=which(is.infinite(e_matrix)) #226
 e_matrix[infinites]=NA
-enriched=which(e_matrix>0) #1062*111=117882
-#52050
+enriched=which(e_matrix>0) 
+
 
 #why this does not work
 # r = ((enriched-1) %% ncol(e_matrix)) + 1
@@ -343,39 +169,43 @@ max(depletions, na.rm=TRUE) #-1.704847e-06
 #Convert the depleted -log_10 p-values to negative
 str(depleted)
 
-#  6 12.57143
-#  6 28.57143
-#  6 9.714286
-# 6 5.428571
-#  6 12.28571
-#  6 4.857143
-#  6 7.714286
-# 6 3.142857
-#  6  11.14286
-#  6 10.28571
-#  6 8
-#  6 7.714286
-#  6 11.14286
-#  6 13.42857
-#  6 8.285714
-
 
 #How many of the new motifs are enriched at the cCREs specific to at least one cell-type group
 
-table(representatives$type[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")  ])
-#20230420 pfm_composite_new   pfm_spacing_new 
-#14 (spacing)              503               192 
+table(representatives$type[representatives$type %in% c("composite", "spacing")  ])
+#composite   spacing 
+#1131       205 
 
-#125 composite motifs and 120 spacing motifs were representative 
+representatives %>% filter((type %in% c("composite", "spacing")) & new_representative=="YES") %>%count(type)
+#composite 347
+#spacing 112
 
-p_matrix_depleted=-p_matrix #1031 x 11
+#437 composite motifs and 112 spacing motifs were representative 
+
+p_matrix_depleted=-p_matrix #1031 x 11 -log10 pvalues
 p_matrix_depleted[depleted]=-p_matrix_depleted[depleted]
 
-p_matrix_composites=p_matrix_depleted[representatives %>% filter( type=="pfm_composite_new" & new_representative=="YES" ) %>% pull(ID), ] #125 x 111
-p_matrix_spacing=p_matrix_depleted[representatives %>% filter( type %in% c("pfm_spacing_new", "20230420") & new_representative=="YES" ) %>% pull(ID), ] #120 x 111
+p_matrix_adjusted_all_depleted=-p_matrix_adjusted_all
+p_matrix_adjusted_all_depleted[depleted]=-p_matrix_adjusted_all_depleted[depleted]
 
-e_matrix_composites=e_matrix[representatives %>% filter( type=="pfm_composite_new" & new_representative=="YES" ) %>% pull(ID), ] #125 x 111
-e_matrix_spacing=e_matrix[representatives %>% filter( type %in% c("pfm_spacing_new", "20230420") & new_representative=="YES" ) %>% pull(ID), ] #120 x 111
+p_matrix_adjusted_celltype_depleted=-p_matrix_adjusted_celltype
+p_matrix_adjusted_celltype_depleted[depleted]=-p_matrix_adjusted_celltype_depleted[depleted]
+
+p_matrix_composites=p_matrix_depleted[representatives %>% filter( type=="composite" & new_representative=="YES" ) %>% pull(ID), ] #347 x 111
+e_matrix_composites=e_matrix[representatives %>% filter( type=="composite" & new_representative=="YES" ) %>% pull(ID), ] #125 x 111
+
+p_matrix_composites_adjusted_all=p_matrix_adjusted_all_depleted[representatives %>% filter( type=="composite" & new_representative=="YES" ) %>% pull(ID), ] #347 x 111
+p_matrix_composites_adjusted_celltype=p_matrix_adjusted_celltype_depleted[representatives %>% filter( type=="composite" & new_representative=="YES" ) %>% pull(ID), ] #347 x 111
+
+
+
+p_matrix_spacing=p_matrix_depleted[representatives %>% filter( type=="spacing" & new_representative=="YES" ) %>% pull(ID), ] #112 x 111
+e_matrix_spacing=e_matrix[representatives %>% filter( type=="spacing" & new_representative=="YES" ) %>% pull(ID), ] #112 x 111
+
+p_matrix_spacing_adjusted_all=p_matrix_adjusted_all_depleted[representatives %>% filter( type=="spacing" & new_representative=="YES" ) %>% pull(ID), ] #112 x 111
+p_matrix_spacing_adjusted_celltype=p_matrix_adjusted_celltype_depleted[representatives %>% filter( type=="spacing" & new_representative=="YES" ) %>% pull(ID), ] #112 x 111
+
+
 
 
 #consider also the fold change
@@ -419,8 +249,6 @@ cell_type_and_group_enrichment_for_motifs <- function(boolean_matrix, cell_type_
   
   cell_types_groups_df <- cell_types_groups_df %>% select(family, everything())
   
-  
-  
   result_list=list()
   result_list[["cell_types"]]=cell_types_df
   result_list[["cell_types_groups"]]=cell_types_groups_df
@@ -430,7 +258,7 @@ cell_type_and_group_enrichment_for_motifs <- function(boolean_matrix, cell_type_
 
 
 boolean_matrix=p_matrix_composites > -log10(0.01) & e_matrix_composites > 1
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #33
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
 
 
 
@@ -438,24 +266,69 @@ composite_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_
 
 
 boolean_matrix=p_matrix_composites > -log10(0.01) & e_matrix_composites > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #79
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
 
 composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
 
 boolean_matrix=p_matrix_spacing > -log10(0.01) & e_matrix_spacing > 1
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #23
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
 
 spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
 boolean_matrix=p_matrix_spacing > -log10(0.01) & e_matrix_spacing > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #71
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
 
 spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
-#with 33 of 125 representative composite motifs and 23 of 120 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 1).
-#with 79 of 125 representative composite motifs and 71 of 120 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 0.75).
+#p-value cut off, #q-value cut off all and celltype all both the same results
 
+#with 95 of 347 representative composite motifs and 30 of 112 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 1).
+#with 211 of 347 representative composite motifs and 74 of 112 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 0.75).
+
+#q-value cut off all
+
+boolean_matrix=p_matrix_composites_adjusted_all > -log10(0.01) & e_matrix_composites > 1
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
+
+
+composite_strict_fdr=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+
+boolean_matrix=p_matrix_composites_adjusted_all > -log10(0.01) & e_matrix_composites > 0.75
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
+
+composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+
+boolean_matrix=p_matrix_spacing_adjusted_all > -log10(0.01) & e_matrix_spacing > 1
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
+
+spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+boolean_matrix=p_matrix_spacing_adjusted_all > -log10(0.01) & e_matrix_spacing > 0.75
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
+
+spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+
+#cell type 
+
+boolean_matrix=p_matrix_composites_adjusted_celltype > -log10(0.01) & e_matrix_composites > 1
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
+composite_strict_fdr=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+boolean_matrix=p_matrix_composites_adjusted_celltype > -log10(0.01) & e_matrix_composites > 0.75
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
+composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+boolean_matrix=p_matrix_spacing_adjusted_celltype > -log10(0.01) & e_matrix_spacing > 1
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
+spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+
+boolean_matrix=p_matrix_spacing_adjusted_celltype > -log10(0.01) & e_matrix_spacing > 0.75
+length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
+spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
 
 # Create a new workbook

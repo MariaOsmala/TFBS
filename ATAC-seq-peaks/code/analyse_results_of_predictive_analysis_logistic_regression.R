@@ -32,12 +32,12 @@ data_path="/scratch/project_2006203/TFBS/"
 
 scratch="/scratch/project_2006203/TFBS/ATAC-seq-peaks/"
 
-representatives=read.table("../../PWMs_final/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
+representatives=read.table("../../PWMs_final_version2.2/metadata_representatives.tsv",sep="\t", header=TRUE) #3294
 rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 
 representatives$new_motif=FALSE
 
-representatives$new_motif[representatives$type %in% c("pfm_composite_new", "pfm_spacing_new", "20230420")]=TRUE   
+representatives$new_motif[representatives$study=="fromYimeng"]=TRUE   
 
 
 length(unique(rep_motifs))
@@ -242,7 +242,7 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #presence-absence
   for(cell_type in cell_type_groups[[cell_type_group]] ){
     print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_",cell_type,".RData"))
+    load(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_",cell_type,"_version2.2.RData"))
     cvfits_list[[cell_type]]=cvfits
     cvfit_final_list[[cell_type]]=cvfit_final
     assessments=list()
@@ -262,7 +262,7 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #maxscore
   for(cell_type in cell_type_groups[[cell_type_group]] ){
     print(cell_type)
-    load(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_max_score",cell_type,".RData"))
+    load(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_max_score",cell_type,"_version2.2.RData"))
     cvfits_list_maxscore[[cell_type]]=cvfits
     cvfit_final_list_maxscore[[cell_type]]=cvfit_final
     assessments_maxscore=list()
@@ -306,13 +306,15 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   
   reshape2::melt(aucs_test, )
   
-  pdf(file = paste0(scratch, "Figures/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=12*(length(cell_type_groups[[cell_type_group]])/7), height=4 )
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_AUC_boxplots/",cell_type_group,".pdf"), width=6*(length(cell_type_groups[[cell_type_group]])/7), height=6 )
   
   gg=ggplot(aucs_test, aes(x=factor(`Cell type`), y=AUC, fill=method)) + 
       geom_boxplot() + 
       labs(title="Cell-type-specific cCRE prediction based on motif matches, cross-validation,\nPerformance of logistic regression on test data",
            x="Cell type ",y="AUC") +
-      theme_minimal()+labs(title=cell_type_group)
+      theme_minimal()+
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    labs(title=cell_type_group)
   plot(gg)
   
   dev.off()
@@ -321,7 +323,13 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #Presence
   plots=list()
   plots_new=list()
+  plots_top=list()
+  plots_top_new=list()
   options(ggrepel.max.overlaps = Inf)
+  
+  representatives$new_motif=FALSE
+  
+  representatives$new_motif[representatives$study=="fromYimeng"]=TRUE   
   
   for(cell_type in names(cvfit_final_list) ){
     #cell_type=names(cvfit_final_list)[1]  
@@ -354,6 +362,41 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
            x="Features sorted by importance",y="Regression coefficient", color="New motif")+
       theme_minimal()
     
+    # Top ten most and least predictive motifs
+    
+    top_coef <- regression_coef %>%
+      arrange(desc(coef)) %>%
+      slice(1:10)
+    
+    bottom_coef <- regression_coef %>%
+      arrange(coef) %>%
+      slice(1:10)
+    
+    plots_top[[cell_type]]=ggplot(regression_coef, aes(x=order, y=coef)) +
+      geom_point(aes(color=new_motif)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+      geom_text_repel(data=top_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      geom_text_repel(data=bottom_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      labs(title=cell_type,
+           x="Features sorted by importance", y="Regression coefficient", color="New motif") +
+      theme_minimal()
+    
+    # Top ten most predictive new motifs
+    
+    top_coef <- regression_coef %>% filter(name %in% (representatives %>% filter(new_motif==TRUE) %>% pull(ID) )) %>%
+      arrange(desc(coef)) %>%
+      slice(1:10)
+    
+    plots_top_new[[cell_type]]=ggplot(regression_coef, aes(x=order, y=coef)) +
+      geom_point(aes(color=new_motif)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+      geom_text_repel(data=top_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      labs(title=cell_type,
+           x="Features sorted by importance", y="Regression coefficient", color="New motif") +
+      theme_minimal()
+    
+    
+    
     plots_new[[cell_type]]=ggplot(regression_coef,aes(x=order, y=coef))+geom_point(aes(color = new_motif))+
       scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black"))+
       #geom_text_repel(data=subset(significant_motifs, new_motif), aes(label=shorter_name ) ,color="red"
@@ -374,12 +417,20 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #grid size
   grid_size=ceiling(sqrt(length(names(cvfit_final_list))))
   
-  pdf(file = paste0(scratch, "Figures/cell_group_reg_coeffs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
   do.call(grid.arrange, c(plots, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
-  pdf(file = paste0(scratch, "Figures/cell_group_reg_coeffs_new_motifs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_new_motifs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
   do.call(grid.arrange, c(plots_new, ncol = grid_size, top=cell_type_group))  
+  dev.off()
+  
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_top_motifs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots_top, ncol = grid_size, top=cell_type_group))  
+  dev.off()
+  
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_new_top_motifs/",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots_top_new, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
   
@@ -387,6 +438,8 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #Scores
   plots=list()
   plots_new=list()
+  plots_top=list()
+  plots_top_new=list()
   options(ggrepel.max.overlaps = Inf)
   
   for(cell_type in names(cvfit_final_list_maxscore) ){
@@ -419,6 +472,44 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
            x="Features sorted by importance",y="Regression coefficient", color="New motif")+
       theme_minimal()
     
+    
+    # Top ten most and least predictive motifs
+    
+    top_coef <- regression_coef %>%
+      arrange(desc(coef)) %>%
+      slice(1:10)
+    
+    bottom_coef <- regression_coef %>%
+      arrange(coef) %>%
+      slice(1:10)
+    
+    plots_top[[cell_type]]=ggplot(regression_coef, aes(x=order, y=coef)) +
+      geom_point(aes(color=new_motif)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+      geom_text_repel(data=top_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      geom_text_repel(data=bottom_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      labs(title=cell_type,
+           x="Features sorted by importance", y="Regression coefficient", color="New motif") +
+      theme_minimal()
+    
+    # Top ten most predictive new motifs
+    
+    top_coef <- regression_coef %>% filter(name %in% (representatives %>% filter(new_motif==TRUE) %>% pull(ID) )) %>%
+      arrange(desc(coef)) %>%
+      slice(1:10)
+    
+    plots_top_new[[cell_type]]=ggplot(regression_coef, aes(x=order, y=coef)) +
+      geom_point(aes(color=new_motif)) +
+      scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+      geom_text_repel(data=top_coef, aes(label=symbol, color=new_motif), box.padding=0.5) +
+      labs(title=cell_type,
+           x="Features sorted by importance", y="Regression coefficient", color="New motif") +
+      theme_minimal()
+    
+    
+    
+    
+    
     plots_new[[cell_type]]=ggplot(regression_coef,aes(x=order, y=coef))+geom_point(aes(color = new_motif))+
       scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black"))+
       #geom_text_repel(data=subset(regression_coef, coef > 0.025, max.overlaps=Inf), aes(label=symbol), box.padding=0.5)+
@@ -438,19 +529,25 @@ cell_type_groups[["GI Epithelial"]]=c("Paneth Cell",
   #grid size
   grid_size=ceiling(sqrt(length(names(cvfit_final_list_maxscore))))
   
-  pdf(file = paste0(scratch, "Figures/cell_group_reg_coeffs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
   do.call(grid.arrange, c(plots, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
-  pdf(file = paste0(scratch, "Figures/cell_group_reg_coeffs_new_motifs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_new_motifs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
   do.call(grid.arrange, c(plots_new, ncol = grid_size, top=cell_type_group))  
   dev.off()
   
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_top_motifs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots_top, ncol = grid_size, top=cell_type_group))  
+  dev.off()
   
+  pdf(file = paste0(scratch, "Figures_version2.2/cell_group_reg_coeffs_new_top_motifs/scores_",cell_type_group,".pdf"), width=4*grid_size, height=4*grid_size )
+  do.call(grid.arrange, c(plots_top_new, ncol = grid_size, top=cell_type_group))  
+  dev.off()
   
 #}
 
 
-save.image(paste0( data_path, "ATAC-seq-peaks/RData/logistic_regression_processed_",cell_type_group,".RData"))
-stop()
+save.image(paste0( data_path, "ATAC-seq-peaks/RData_logistic_regression_version2.2/logistic_regression_processed_",cell_type_group,".RData"))
+
 

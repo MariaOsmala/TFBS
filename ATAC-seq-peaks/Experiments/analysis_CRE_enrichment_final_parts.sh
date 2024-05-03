@@ -4,14 +4,18 @@
 #SBATCH --output=outs/parts_CRE_enrichment_%A_%a.txt
 #SBATCH --error=errs/parts_CRE_enrichment_%A_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=12:00:00
+#SBATCH --time=06:00:00
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem-per-cpu=100G
-#SBATCH --array=1 #1:394
+#SBATCH --array=301-394 #1:394
 
-#21291104_[1]
+#1 OK
+#21360459 2-100 #OK
+#21360462 101-200 #OK
+#21360464 201-300 #OK
+# 21360466 301-394 #OK
 
 # Load r-env
 #module load r-env/421

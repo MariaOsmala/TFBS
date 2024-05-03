@@ -1,15 +1,18 @@
 #install.packages("ggseqlogo")
 library("ggseqlogo")
-library("motifStack")
+
 library("ggplot2")
 library("readr")
 
 #make directories
+.libPaths("/projappl/project_2006203/project_rpackages_4.2.1/")
+library("motifStack")
 
-#setwd("/projappl/project_2006203/TFBS/RProjects/TFBS")
+
+setwd("/projappl/project_2006203/TFBS/RProjects/TFBS")
 
 data_path="/scratch/project_2006203/TFBS"
-data_path="/Users/osmalama/projects/TFBS"
+#data_path="/Users/osmalama/projects/TFBS"
 
 dir.create(file.path(data_path, "PWMs_final_version2.2/Logos_final"), showWarnings = FALSE)
 dir.create(file.path(paste0(data_path, "/PWMs_final_version2.2/Logos_final"), "pdf"), showWarnings = FALSE)
@@ -37,9 +40,11 @@ pcm_list<-TFBSTools::PFMatrixList()
 pwm_list<-TFBSTools::PWMatrixList()
 
 
-representatives <- read_delim("~/projects/TFBS/PWMs_final_version2.2/metadata_3993_motifs.csv", 
-                       delim = "\t", escape_double = FALSE, 
-                       trim_ws = TRUE)
+#representatives <- read_delim("~/projects/TFBS/PWMs_final_version2.2/metadata_3993_motifs.csv", 
+#                       delim = "\t", escape_double = FALSE, 
+#                       trim_ws = TRUE)
+representatives <- read_delim("/projappl/project_2006203/TFBS/PWMs_final_version2.2/metadata_3993_motifs.csv", 
+                              delim="\t", escape_double = FALSE, trim_ws = TRUE)
 
 
 for(i in 1:nrow(representatives)){
