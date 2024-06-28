@@ -11,12 +11,12 @@ library("igraph")
 library("readr")
 
 TFBS_path="/Users/osmalama/projects/TFBS/"
-representatives <- read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/","metadata_representatives.tsv"), col_names=TRUE)
+representatives <- read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/","new_composites_representatives.tsv"), col_names=TRUE)
 
 n=nrow(representatives)
 n*(n-1)/2
 
-df_motifsimilarity=read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/", "sstat.tsv")) #7732278 rows
+df_motifsimilarity=read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/", "sstat_new_composites.tsv")) #639 015
 
 sim_lt=pivot_wider(df_motifsimilarity, id_cols="Query_ID",
                    names_from="Target_ID", values_from="Ssum")
@@ -56,9 +56,10 @@ plot(g)
 
 
 #representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/motifsimilarity_05_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
-representatives <- as.list(read.table("../../SELEX-Dominating-Set-Analysis/solutions/SELEX_all_version2.2_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
+representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/SELEX_new_composites_version2.2_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
 
 represented_by_representatives=lapply(representatives, function(x, g) neighbors(g, x)$name, g )
+
 names(represented_by_representatives)=representatives
 
 #Remove "nonrepresentatives" that are actually representatives
@@ -84,15 +85,13 @@ processed_list <- lapply(represented_by_representatives, process_vectors)
 
 # Extract cleaned lists and indices separately
 cleaned_list <- lapply(processed_list, `[[`, "cleaned")
-
-table(sapply(represented_by_representatives, length))
 table(sapply(cleaned_list, length))
 
 removed_indices <- lapply(processed_list, `[[`, "removed_indices")
 
 name=names(which(lapply(removed_indices, length)!=0)[1])
 
-removed_indices[[name]]
+#removed_indices[name]
 
 represented_by_representatives[[name]][removed_indices[[name]]] %in% unlist(representatives)
 
@@ -100,9 +99,9 @@ represented_by_representatives=cleaned_list
 
 
 
-saveRDS(represented_by_representatives, file=paste0(TFBS_path,"RProjects/TFBS/RData/represented_by_representatives_version2.2.RDS"))
+saveRDS(represented_by_representatives, file="RData/represented_by_representatives_version2.2_new_composites.RDS")
 
-names(represented_by_representatives)=representatives
+
 
 # Convert the list to a tibble
 df <- tibble::enframe(represented_by_representatives, name = "representative", value = "represented")
@@ -127,5 +126,7 @@ representatives_in_unrepresentatives=unlist(representatives)[which(unlist(repres
 
 tmp2[is.na(tmp2)] <- ""
 
-write.table(tmp2, file=paste0(TFBS_path, "PWMs_final_version2.2/","sstat_represented_by_representatives.tsv"), row.names = FALSE, col.names = FALSE, sep="\t")
+write.table(tmp2, file=paste0(TFBS_path, "PWMs_final_version2.2/","sstat_represented_by_representatives_new_composites.tsv"), 
+            row.names = FALSE, col.names = FALSE, sep="\t")
 
+hist(sapply(represented_by_representatives, length)+1)

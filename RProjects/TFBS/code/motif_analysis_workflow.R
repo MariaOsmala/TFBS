@@ -16,7 +16,7 @@ TFBS/RProjects/TFBS/code/extract_motifs_from_excel_Yin2017.R
 TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_union_version1_version2.R
 #creates /projects/TFBS/PWMs_final_union/fromYimeng/metadata.csv"
 
-TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_union_version2.2.R
+TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_version2.2.R
 #creates /projects/TFBS/PWMs_final_version2.2/fromYimeng/metadata.csv"
 
 TFBS/RProjects/TFBS/code/collect_all_motif_metadata.R
@@ -29,6 +29,18 @@ TFBS/RProjects/TFBS/code/collect_all_motif_metadata.R
 TFBS/RProjects/TFBS/code/motifs_logos_better.R
 #TFBS/RProjects/TFBS/code/motif_logos_better_version1_version2_union.R #run this
 TFBS/RProjects/TFBS/code/motif_logos_better_version2.2.R
+
+#Spacek
+#~/spacek/Experiments/draw_logos.sh
+
+#Artificial half-site logoes
+
+~/projects/TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_artificial_halfsites.R
+
+#Then need to compute the tomtom similarities between there and all other motifs
+
+
+
 ########## Similarity scores ########################
 
 # MOtifSTAtistic Software Suite v1.1 (MOSTA-SSTAT)  http://mosta.molgen.mpg.de/material/mosta.tar.gz 
@@ -352,9 +364,8 @@ i=./PWMs_final/all.scpd
 
 scpd2meme ./PWMs_final/all.scpd -pseudo 1 > ./PWMs_final/all.meme
 
-# /projappl/project_2006203/TFBS/Experiments/tomtom_manual.sh #Try to different parameters
 
-tomtom -dist kullback -motif-pseudo 0.1 -text -min-overlap 1 
+/projappl/project_2006203/TFBS/Experiments/tomtom_manual_play_with_parameters.sh
 #Relaxed
 tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1
 ########## Motif matching ########################
@@ -433,9 +444,10 @@ moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $S
 /projappl/project_2006203/TFBS/RProjects/TFBS/sessionInfos/sessionInfo_MOODS_results_to_database.txt
 
 # Match numbers and MOODS threshold to obtain the match numbers, add to the metadata
-# Uncommented lines in this code
-# Motif enrichment at cCREs, only representative motifs
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final.R
+# Extract also the mean PhyloP thresholds for the conservation analysis
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/process_and_analyse_top_MOODS_hits.R
+
 
 ################ Dominating set analysis #################
 #This is perl 5, version 34, subversion 1 (v5.34.1) built for darwin-thread-multi-2level
@@ -455,11 +467,23 @@ TFBS/RProjects/TFBS/code/motifs_represented_by_representatives.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/download.sh
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/sets_of_accessible_regions.R
 
+# Motif enrichment at cCREs, only representative motifs
+#/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final.R
+
 # Enrichment of all motifs at cCREs, not just representative
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/analysis_CRE_enrichment_final.sh
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_all_motifs.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/FishersExact.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_enrichment_at_CREs_final_all_motifs.txt
+
+#bHLH-homeodomain only
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain_only.R
+
+#The codes below are faster
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/analysis_CRE_enrichment_final_parts.sh
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_all_motifs_parts.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/collect_enrichment_at_CREs_final_all_motifs_parts.R
+
 
 # Draw heatmaps of the data and count the number of enriched composite and spacing motifs (not well-structured code)
 # Only for representative motifs
@@ -468,12 +492,16 @@ TFBS/RProjects/TFBS/code/motifs_represented_by_representatives.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/analyse_TF_enrichment_heatmap_final.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/cell_type_names.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_analyse_TF_enrichment_heatmap_final.txt
 
 # Figure 6d
 
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain.R
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_enrichment_at_CREs_final_bHLH_homeodomain.txt
+
+#This is for the last version of the figure
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain_representatives.R
 
 
 ################ Logistic regression analysis of motif matches at cCREs #################
@@ -553,10 +581,11 @@ project_2007567/Experiments/download_phyloP.sh
 # Conservation analysis of all motifs
 /projappl/project_2007567/Experiments/run_conservation_thresholds_of_motif_matches.sh
 /projappl/project_2007567/code/conservation_thresholds_of_motif_matches.R
+/projappl/project_2007567/code/Gaussian_Mixture.R
 
 /projappl/project_2007567/Experiments/run_conservation_analysis_of_motif_matches.sh
 /projappl/project_2007567/code/conservation_analysis_of_motif_matches.R
-/projappl/project_2007567/code/Gaussian_Mixture.R
+
 /projappl/project_2007567/sessionInfos/sessionInfo_conservation_analysis_of_motif_matches.txt
 
 # Draw figures for monomers and heterodimers, looks similar than previously

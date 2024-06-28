@@ -111,6 +111,8 @@ saveRDS(artificial_all, file="RData/artificial_version2.2.Rds")
 
 stop()
 
+artificial_version2.2 <- readRDS("~/projects/TFBS/RProjects/TFBS/RData/artificial_version2.2.Rds")
+
 #Do we have artifical motifs for all true motifs
 
 files=strsplit(dir("~/projects/TFBS/PWMS_final_version2.2/artificial_motifs_transfac/"), "_")

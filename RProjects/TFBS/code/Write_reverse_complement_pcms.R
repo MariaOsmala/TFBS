@@ -1,7 +1,7 @@
 library(readr)
 
 
-metadata <- read_delim("~/projects/TFBS/PWMs_final/metadata_representatives.tsv", 
+metadata <- read_delim("~/projects/TFBS/PWMs_final_version2.2/metadata_representatives.tsv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE)
 
@@ -34,7 +34,7 @@ for(i in 1:nrow(metadata)){
   #i=612 Nkx6-1 not palindromic
   #i=501 En2 is palindromic
   #which(abs(metadata$revcomp_kldivergence-3)< 0.5)
-  metadata$seed[which(metadata$revcomp_kldivergence<3)]
+  #metadata$seed[which(metadata$revcomp_kldivergence<3)]
   #i=66 CUX1
   #i=68 CUX2
   #i=95 ERG, not palindromic
@@ -90,8 +90,8 @@ for(i in 1:nrow(metadata)){
   metadata$revcomp_kldivergence[i]=kl_divergence1
   
   
-  #write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_final/space/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-  #write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_final/tab/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+  write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_version2.2/space/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+  write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_version2.2/tab/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
   
   
   
@@ -141,7 +141,7 @@ for(i in 1:nrow(metadata)){
   
 }
 
-write.table(metadata, "~/projects/TFBS/PWMs_final/metadata_representatives_revcomp_kldiv.tsv", sep="\t", quote=FALSE, row.names=FALSE)
+write.table(metadata, "~/projects/TFBS/PWMs_final_version2.2/metadata_representatives_revcomp_kldiv.tsv", sep="\t", quote=FALSE, row.names=FALSE)
 
 
 
