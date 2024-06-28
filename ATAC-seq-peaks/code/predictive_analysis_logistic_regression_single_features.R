@@ -169,7 +169,7 @@ random_seed=sample(1:100,1)
 print(paste0("seed: ", random_seed))
 set.seed(random_seed)
 
-for(ind in 1:nrow(presence_sparse)){
+for(ind in 1:ncol(presence_sparse)){
   print(ind)
   class1_folds <- createFolds(which(Class==1), k = 5)
   class2_folds <- createFolds(which(Class==0), k = 5)

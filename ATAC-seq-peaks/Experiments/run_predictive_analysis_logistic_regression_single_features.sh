@@ -11,7 +11,8 @@
 #SBATCH --mem-per-cpu=200G #3G with database
 #SBATCH --array=1-2 #1-111
 
-# 21445366_1-2
+
+#21450805_[1-2] 
 
 # Load r-env
 module load r-env/430

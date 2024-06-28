@@ -13,7 +13,8 @@
 FishersExact <- function(k,n,m,N){
   e = log2( (k / n) / (m / N) )
   
-  Nm=N-m
+  Nm=N-m #Number of all enhancers without a motif? Number of failures in the whole population
+  #
   
   #k=oFg_hs - 1, m=oBg_hs, N-m=nBg_hs - oBg_hs n= nFg_hs
   
@@ -30,13 +31,15 @@ FishersExact <- function(k,n,m,N){
     
     #The logarithm log_b(x) log_10(x) can be computed from he logarithms of x and b with respect to an arbitrary base k:
     #log_b(x)=log_e(x)/log_e(b) #log_10(p)=log_e(p)/log_e(10), phyper returns log_e(p)
-    p <- phyper(k - 1, n, Nm, m, lower.tail=F, log.p=T) / log(10)
+    #p <- phyper(k - 1, n, Nm, m, lower.tail=F, log.p=T) / log(10) THIS IS WRONG!
+    #SHOULD BE!
+    p=phyper(k - 1, m, N-m, n, lower.tail=F, log.p=T) / log(10) #-1220.637
     
   }else{
     # lower.tail=TRUE (default), probabilities are P[X<=k], otherwise, P[X > k].
     #k in 0, ..., n
     # Why the lower tail TRUE? Should be false?
-    p <- phyper(k, n, Nm, m, lower.tail=T, log.p=T) / log(10)
+    p <- phyper(k, m, Nm, n, lower.tail=T, log.p=T) / log(10)
   }
   
   fe<-list()

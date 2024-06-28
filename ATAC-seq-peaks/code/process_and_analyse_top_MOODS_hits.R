@@ -24,7 +24,7 @@ rep_motifs=representatives$ID[which(representatives$new_representative=="YES")]
 #grep("CTCF",rep_motifs) CTCF is in representative motif
 
 length(unique(rep_motifs))
-#1031
+#1232
 
 top_motif_matches_human_final=readRDS(file="/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/top_motif_matches_human_final_version2.2.Rds") # 
 
@@ -32,14 +32,11 @@ print(length(top_motif_matches_human_final))
 
 print(head(names(top_motif_matches_human_final)[which(!(names(top_motif_matches_human_final) %in% representatives$ID))]))
 
-#missing=representatives$ID[which(!(representatives$ID %in% names(top_motif_matches_human_final) ))] #170
 
+#match_numbers=unlist(lapply(top_motif_matches_human_final, length))
+#saveRDS(match_numbers,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_top_motif_matches_human_final_version2.2.Rds") 
 
-
-match_numbers=unlist(lapply(top_motif_matches_human_final, length))
-saveRDS(match_numbers,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_top_motif_matches_human_final_version2.2.Rds") 
-
-#match_numbers=readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_top_motif_matches_human_final_version2.2.Rds")
+match_numbers=readRDS("/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/match_numbers_top_motif_matches_human_final_version2.2.Rds")
 
 
 df=data.frame(ID=names(match_numbers),match_numbers=as.vector(match_numbers))
@@ -49,7 +46,7 @@ merged_representatives <- merge(representatives, df[,c('ID','match_numbers')], b
 
 #Minimum integer threshold used to call the motifs
 
- floor(min(top_motif_matches_human_final[[1]]$score))
+floor(min(top_motif_matches_human_final[[1]]$score))
  f1 <- function(x) floor(min(x$score))
  thresholds=lapply(top_motif_matches_human_final, f1) #, simplity="array"
 # 
@@ -57,11 +54,10 @@ merged_representatives <- merge(representatives, df[,c('ID','match_numbers')], b
 # 
  merged_representatives2 <- merge(merged_representatives, df[,c('ID','threshold')], by = 'ID', all.x = TRUE)
 # 
- write.table(merged_representatives2, "../../PWMs_final_version2.2/metadata_representatives_match_numbers_thresholds.tsv",sep="\t", 
-             col.names=TRUE, row.names=FALSE) #3294
+ write_tsv(merged_representatives2, "../../PWMs_final_version2.2/metadata_representatives_match_numbers_thresholds.tsv") #3294
 # 
 
-
+saveRDS(merged_representatives2,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/metadata_representatives_match_numbers_thresholds.Rds") 
 
 #Motif number distribution
 pdf(file = paste0(data_path, "ATAC-seq-peaks/Figures/motif-match-number-distribution-final_version2.2.pdf" ))
@@ -94,5 +90,25 @@ ggplot(df, aes(x=match_nro)) + geom_histogram(color="black", fill="white",aes(y 
   labs(x='Number of matches', y='Frequency', title='Histogram of motif match numbers, top 300000 with threshold 2, binwidth 20000')+ theme_minimal()
 dev.off()
 
+# Add mean PhyloP threshold for conservation
 
+representatives=read_tsv( "/projappl/project_2006203/TFBS/PWMs_final_version2.2/metadata_representatives_match_numbers_thresholds.tsv") #3294
+
+representatives$phyloP_threshold=NA
+
+files=dir("/scratch/project_2007567/conservation_thresholds_final_version2.2")
+for(file in files){
+  #file=files[1]
+  
+  ID=gsub(".csv", "",file)
+  thresholds=as.data.frame(read_delim(paste0("/scratch/project_2007567/conservation_thresholds_final_version2.2/", file), delim=" "))
+  print(which(representatives$ID==ID))
+  representatives$phyloP_threshold[which(representatives$ID==ID)]=thresholds$conservation_threshold_signif
+  
+}
+
+write_tsv(representatives, "../../PWMs_final_version2.2/metadata_representatives_match_numbers_thresholds_MeanPhyloP_threshold.tsv") #3294
+# 
+
+saveRDS(representatives,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/metadata_representatives_match_numbers_thresholds_MeanPhyloP_threshold.Rds") 
 

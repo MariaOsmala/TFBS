@@ -39,8 +39,8 @@ source("../code/heatmap_motor.R")
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
-Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
-                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
+#Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
+#                                      delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 
 #typo
@@ -286,10 +286,29 @@ bHLHhomeo_reps=bHLHhomeo %>% filter(new_representative=="YES") #13
 
 bHLHhomeo_reps=rbind(bHLHhomeo_reps, bHLHhomeo_all %>% filter(ID %in% missing_reps) ) #15
 
+bHLHhomeo_reps$ID
+
+#Remove
+#Human TALE (Three Amino acid Loop Extension) homeobox genes for an "atypical" homeodomain
+#"BHLHE22_TGIF2LX_TAACAG40NGGC_YVII_NCATATGNNNNNTGTCAN_m1_c3b0" TGIF2LX is TALE? Homeobox; TALE-type 
+#"ATOH1_HOXC10_TTCGGG40NGAG_YAEIII_NYMRTAAANNNNNCATATGN_m1_c3b0" 
+#"HOXD10_TFEC_TAGCTG40NCTA_YAGIIII_MRTAAANNNNNNNCACGTG_m1_c3b0"
+
+
+remove_ind=which(bHLHhomeo_reps$ID %in% c("BHLHE22_TGIF2LX_TAACAG40NGGC_YVII_NCATATGNNNNNTGTCAN_m1_c3b0",
+"ATOH1_HOXC10_TTCGGG40NGAG_YAEIII_NYMRTAAANNNNNCATATGN_m1_c3b0", 
+"HOXD10_TFEC_TAGCTG40NCTA_YAGIIII_MRTAAANNNNNNNCACGTG_m1_c3b0"))
+
+bHLHhomeo_reps=bHLHhomeo_reps[-remove_ind,] #12
+
+
 final_matrix=p_matrix_depleted[ which(rownames(p_matrix_depleted) %in% bHLHhomeo_reps$ID), ]
 
 #remove uninteresting cells
 final_matrix=final_matrix[,-which( colSums( ( abs(final_matrix) < 50  | (final_matrix < 0) ) )== nrow(final_matrix) )]
+
+
+
 
 #Convert the motif names (row labels) name + 5th column, Ns shortened
 my_list=strsplit(rownames(final_matrix), "_")
@@ -456,39 +475,31 @@ rcl.list <- row_order(ht_list)  #Extract clusters (output is a list)
 
 rownames(final_matrix[rcl.list,])
 
-row_order=c(  "BHLHB8_ISX_NTAATTR4NCAKMTGN", 
-              "ATOH1_HOXB5_NTAATTA4NCAKMTGN",
-              "HOXB2_TCF3_NCACCTG5NMATTA",  
-              "BARHL1_TCF12_NTAATTG4NCACCTGN",
-              "BHLHE22_TGIF2LX_NCATATG5NTGTCAN", #5
-              
-              "BHLHA15_EN2_TAATTA3NCATATG", #6
-  
-              "ATOH1_HOXC10_NYMRTAAA5NCATATGN", #7
-              "NHLH1_EVX2_NMNCAKSTG5NTAATTAN",
-              "OLIG2_EVX2_NTAATTA5NCATATGN", #9
-            
-             
-              
-              "OLIG2_HOXB5_NCATATG6NYMATTAN", #10
-              "ATOH1_EVX2_NTAATTA6NCAKMTGN",
-              "NHLH1_EVX2_NMNCAKSTG6NTAATTAN",
-               "CLOCK_ISL2_NCAMTTA6NCACGTGN" , #13
-          
-            "HOXD10_TFEC_MRTAAA7NCACGTG",
-            
-            "NHLH1_HOXD8_NCASCTG8NYAATTRN")
+row_order=c("BHLHA15_EN2_TAATTA3NCATATG",  #3
+
+"BHLHB8_ISX_NTAATTR4NCAKMTGN",  
+"ATOH1_HOXB5_NTAATTA4NCAKMTGN", #4
+"HOXB2_TCF3_NCACCTG5NMATTA",  
+"BARHL1_TCF12_NTAATTG4NCACCTGN",
+
+"NHLH1_EVX2_NMNCAKSTG5NTAATTAN", #5
+"OLIG2_EVX2_NTAATTA5NCATATGN", 
+
+"OLIG2_HOXB5_NCATATG6NYMATTAN",  #6
+"ATOH1_EVX2_NTAATTA6NCAKMTGN",  
+"NHLH1_EVX2_NMNCAKSTG6NTAATTAN",
+"CLOCK_ISL2_NCAMTTA6NCACGTGN", 
+
+"NHLH1_HOXD8_NCASCTG8NYAATTRN") #8
 
 
+row_split = rep("6", length(row_order))
+row_split[1] = "3"
+row_split[2:5]="4"
+row_split[6:7]="5"
+row_split[12]="8"
 
-row_split = rep("5", length(row_order))
-row_split[1:5] = "4"
-row_split[6]="3"
-row_split[10:13]="6"
-row_split[14]="7"
-row_split[15]="8"
-
-row_split=factor(row_split, levels=c("4", "3", "5", "6","7", "8"))
+row_split=factor(row_split, levels=c("3", "4", "5", "6", "8"))
 
 final_matrix=final_matrix[row_order,]
 
@@ -513,6 +524,12 @@ ct_group_names=names(cell_type_groups)[apply(sapply(colnames(final_matrix),
 
 #One needs to order the row_name_info also
 row_name_info=row_name_info[match( row_order,row_name_info$new_name_full),]
+
+#Set symbols as rownames
+
+rownames(final_matrix)=paste0(row_name_info$V1, "_",row_name_info$V2)
+
+
 #Highlight new representative motifs by bold font
 bold=representatives$study[match(row_name_info$ID, representatives$ID)]
 row_name_fontfaces <- ifelse(bold %in% c("fromYimeng"), "bold", "plain")
@@ -533,6 +550,11 @@ image_pdf= paste0("/scratch/project_2006203/TFBS/PWMs_final_version2.2/Logos_fin
 
 #Draw also reverse complements
 image_svg = paste0("/scratch/project_2006203/spacek/Figures_version2.2_Logos/svg/", row_name_info$ID, ".svg")
+
+image_revcomp_svg = paste0("/scratch/project_2006203/spacek/Figures_version2.2_rev_comp_Logos//svg/", row_name_info$ID, ".svg")
+
+image_svg[c(4,6,8,10,12)]=image_revcomp_svg[c(4,6,8,10,12)]
+
 
 # we only draw the image annotation for PNG images, while the others are the same
 #install.packages("grImport2")

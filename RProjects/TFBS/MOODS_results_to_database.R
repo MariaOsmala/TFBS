@@ -62,6 +62,7 @@ gtf<-readRDS("RProjects/TFBS/gtf.Rds")
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_human_final/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results//MOODS_human_final_union/" 
 MOODS_path="/scratch/project_2006203/TFBS/Results//MOODS_human_final_version2.2_correct/" 
+
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39/"
 
 
