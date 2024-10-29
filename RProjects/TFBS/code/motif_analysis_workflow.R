@@ -448,6 +448,11 @@ moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $S
 
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/code/process_and_analyse_top_MOODS_hits.R
 
+# Match artificial motifs to the genome
+/projappl/project_2006203/TFBS/Experiments/run_MOODS_artificial_motifs.sh
+/projappl/project_2006203/TFBS/Experiments/MOODS_artificial_motifs.sh
+/projappl/project_2006203/TFBS/Experiments/MOODS_artificial_motifs_artificialHTSELEX_halfsites.sh
+
 
 ################ Dominating set analysis #################
 #This is perl 5, version 34, subversion 1 (v5.34.1) built for darwin-thread-multi-2level
@@ -558,6 +563,13 @@ TFBS/RProjects/TFBS/code/motifs_represented_by_representatives.R
 TFBS/RProjects/TFBS/code/half_site_recognition_in_motifs_and_artificial_spacing.R
 TFBS/RProjects/TFBS/code/half_site_recognition_functions.R
 
+#Utilise the core 6mers to define the spacing between monomers in heterodimers and
+#compare to the spacing and orientations in the k-mer counts table
+
+TFBS/RProjects/TFBS/code/kmer_frequency_table_analysis_better.R
+TFBS/RProjects/TFBS/code/kmer_frequency_table_analysis_better.R
+TFBS/RProjects/TFBS/code/kmer_position_in_heterodimers.R
+
 # Generate artificial motifs
 TFBS/RProjects/TFBS/code/generate_artificial_motifs.R
 TFBS/RProjects/TFBS/code/artificial_motif_functions.R
@@ -570,7 +582,10 @@ project_2007567/Experiments/download_human_constrained_elements.sh
 project_2007567/Experiments/download_phyloP.sh
 
 #This is the conservation score track used in the experiments
-/scratch/project_2007567/phyloP/241-mammalian-2020v2.bigWig
+#Wrong!:/scratch/project_2007567/phyloP/241-mammalian-2020v2.bigWig #likely contains some extra chromosomes?
+
+#This is the correct one: /scratch/project_2007567/phyloP/cactus241way.phyloP.bw
+#This is much smaller in size than the above one 
 
 #Define repeats
 /projappl/project_2007567/RProject/extract_Repeats.R
@@ -581,6 +596,7 @@ project_2007567/Experiments/download_phyloP.sh
 # Conservation analysis of all motifs
 /projappl/project_2007567/Experiments/run_conservation_thresholds_of_motif_matches.sh
 /projappl/project_2007567/code/conservation_thresholds_of_motif_matches.R
+/projappl/project_2007567/code/conservation_thresholds_of_artificialHTSelex_motif_matches.R #artificial half-sites
 /projappl/project_2007567/code/Gaussian_Mixture.R
 
 /projappl/project_2007567/Experiments/run_conservation_analysis_of_motif_matches.sh
@@ -599,5 +615,40 @@ project_2007567/Experiments/download_phyloP.sh
 
 # Conservation analysis of spacing motif matches
 
+/projappl/project_2007567/Experiments/run_conservation_analysis_of_spacing_motifs.sh
+/projappl/project_2007567/code/conservation_analysis_of_manually_annotated_spacing_motif_matches.R
 
 
+#Better spacing motif conservation analysis 
+#Prepare data table
+/projappl/project_2007567/RProject/spacing_motifs/code/prepare_spacing_motif_conservation_experiments_for_batch_array.R
+
+#prepare the TF matches
+/projappl/project_2007567/RProject/spacing_motifs/experiments/run_extract_TFBS_true_and_control.sh
+/projappl/project_2007567/RProject/spacing_motifs/code/extract_TFBS_true_and_control.R
+
+#Extract the TF match pairs in all possible orientations and spacings 
+
+/projappl/project_2007567/RProject/spacing_motifs/experiments/generate_batch_array_scripts.R
+/projappl/project_2007567/RProject/spacing_motifs/code/extract_matches_of_TF_pairs.R
+
+#The conservation analysis 
+/projappl/project_2007567/RProject/spacing_motifs/code/conservation_analysis_of_artificial_spacing_motif_matches_startFrom_frequencyTable.R
+
+#Create igv sessions of motif matches and evolutionary conservation
+#First sort the bed files, IS THIS NECESSARY? Then move these to mac
+/projappl/project_2006203/TFBS/Experiments/bed_to_bigbed.sh
+
+#PhyloP scores from UCSC, significantly conserved regions from Zoonomia
+
+#Convert conservation track to hg19
+
+#Convert motif matches to hg19
+
+#The mus musculus conservation track is in mm10, convert to other mouse versions?
+
+#Convert mouse motif matches to mm10
+
+#Enhancer coordinates in various formats
+#Human hg38, hg19
+#Mouse mm10, mm38
