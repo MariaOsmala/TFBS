@@ -16,6 +16,9 @@
 
 wget https://data.mendeley.com/public-files/datasets/yv4fzv6cnm/files/f6d72be7-0d39-4deb-8e3e-4b021081c5ea/file_downloaded
 #put to Zhang et al Figure 4
+#New links:
+#https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/yv4fzv6cnm-5.zip
+#https://prod-dcd-datasets-cache-zipfiles.s3.eu-west-1.amazonaws.com/yv4fzv6cnm-4.zip
 
 wget -r -np -R "index.html*"  http://renlab.sdsc.edu/kai/LDSC_hg38/example/	#2021-12-11 19:22	-
 wget -r -np -R "index.html*"  http://renlab.sdsc.edu/kai/LDSC_hg38/genome_data/	#2021-12-09 10:34	-

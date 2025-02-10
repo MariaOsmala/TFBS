@@ -536,30 +536,72 @@ table(capselex$switched_order)
 #saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom_version2.2.RDS")
 saveRDS(capselex,file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom_version2.2_artificial_halfsites.RDS")
 
-# capselex_tomtom=capselex
-# capselex_tomtom[which(capselex_tomtom$switched_order), c("first.monomer", "second.monomer")]=capselex_tomtom[which(capselex_tomtom$switched_order), c("second.monomer", "first.monomer")]
-# capselex_tomtom=capselex_tomtom[,c("ID", "first.monomer", "second.monomer")]
+stop()
+
+#In reality 3933 motifs, typo in filename
+metadata <- read_delim("~/projects/TFBS/PWMs_final_version2.2/metadata_representatives.tsv", 
+                       delim = "\t", escape_double = FALSE, 
+                       trim_ws = TRUE)
+
+#Metadata for artificial half sites, 7 motifs
+metadata_halfsites <- read_delim("~/projects/TFBS/PWMs_final_version2.2/fromYimeng/half-site-motifs-20240426/metadata.csv", 
+                                 delim = "\t", escape_double = FALSE, 
+                                 trim_ws = TRUE)
+metadata_halfsites$filename=paste0("../../",metadata_halfsites$filename)
+metadata_halfsites$filename=gsub("half-site-motifs-20240426/","half-site-motifs-20240426/pwms/",metadata_halfsites$filename)
+metadata_halfsites$filename=gsub("_short", "", metadata_halfsites$filename)
+
+
+shared_columns <- intersect(names(metadata), names(metadata_halfsites))
+
+#Combine the two data.frames
+
+metadata <- rbind(metadata[shared_columns], metadata_halfsites[, shared_columns])
+
+#Create a file to draw tomtom figures and spaced alignment figures
+capselex=readRDS(file="/Users/osmalama/projects/TFBS/RProjects/TFBS/RData/half_site_recognition_in_capselex_motifs_relaxed_tomtom_version2.2_artificial_halfsites.RDS")
+
+capselex_tomtom=capselex
+capselex_tomtom[which(capselex_tomtom$switched_order), c("first.monomer", "second.monomer")]=capselex_tomtom[which(capselex_tomtom$switched_order), c("second.monomer", "first.monomer")]
+capselex_tomtom=capselex_tomtom[,c("ID", "first.monomer", "second.monomer")]
 # 
-# matches=match(metadata$ID,capselex_tomtom$ID) 
-# nona_ind=which(!is.na(matches))
+matches=match(metadata$ID,capselex_tomtom$ID) 
+nona_ind=which(!is.na(matches))
 # 
-# capselex_tomtom$filename_dimer=metadata$filename[nona_ind]
+capselex_tomtom$filename_dimer=metadata$filename[nona_ind]
 # 
-# matches=match(capselex_tomtom$first.monomer, metadata$ID) 
-# nona_ind=which(!is.na(matches))
+matches=match(capselex_tomtom$first.monomer, metadata$ID) 
+nona_ind=which(!is.na(matches))
 # 
-# capselex_tomtom$filename_monomer1=metadata$filename[matches]
+capselex_tomtom$filename_monomer1=metadata$filename[matches]
 # 
-# matches=match(capselex_tomtom$second.monomer, metadata$ID) 
-# nona_ind=which(!is.na(matches))
+matches=match(capselex_tomtom$second.monomer, metadata$ID) 
+nona_ind=which(!is.na(matches))
 # 
-# capselex_tomtom$filename_monomer2=metadata$filename[matches]
+capselex_tomtom$filename_monomer2=metadata$filename[matches]
 # 
 # write.table(capselex_tomtom, file="../../PWMs_final_version2.2/metadata_for_tomtom_figures.tsv",quote=FALSE, sep="\t", row.names = FALSE)
 
+#Only new composites
+
+matches=match(metadata$ID,capselex_tomtom$ID) 
+nona_ind=which(!is.na(matches))
+# 
+capselex_tomtom$type=metadata$type[nona_ind]
+
+capselex_tomtom=capselex_tomtom %>% filter(type=="composite") #1131
+
+write.table(capselex_tomtom, file="../../PWMs_final_version2.2/metadata_for_composite_spacek_figures.tsv",quote=FALSE, sep="\t", row.names = FALSE)
+
+test=capselex_tomtom %>% filter(capselex_tomtom$first.monomer !="" & capselex_tomtom$second.monomer !="") #1116
 
 
 
+spacek_data=gsub(".svg","", dir("/Users/osmalama/spacek/Figures_version2.2_composites/") ) #1116
 
+test$ID[which(!(test$ID %in% spacek_data))]
 
+uniq=unique(c(capselex_tomtom$ID, capselex_tomtom$first.monomer, capselex_tomtom$second.monomer))
+
+uniq[which(!(uniq %in% spacek_data))]
 

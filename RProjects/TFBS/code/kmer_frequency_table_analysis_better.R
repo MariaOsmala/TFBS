@@ -94,6 +94,26 @@ ind2=which(paste0(spacing_pairs$TF2,"_", spacing_pairs$TF1) %in% unique(frequenc
 length(intersect(ind1, ind2)) #7
 length(union(ind1, ind2)) #1329
 
+#There is no monomer for all TFs, remove those pairs that have these
+missing_monomers=c("HHEX","BHLHB8",
+"PROX2",
+"NKX2-4",
+"DBX2",
+"BHLHB5",
+"ZBTB33",
+"PBX2",
+"FOXI2",
+"gntR",
+"NKX2-6")
+
+which(spacing_pairs$TF1 %in% missing_monomers) %in% which(spacing_pairs$TF2 %in% missing_monomers) #All false
+which(spacing_pairs$TF2 %in% missing_monomers) %in% which(spacing_pairs$TF1 %in% missing_monomers) #All false
+
+spacing_pairs=spacing_pairs[-which((spacing_pairs$TF1 %in% missing_monomers) | (spacing_pairs$TF2 %in% missing_monomers) ),]#FALSE
+
+table(spacing_pairs$TF1 %in% monomers$symbol)
+table(spacing_pairs$TF2 %in% monomers$symbol)
+
 #For which interacting pairs, the k-mer frequency table is missing
 ind1=which( !(paste0(spacing_pairs$TF1,"_", spacing_pairs$TF2) %in% unique(frequency_table$TF1_TF2) ) & !(paste0(spacing_pairs$TF2,"_", spacing_pairs$TF1) %in% unique(frequency_table$TF1_TF2) ))#TRUE
 length(ind1) #0
@@ -111,7 +131,7 @@ ind1=which(paste0(composite_pairs$TF1,"_", composite_pairs$TF2) %in% unique(freq
 #740
 ind2=which(paste0(composite_pairs$TF2,"_", composite_pairs$TF1) %in% unique(frequency_table$TF1_TF2) )#TRUE
 
-length(intersect(ind1, ind2)) #7
+length(intersect(ind1, ind2)) #0
 length(union(ind1, ind2)) #33
 
 
@@ -178,7 +198,7 @@ experiments_table=data.frame(experiment=experiments, number_of_orientations=NA, 
 options(warn=1)
 i=1
 #which(experiments=="POU3F2_MEIS3_TTGTCC40NTAG_YRIIII")
-for(ex in experiments){
+for(ex in experiments){ #1394
   #ex=experiments[i]
   print(ex)
   data=frequency_table %>% filter(ID==ex) %>% select(-ID)

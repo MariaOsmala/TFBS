@@ -27,7 +27,6 @@ compute_kl_divergence <- function(P, Q) {
 
 
 
-
 for(i in 1:nrow(metadata)){
   #i=1 BCL6B
   #i=326 MAX 0.76
@@ -39,7 +38,7 @@ for(i in 1:nrow(metadata)){
   #i=68 CUX2
   #i=95 ERG, not palindromic
   print(i)
-  pcm=as.matrix( read.table(paste0( metadata$filename[i]), header=FALSE) )
+  pcm=as.matrix( read.table(paste0("~/projects/TFBS/", gsub("../../", "", metadata$filename[i])), header=FALSE) )
   dimnames(pcm)=list(c("A", "C", "G", "T"))
   
   # Make reverse complement
@@ -64,7 +63,8 @@ for(i in 1:nrow(metadata)){
   
   
   
-  pwm_class_orig <- TFBSTools::toPWM(pcm_class_orig, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+  pwm_class_orig <- TFBSTools::toPWM(pcm_class_orig, type="prob", 
+                                     pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
 
 
   pcm_class_revcomp <- TFBSTools::PFMatrix(strand="+",
@@ -76,7 +76,8 @@ for(i in 1:nrow(metadata)){
   
   
   
-  pwm_class_revcomp <- TFBSTools::toPWM(pcm_class_revcomp, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+  pwm_class_revcomp <- TFBSTools::toPWM(pcm_class_revcomp, type="prob", 
+                                        pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
   
   
   #Compute the KL-divergence between the original and the reverse complement
@@ -90,54 +91,9 @@ for(i in 1:nrow(metadata)){
   metadata$revcomp_kldivergence[i]=kl_divergence1
   
   
-  write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_version2.2/space/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-  write.table(pcm_rev_comp, file=paste0("../../PWMs_revcomp_version2.2/tab/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+  write.table(pcm_rev_comp, file=paste0("~/projects/TFBS/PWMs_final_version2.2/PWMs_revcomp_version2.2/space/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+  write.table(pcm_rev_comp, file=paste0("~/projects/TFBS/PWMs_final_version2.2/PWMs_revcomp_version2.2/tab/",metadata$ID[i], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
   
-  
-  
-  #Probability matrices
-  #png(paste0(data_path,"/Logos_final2/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
-  #print(motifStack::plotMotifLogo( pwm_class_orig@profileMatrix, motifName=metadata$symbol[i], ic.scale = FALSE,
-  #                                 ylab="probability", font="mono,Courier", fontface = "bold"))
-
-  #print(motifStack::plotMotifLogo( pwm_class_revcomp@profileMatrix, motifName=metadata$symbol[i], ic.scale = FALSE,
-   #                                ylab="probability", font="mono,Courier", fontface = "bold"))
-
-  #dev.off()
-  
-  # pdf(paste0(data_path,"/Logos_final2/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
-  # print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = FALSE, 
-  #                                  ylab="probability", font="mono,Courier", fontface = "bold"))
-  # dev.off()
-  
-  # Available ggseqlogo fonts:
-  #   helvetica_regular
-  # helvetica_bold
-  # helvetica_light
-  # roboto_medium
-  # roboto_bold
-  # roboto_regular
-  # akrobat_bold
-  # akrobat_regular
-  # roboto_slab_bold
-  # roboto_slab_regular
-  # roboto_slab_light
-  # xkcd_regular
-  
-  # library("ggplot2")
-  # png(paste0(data_path,"/Logos_final/png/prob/",representatives$ID[i],".png"), res=600,  width = 2500/4*representatives$length[i], height = 2500)
-  # print(ggplot() + ggseqlogo::geom_logo(  pwm_class_orig@profileMatrix, method="probability", font="roboto_slab_regular", col_scheme="auto"  ) + 
-  #         ggseqlogo::theme_logo()  +
-  #         labs(title=metadata$symbol[i])+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
-  # 
-  # dev.off()
-  
-  
-  # pdf(paste0(data_path,"/Logos_final/pdf/prob/",representatives$ID[i],".pdf"), width =representatives$length[i], height = 4)
-  # print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
-  #         ggseqlogo::theme_logo()  +
-  #         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
-  # dev.off()
   
 }
 
@@ -154,6 +110,6 @@ library(dplyr)
 hist(metadata$revcomp_kldivergence[which(metadata$new_representative=="YES")], breaks=0:263, xlim=c(0,20))
 
 metadata$symbol[which(metadata$new_representative=="YES" & metadata$revcomp_kldivergence<3 & metadata$experiment=="HT-SELEX")]
-metadata$seed[which(metadata$new_representative=="YES" & (metadata$revcomp_kldivergence<3) & metadata$experiment=="HT-SELEX")]
+metadata$consensus[which(metadata$new_representative=="YES" & (metadata$revcomp_kldivergence<3) & metadata$experiment=="HT-SELEX")]
 
 which(abs(metadata$revcomp_kldivergence-4)< 0.5)

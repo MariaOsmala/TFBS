@@ -264,7 +264,7 @@ find_monomer_match_kmer <- function(monomer, monomers, six_mer) {
   
   
   #Include also mouse motifs, do not mind about the upper/lowercase characters in the name
-  mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),]
+  mono1=monomers[grep(monomer, monomers$symbol, ignore.case=TRUE),] #4
   
   #There can be representative dimers, remove those
   if(length(which(mono1$type %in% c( "dimeric", "monomeric or dimeric", "dimer of dimers", "putative multimer", "monomer or dimer","trimeric",
@@ -330,9 +330,14 @@ find_monomer_match_kmer <- function(monomer, monomers, six_mer) {
   vectors_with_max <- lapply(scores_list, function(x) which(x == best_combined_score))
   motifs_with_max=which(sapply(vectors_with_max, length) > 0)
   
+  #There is always just one motif with the best score
+  #but there can be several equally good matches of the kmer
+  
   # this is list
   best_combined_positions <- vectors_with_max[sapply(vectors_with_max, length) > 0]
-  
+  if(length(best_combined_positions[[1]])>2 ){
+    break
+  }
   # Find the best position considering both orientations
   
   mono1$kmer_score=""
@@ -419,6 +424,7 @@ find_monomer_match_kmer <- function(monomer, monomers, six_mer) {
   motif1=mono1 %>% pull(ID)
   
   if(length(motif1)>1){
+    break
     mono1=mono1 %>%filter(IC==max(IC))
     motif1=mono1 %>% pull(ID)
   }
