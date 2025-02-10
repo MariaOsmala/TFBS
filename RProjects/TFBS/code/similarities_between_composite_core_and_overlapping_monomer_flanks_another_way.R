@@ -108,7 +108,6 @@ spacing=composites %>% filter(type_computation=="spacing")
 #Reorder the first.monomer and second.monomer columns if switched_order==TRUE
 #capselex=capselex[, c(1,2,25:50)]
 
-# Function to compute KL divergence
 compute_kl_divergence <- function(P, Q) {
   rownames(P)=NULL
   rownames(Q)=NULL
@@ -127,6 +126,35 @@ compute_kl_divergence <- function(P, Q) {
   return(kl_div)
 }
 
+
+# Function to compute KL divergence
+compute_kl_divergence_another_way <- function(P, Q, kmers) {
+  #Need to normalize the probabilities
+  #rownames(P)=NULL
+  #rownames(Q)=NULL
+  kl_div <- 0
+  #k=kmers[1]
+  # Iterate over each position
+  
+  P_probs=lapply( 
+    lapply(strsplit( as.character(kmers), ""), function(x) match(x, rownames(P) )), 
+    function(x) P[cbind(x, 1:ncol(P))])
+  
+  Q_probs=lapply( 
+    lapply(strsplit( as.character(kmers), ""), function(x) match(x, rownames(Q) )), 
+    function(x) Q[cbind(x, 1:ncol(Q))])
+  
+  P_probs_prod=sapply(P_probs,prod)
+  
+  P_probs_log=lapply(P_probs, log2)
+  Q_probs_log=lapply(Q_probs, log2)
+  
+  sum_P_probs_log=sapply(P_probs_log, sum)
+  sum_Q_probs_log=sapply(Q_probs_log, sum)
+  kl_div=sum(P_probs_prod*(sum_P_probs_log-sum_Q_probs_log))
+  return(kl_div)
+}
+
 #"ATF3_ONECUT1_TCATTC40NATT_YJII_NTGACGTCANNNNATCGATN_m1_c3b0"
 
 composites = composites %>% filter(type_computation=="composite") #1023
@@ -134,8 +162,8 @@ composites = composites %>% filter(type_computation=="composite") #1023
 
 
 #save_path="~/projects/TFBS/PWMs_final_version2.2/composite_cores_and_overlapping_monomer_flanks/"
-save_path="/scratch/project_2006203/TFBS/PWMs_final_version2.2/composite_cores_and_overlapping_monomer_flanks/"
-
+#save_path="/scratch/project_2006203/TFBS/PWMs_final_version2.2/composite_cores_and_overlapping_monomer_flanks/"
+save_path="/scratch/project_2006203/TFBS/PWMs_final_version2.2/composite_cores_and_overlapping_monomer_flanks_another_way/"
 #Interesting
 
 which(composites$ID=="FOXC2_ELF2_TGACGT40NAGC_YSIII_NAGAAAACCGAAWN_m2_c3b0") #367
@@ -189,7 +217,7 @@ overlap_issue=c()
 
 #saveRDS(all_kmers, file="~/projects/TFBS/RProjects/TFBS/RData/all_kmers.RDS")
 #saveRDS(all_kmers, file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/all_kmers.RDS")
-all_kmers=readRDS(file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/all_kmers.RDS")
+#all_kmers=readRDS(file="/scratch/project_2006203/TFBS/RProjects/TFBS/RData/all_kmers.RDS")
 
 #test=lapply(14, generate_kmers, bases)
 
@@ -361,9 +389,9 @@ pwm_class_TF1_flank <- TFBSTools::toPWM(pcm_class_TF1_flank,
 
 
 
-kl_divergence_core_flank_TF1 <- compute_kl_divergence(pwm_class_core@profileMatrix, pwm_class_TF1_flank@profileMatrix)
-kl_divergence_flank_TF1_core <- compute_kl_divergence( pwm_class_TF1_flank@profileMatrix, pwm_class_core@profileMatrix)
-kl_divergence_mean_TF1=(kl_divergence_core_flank_TF1+kl_divergence_flank_TF1_core)/2
+#kl_divergence_core_flank_TF1 <- compute_kl_divergence(pwm_class_core@profileMatrix, pwm_class_TF1_flank@profileMatrix)
+#kl_divergence_flank_TF1_core <- compute_kl_divergence( pwm_class_TF1_flank@profileMatrix, pwm_class_core@profileMatrix)
+#kl_divergence_mean_TF1=(kl_divergence_core_flank_TF1+kl_divergence_flank_TF1_core)/2
 
 
 #What is the kl-divergence against itself, the maximal possible kl-divergence?
@@ -433,82 +461,120 @@ pwm_class_TF2_flank <- TFBSTools::toPWM(pcm_class_TF2_flank,
 #        ggseqlogo::theme_logo())
 
 
-mixture_core_TF1_flank=(pwm_class_core@profileMatrix+pwm_class_TF1_flank@profileMatrix)/2
-mixture_core_TF2_flank=(pwm_class_core@profileMatrix+pwm_class_TF2_flank@profileMatrix)/2
 
- 
-kl_divergence_core_flank_TF2 <- compute_kl_divergence(pwm_class_core@profileMatrix, pwm_class_TF2_flank@profileMatrix)
-kl_divergence_flank_TF2_core <- compute_kl_divergence( pwm_class_TF2_flank@profileMatrix, pwm_class_core@profileMatrix)
-kl_divergence_mean_TF2=(kl_divergence_core_flank_TF2+kl_divergence_flank_TF2_core)/2
 
-#Shannon-Jensen divergence
 
-kl_divergence_flank_TF1_mixture <- compute_kl_divergence(pwm_class_TF1_flank@profileMatrix, mixture_core_TF1_flank)
-kl_divergence_core_mixture <- compute_kl_divergence(pwm_class_core@profileMatrix, mixture_core_TF1_flank)
 
-sh_flank_TF1_core=(kl_divergence_flank_TF1_mixture+kl_divergence_core_mixture)/2
 
-kl_divergence_flank_TF2_mixture <- compute_kl_divergence( pwm_class_TF2_flank@profileMatrix, mixture_core_TF2_flank)
-kl_divergence_core_mixture <- compute_kl_divergence(pwm_class_core@profileMatrix, mixture_core_TF2_flank)
 
-sh_flank_TF2_core=(kl_divergence_flank_TF2_mixture+kl_divergence_core_mixture)/2
-
-#Does it make sense to compute the KL-divergence between the flanks?
-#kl_divergence_flank_TF1_flank_TF2 <- compute_kl_divergence(pwm_class_TF1_flank@profileMatrix, pwm_class_TF2_flank@profileMatrix)
-#kl_divergence_flank_TF2_flank_T1 <- compute_kl_divergence( pwm_class_TF2_flank@profileMatrix, pwm_class_TF1_flank@profileMatrix)
-
-#Need to divide the kl_divergence by the length of the overlap?
-
-#Match the k-mers to the PWMs
-#pcm_class_composite_core
-#pcm_class_TF1_flank
-#pcm_class_TF2_flank
-#all_kmers[[overlap]]
-
-if(overlap>13){
+if(overlap>15){
   print(paste0(i, " too large overlap"))
-  if((overlap-13)==1){
-    pcm_class_core@profileMatrix=pcm_class_core@profileMatrix[,1:13]
-    pcm_class_TF1_flank@profileMatrix=pcm_class_TF1_flank@profileMatrix[,1:13]
-    pcm_class_TF2_flank@profileMatrix=pcm_class_TF2_flank@profileMatrix[,1:13]
+  if((overlap-15)==1){
+    pcm_class_core@profileMatrix=pcm_class_core@profileMatrix[,1:15]
+    pcm_class_TF1_flank@profileMatrix=pcm_class_TF1_flank@profileMatrix[,1:15]
+    pcm_class_TF2_flank@profileMatrix=pcm_class_TF2_flank@profileMatrix[,1:15]
     
   }
-  if( ((overlap-13)==2) | ((overlap-13)==3)){
-    pcm_class_core@profileMatrix=pcm_class_core@profileMatrix[,2:14]
-    pcm_class_TF1_flank@profileMatrix=pcm_class_TF1_flank@profileMatrix[,2:14]
-    pcm_class_TF2_flank@profileMatrix=pcm_class_TF2_flank@profileMatrix[,2:14]
+  if( ( (overlap-15)==2) ){
+    pcm_class_core@profileMatrix=pcm_class_core@profileMatrix[,2:16]
+    pcm_class_TF1_flank@profileMatrix=pcm_class_TF1_flank@profileMatrix[,2:16]
+    pcm_class_TF2_flank@profileMatrix=pcm_class_TF2_flank@profileMatrix[,2:16]
     
   }
-  if((overlap-13)==4){
-    pcm_class_core@profileMatrix=pcm_class_core@profileMatrix[,3:15]
-    pcm_class_TF1_flank@profileMatrix=pcm_class_TF1_flank@profileMatrix[,3:15]
-    pcm_class_TF2_flank@profileMatrix=pcm_class_TF2_flank@profileMatrix[,3:15]
-    
-  }
-  
 }
 
 pssm_core <- TFBSTools::toPWM(pcm_class_core, type = "log2probratio", pseudocounts = 1)
 pssm_TF1_flank <- TFBSTools::toPWM(pcm_class_TF1_flank, type = "log2probratio", pseudocounts = 1)
 pssm_TF2_flank <- TFBSTools::toPWM(pcm_class_TF2_flank, type = "log2probratio", pseudocounts = 1)
 
+pwm_class_TF2_flank <- TFBSTools::toPWM(pcm_class_TF2_flank, 
+                                        type="prob", 
+                                        pseudocounts = 0.01, 
+                                        bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+pwm_class_TF1_flank <- TFBSTools::toPWM(pcm_class_TF1_flank, 
+                                        type="prob", 
+                                        pseudocounts = 0.01, 
+                                        bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+pwm_class_core <- TFBSTools::toPWM(pcm_class_core, 
+                                   type="prob", 
+                                   pseudocounts = 0.01, 
+                                   bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+
+all_kmers=readRDS(file=paste0("/scratch/project_2006203/TFBS/RProjects/TFBS/RData/",ncol(pwm_class_core@profileMatrix),"_mers.RDS"))
+
+all_kmers=all_kmers[[1]]
+
+#KL-divergence
+
+kl_divergence_core_flank_TF1=compute_kl_divergence_another_way(P=pwm_class_core@profileMatrix, 
+                                                               Q=pwm_class_TF1_flank@profileMatrix, 
+                                                               kmers=all_kmers) 
+kl_divergence_flank_TF1_core=compute_kl_divergence_another_way(P=pwm_class_TF1_flank@profileMatrix,
+                                                               Q=pwm_class_core@profileMatrix, 
+                                                               kmers=all_kmers) 
+
+#the same value
+#compute_kl_divergence(pwm_class_core@profileMatrix, 
+#                                  pwm_class_TF1_flank@profileMatrix) 
+
+#the same value
+# compute_kl_divergence(pwm_class_TF1_flank@profileMatrix,
+#                       pwm_class_core@profileMatrix) 
+
+
+kl_divergence_core_flank_TF2=compute_kl_divergence_another_way(P=pwm_class_core@profileMatrix, 
+                                                               Q=pwm_class_TF2_flank@profileMatrix, 
+                                                               kmers=all_kmers) 
+kl_divergence_flank_TF2_core=compute_kl_divergence_another_way(P=pwm_class_TF2_flank@profileMatrix,
+                                                               Q=pwm_class_core@profileMatrix, 
+                                                               kmers=all_kmers) 
+
+
+
+
+#Shannon-Jensen divergence
+
+mixture_core_TF1_flank=(pwm_class_core@profileMatrix+pwm_class_TF1_flank@profileMatrix)/2
+mixture_core_TF2_flank=(pwm_class_core@profileMatrix+pwm_class_TF2_flank@profileMatrix)/2
+
+
+kl_divergence_flank_TF1_mixture <- compute_kl_divergence_another_way(P=pwm_class_TF1_flank@profileMatrix, 
+                                                                     Q=mixture_core_TF1_flank, kmers=all_kmers)
+kl_divergence_core_mixture <- compute_kl_divergence_another_way(P=pwm_class_core@profileMatrix, 
+                                                                Q=mixture_core_TF1_flank, kmers=all_kmers)
+
+sh_flank_TF1_core=(kl_divergence_flank_TF1_mixture+kl_divergence_core_mixture)/2
+
+kl_divergence_flank_TF2_mixture <- compute_kl_divergence_another_way(P=pwm_class_TF2_flank@profileMatrix, 
+                                                                     Q=mixture_core_TF2_flank, kmers=all_kmers)
+kl_divergence_core_mixture <- compute_kl_divergence_another_way(P=pwm_class_core@profileMatrix, 
+                                                                Q=mixture_core_TF2_flank, kmers=all_kmers)
+
+sh_flank_TF2_core=(kl_divergence_flank_TF2_mixture+kl_divergence_core_mixture)/2
+
+
+
+
 kmer_scores=list()
 
-core_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers[[min(13,overlap)]]), ""), function(x) match(x, rownames(pssm_core@profileMatrix) )), 
+core_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers), ""), function(x) match(x, rownames(pssm_core@profileMatrix) )), 
         function(x) pssm_core@profileMatrix[cbind(x, 1:ncol(pssm_core@profileMatrix))]), sum)
-names(core_kmer_scores)=all_kmers[[min(13,overlap)]]
+names(core_kmer_scores)=all_kmers
 
 
-TF1_flank_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers[[min(13,overlap)]]), ""), 
+TF1_flank_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers), ""), 
                                              function(x) match(x, rownames(pssm_TF1_flank@profileMatrix) )), 
                                  function(x) pssm_TF1_flank@profileMatrix[cbind(x, 1:ncol(pssm_TF1_flank@profileMatrix))]), sum)
-names(TF1_flank_kmer_scores)=all_kmers[[min(13,overlap)]]
+names(TF1_flank_kmer_scores)=all_kmers
 
 
-TF2_flank_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers[[min(13,overlap)]]), ""), 
+TF2_flank_kmer_scores=sapply( lapply( lapply(strsplit( as.character(all_kmers), ""), 
                                              function(x) match(x, rownames(pssm_TF2_flank@profileMatrix) )), 
                                       function(x) pssm_TF2_flank@profileMatrix[cbind(x, 1:ncol(pssm_TF2_flank@profileMatrix))]), sum)
-names(TF2_flank_kmer_scores)=all_kmers[[min(13,overlap)]]
+names(TF2_flank_kmer_scores)=all_kmers
 
 kmer_scores[["core"]]=core_kmer_scores
 kmer_scores[["TF1_flank"]]=TF1_flank_kmer_scores
@@ -537,10 +603,8 @@ composites_correct_table=data.frame(composite=composites$ID[i],
                                           overlap_not_between_flanks=overlap_not_between_flanks,
                                           kl_divergence_core_flank_TF1=kl_divergence_core_flank_TF1,
                                           kl_divergence_flank_TF1_core=kl_divergence_flank_TF1_core,
-                                          kl_divergence_mean_TF1=kl_divergence_mean_TF1,
                                           kl_divergence_core_flank_TF2=kl_divergence_core_flank_TF2,
                                           kl_divergence_flank_TF2_core=kl_divergence_flank_TF2_core,
-                                          kl_divergence_mean_TF2=kl_divergence_mean_TF2,
                                           sj_divergence_flank_TF1_core=sh_flank_TF1_core,
                                           sj_divergence_flank_TF2_core=sh_flank_TF2_core,
                                           

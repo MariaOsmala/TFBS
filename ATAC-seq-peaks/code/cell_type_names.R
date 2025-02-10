@@ -1,11 +1,9 @@
 Adult_Celltypes_mapping <- read_delim("/projappl/project_2006203/TFBS/ATAC-seq-peaks/CATLAS/Adult_Celltypes_mapping.csv", 
                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
-# Adult_Celltypes_mapping <- read_delim("../CATLAS/Adult_Celltypes_mapping.csv", 
-#                                       delim = ";", escape_double = FALSE, trim_ws = TRUE)
 
 
-#typo
+#fix typo
 Adult_Celltypes_mapping$`Cell type`[grep("Alverolar Type 2,Immune", Adult_Celltypes_mapping$`Cell type`)]="Alveolar Type 2,Immune"
 
 #Cell type groups from Zhang et al. Figure 1
@@ -18,7 +16,7 @@ cell_type_groups[["Epithelial 1"]]=c("Parietal Cell",
                                      "Gastric Neuroendocrine Cell",
                                      "Foveolar Cell",
                                      "Hepatocyte")
-cell_type_groups[["Stromal"]]=c("Mesothelial Cell", #Divide this into two groups
+cell_type_groups[["Stromal"]]=c("Mesothelial Cell", #Divide this into two groups?
                                 "Adipocyte",
                                 "Luteal Cell (Ovarian)",
                                 "Schwann Cell (General)",

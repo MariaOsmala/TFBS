@@ -57,7 +57,7 @@ cCREs_list<-GRangesList()
 
 for(ct in ct_names){
   print(ct)
-  cCREs_list[[ct]]=import(paste0("../CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/",ct,".bed.gz"),format="bed")
+  cCREs_list[[ct]]=import(paste0(scratch,"CATLAS/yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/",ct,".bed.gz"),format="bed")
 
 
 }

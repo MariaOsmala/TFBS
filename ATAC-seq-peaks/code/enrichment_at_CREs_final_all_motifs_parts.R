@@ -54,6 +54,10 @@ if(end>3933){
 
 motifs=motifs[start:end]
 
+#sum(sapply(cCREs_list, length)) #1,091,805
+
+#unique
+#length(unique(unlist(cCREs_list))) #435142 adults cCREs with restricted accessibility in one or a few cell types
 
 cCREs_list<- readRDS(file = paste0(data_path, "ATAC-seq-peaks/RData/cCREs_list.Rds") ) #
 length(cCREs_list)

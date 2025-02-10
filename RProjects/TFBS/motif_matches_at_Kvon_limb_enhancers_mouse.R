@@ -60,8 +60,8 @@ long_dist_limb_enh[which(long_dist_limb_enh$VistaEnh=="hs2496"),] #mm39 chr5:295
 
 #mm10 chr5:29314274-29316273 #Vista_GRanges_mm10: chr5 29314882-29315667      *
 
-GRanges_short_dist_limb_enh=GRanges(short_dist_limb_enh) #142
-GRanges_long_dist_limb_enh=GRanges(long_dist_limb_enh) #26
+GRanges_short_dist_limb_enh=GRanges(short_dist_limb_enh) #26
+GRanges_long_dist_limb_enh=GRanges(long_dist_limb_enh) #142
 
 isCircular(seqinfo(GRanges_short_dist_limb_enh))=rep(FALSE, length(seqinfo(GRanges_short_dist_limb_enh)))
 seqlengths=seqlengths(seqinfo(bsg_mm10))[unique(as.character(seqnames(GRanges_short_dist_limb_enh)))]

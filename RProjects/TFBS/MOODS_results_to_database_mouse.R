@@ -25,7 +25,8 @@ setwd("/scratch/project_2006203/TFBS/")
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_4/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_3/"
 #results_path="/scratch/project_2006203/TFBS/Results/MOODS_Mouse_processed_2/"
-results_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final_processed/"
+#results_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final_processed/"
+results_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_version2.2_processed/"
 
 dir.create(file.path(results_path), showWarnings = FALSE)
 dir.create(file.path(results_path, "MOODS_bigbed"), showWarnings = FALSE)
@@ -56,7 +57,8 @@ dir.create(file.path(results_path, "MOODS_RDS"), showWarnings = FALSE)
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_4/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_3/"
 #MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_2/"
-MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final/"
+#MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_final/"
+MOODS_path="/scratch/project_2006203/TFBS/Results/MOODS_mouse_mm39_version2.2/"
   
 chrom_lengths=read.table("/projappl/project_2006203/Genomes/Mus_musculus/GRCm39_mm39/mm39.chrom.sizes")
 seqlengths=chrom_lengths[,2]
@@ -72,10 +74,16 @@ len=10 #100
 
 #3982+15=3997
 
-
-if(end_ind>330){ # 398 
-  end_ind=330
+#3933 motifs
+if(end_ind>393){ # 398 
+  end_ind=393
 }
+
+#if(end_ind>330){ # 398 
+#  end_ind=330
+#}
+
+
 
 #Old
 #if(end_ind>398){ # 398 

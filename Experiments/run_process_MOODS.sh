@@ -1,6 +1,6 @@
 #!/bin/bash -l
 #SBATCH --job-name=process_MOODS
-#SBATCH --account=project_2006203
+#SBATCH --account=project_2007567
 #SBATCH --output=outs/process_MOODS_%A_%a.txt
 #SBATCH --error=errs/process_MOODS_%A_%a.txt
 #SBATCH --partition=small
@@ -8,11 +8,12 @@
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=200G #300G
+#SBATCH --mem-per-cpu=150G #300G
 #SBATCH --gres=nvme:50
-#SBATCH --array=0
+#SBATCH --array=1-39 #0:39
 
-# 21395129_[786]
+#22723048_[0]
+
 
 #for true motifs #0:39 1 day, 150G
 #2001678
@@ -73,7 +74,9 @@ echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/collect_MOODS_results.R $SLURM_ARRAY_TASK_ID
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database.R $SLURM_ARRAY_TASK_ID
 #srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificial_results_to_database.R $SLURM_ARRAY_TASK_ID
-srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificialHTSelex_results_to_database.R $SLURM_ARRAY_TASK_ID
-#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database_mouse.R $SLURM_ARRAY_TASK_ID
+#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificial_artificialHTSelex_results_to_database.R $SLURM_ARRAY_TASK_ID
+
+#srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_artificialHTSelex_results_to_database.R $SLURM_ARRAY_TASK_ID
+srun apptainer_wrapper exec Rscript --no-save ../RProjects/TFBS/MOODS_results_to_database_mouse.R $SLURM_ARRAY_TASK_ID
 
 seff $SLURM_JOBID

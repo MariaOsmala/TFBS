@@ -21,7 +21,7 @@ library("gridExtra")
 
 .libPaths("/projappl/project_2007567/project_rpackages_4.3.0")
 #install.packages("heatmaply")
-library("heatmaply")
+#library("heatmaply")
 
 source("../code/heatmap_motor.R")
 
@@ -82,7 +82,7 @@ representatives$new_motif[which(representatives$study=="fromYimeng")]=TRUE
 #p_matrix #log_10(p-values)
 
 #Adjust all p-values
-test=p.adjust(10^as.vector(p_matrix), method="BH")
+test=p.adjust(10^as.vector(p_matrix), method="BH") #motifs(3933) x cell_types(111)
 
 p_matrix_adjusted_all <- matrix(log10(test), nrow = nrow(p_matrix), ncol = ncol(p_matrix))
 
@@ -262,13 +262,14 @@ length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
 
 
 
-composite_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+composite_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, 
+                              cell_type_groups, representatives)
 
 
-boolean_matrix=p_matrix_composites > -log10(0.01) & e_matrix_composites > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
+boolean_matrix_composite_loose=p_matrix_composites > -log10(0.01) & e_matrix_composites > 0.75
+length(which(apply(boolean_matrix_composite_loose,1, function(x) length(which(x)) )>0)) #211
 
-composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix_composite_loose, cell_type_groups, representatives)
 
 
 boolean_matrix=p_matrix_spacing > -log10(0.01) & e_matrix_spacing > 1
@@ -276,15 +277,17 @@ length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
 
 spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
-boolean_matrix=p_matrix_spacing > -log10(0.01) & e_matrix_spacing > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
+boolean_matrix_spacing_loose=p_matrix_spacing > -log10(0.01) & e_matrix_spacing > 0.75
+length(which(apply(boolean_matrix_spacing_loose,1, function(x) length(which(x)) )>0)) #74
 
-spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix_spacing_loose, cell_type_groups, representatives)
 
 #p-value cut off, #q-value cut off all and celltype all both the same results
 
 #with 95 of 347 representative composite motifs and 30 of 112 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 1).
 #with 211 of 347 representative composite motifs and 74 of 112 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 0.75).
+
+#with 211 of the 347 representative composite motifs and 74 of the 112 representative spacing motifs being enriched in at least one cCRE set (p-value < 0.01 and the log2 fold change > 0.75). 
 
 #q-value cut off all
 
@@ -295,10 +298,11 @@ length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
 composite_strict_fdr=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
 
-boolean_matrix=p_matrix_composites_adjusted_all > -log10(0.01) & e_matrix_composites > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
+boolean_matrix_composites_adjusted_all=p_matrix_composites_adjusted_all > -log10(0.01) & e_matrix_composites > 0.75
+length(which(apply(boolean_matrix_composites_adjusted_all,1, function(x) length(which(x)) )>0)) #211
 
-composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+composite_adjusted_all=cell_type_and_group_enrichment_for_motifs(boolean_matrix_composites_adjusted_all, cell_type_groups, representatives)
+
 
 
 boolean_matrix=p_matrix_spacing_adjusted_all > -log10(0.01) & e_matrix_spacing > 1
@@ -306,11 +310,13 @@ length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
 
 spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
-boolean_matrix=p_matrix_spacing_adjusted_all > -log10(0.01) & e_matrix_spacing > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
+boolean_matrix_spacing_adjusted_all=p_matrix_spacing_adjusted_all > -log10(0.01) & e_matrix_spacing > 0.75
+length(which(apply(boolean_matrix_spacing_adjusted_all,1, function(x) length(which(x)) )>0)) #74
 
-spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+spacing_loose_adjusted_all=cell_type_and_group_enrichment_for_motifs(boolean_matrix_spacing_adjusted_all, cell_type_groups, representatives)
 
+table(boolean_matrix_composite_loose==boolean_matrix_composites_adjusted_all) #all true
+table(boolean_matrix_spacing_loose==boolean_matrix_spacing_adjusted_all) #all true
 
 #cell type 
 
@@ -318,17 +324,27 @@ boolean_matrix=p_matrix_composites_adjusted_celltype > -log10(0.01) & e_matrix_c
 length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #95
 composite_strict_fdr=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
-boolean_matrix=p_matrix_composites_adjusted_celltype > -log10(0.01) & e_matrix_composites > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #211
+boolean_matrix_composites_adjusted_celltype=p_matrix_composites_adjusted_celltype > -log10(0.01) & e_matrix_composites > 0.75
+length(which(apply(boolean_matrix_composites_adjusted_celltype,1, function(x) length(which(x)) )>0)) #211
 composite_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
 boolean_matrix=p_matrix_spacing_adjusted_celltype > -log10(0.01) & e_matrix_spacing > 1
 length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #30
 spacing_strict=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
 
-boolean_matrix=p_matrix_spacing_adjusted_celltype > -log10(0.01) & e_matrix_spacing > 0.75
-length(which(apply(boolean_matrix,1, function(x) length(which(x)) )>0)) #74
-spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix, cell_type_groups, representatives)
+boolean_matrix_spacing_adjusted_celltype=p_matrix_spacing_adjusted_celltype > -log10(0.01) & e_matrix_spacing > 0.75
+length(which(apply(boolean_matrix_spacing_adjusted_celltype,1, function(x) length(which(x)) )>0)) #74
+spacing_loose=cell_type_and_group_enrichment_for_motifs(boolean_matrix_spacing_adjusted_celltype, cell_type_groups, representatives)
+
+table(boolean_matrix_composite_loose==boolean_matrix_composites_adjusted_all) #all true
+table(boolean_matrix_spacing_loose==boolean_matrix_spacing_adjusted_all) #all true
+
+table(boolean_matrix_composite_loose==boolean_matrix_composites_adjusted_celltype) #all true
+table(boolean_matrix_spacing_loose==boolean_matrix_spacing_adjusted_celltype) #all true
+
+table(boolean_matrix_composites_adjusted_all==boolean_matrix_composites_adjusted_celltype) #all true
+table(boolean_matrix_spacing_adjusted_all==boolean_matrix_spacing_adjusted_celltype) #all true
+
 
 
 # Create a new workbook

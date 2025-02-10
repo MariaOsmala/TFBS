@@ -416,6 +416,12 @@ names(Protein_family_colors)=c("AP-2","TFAP","bHLH","Grainyhead","bZIP","EBF1",
 pdf(file = paste0(scratch, "Figures/bHLH_homeo_selected.pdf"), width=10, 
     height=7)
 
+#circlize::colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3"))
+#custom color mapping function that maps continuous values from -100 to 100 to colors "navy", "white", "firebrick3"  based on specific breakpoints (-100,0,100)
+#The values -100, 0, and 100 are the points in the data that correspond to specific colors. Values in between will be interpolated
+# Custom color mapping function was created with R-package circlize_0.4.15 that maps continuous values to colors. The values -100, 0, and 100 are breakpoints that correspond to specific colors 
+#navy, white, and"firebrick3 and the values in between the breakpoints were interpolated.
+
 ht_list=ComplexHeatmap::Heatmap(final_matrix, 
                         #col=colorRamp2(c( 0, 100), c("white", "firebrick3")), 
                         col=colorRamp2(c(-100, 0, 100), c("navy", "white", "firebrick3")), 

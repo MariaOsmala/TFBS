@@ -4,6 +4,7 @@ library("dplyr")
 #library("motifStack")
 #library("universalmotif")
 library("ggplot2")
+library("readr")
 .libPaths("/projappl/project_2007567/project_rpackages_4.3.0")
 
 library(ggbreak)
@@ -47,12 +48,17 @@ merged_representatives <- merge(representatives, df[,c('ID','match_numbers')], b
 #Minimum integer threshold used to call the motifs
 
 floor(min(top_motif_matches_human_final[[1]]$score))
- f1 <- function(x) floor(min(x$score))
- thresholds=lapply(top_motif_matches_human_final, f1) #, simplity="array"
+min(top_motif_matches_human_final[[1]]$score)
+
+f1 <- function(x) floor(min(x$score))
+
+thresholds=lapply(top_motif_matches_human_final, f1) #, simplity="array"
+thresholds_double=lapply(top_motif_matches_human_final, function(x) min(x$score)) #, simplity="array"
 # 
- df=data.frame(ID=names(top_motif_matches_human_final),threshold=unlist(thresholds))
+df=data.frame(ID=names(top_motif_matches_human_final),
+              threshold=unlist(thresholds), threshold_double=unlist(thresholds_double))
 # 
- merged_representatives2 <- merge(merged_representatives, df[,c('ID','threshold')], by = 'ID', all.x = TRUE)
+ merged_representatives2 <- merge(merged_representatives, df[,c('ID','threshold', 'threshold_double')], by = 'ID', all.x = TRUE)
 # 
  write_tsv(merged_representatives2, "../../PWMs_final_version2.2/metadata_representatives_match_numbers_thresholds.tsv") #3294
 # 
@@ -96,12 +102,12 @@ representatives=read_tsv( "/projappl/project_2006203/TFBS/PWMs_final_version2.2/
 
 representatives$phyloP_threshold=NA
 
-files=dir("/scratch/project_2007567/conservation_thresholds_final_version2.2")
+files=dir("/scratch/project_2007567/conservation_thresholds_final_version2.2_correct")
 for(file in files){
   #file=files[1]
   
   ID=gsub(".csv", "",file)
-  thresholds=as.data.frame(read_delim(paste0("/scratch/project_2007567/conservation_thresholds_final_version2.2/", file), delim=" "))
+  thresholds=as.data.frame(read_delim(paste0("/scratch/project_2007567/conservation_thresholds_final_version2.2_correct/", file), delim=" "))
   print(which(representatives$ID==ID))
   representatives$phyloP_threshold[which(representatives$ID==ID)]=thresholds$conservation_threshold_signif
   
@@ -112,3 +118,89 @@ write_tsv(representatives, "../../PWMs_final_version2.2/metadata_representatives
 
 saveRDS(representatives,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/metadata_representatives_match_numbers_thresholds_MeanPhyloP_threshold.Rds") 
 
+#What about the artificial half sites?
+
+halfsites=read_tsv( "/scratch/project_2006203/TFBS/PWMs_final_version2.2/fromYimeng/half-site-motifs-20240426/metadata.csv") #3294
+halfsites=halfsites[-1,]
+
+
+top_motif_matches_halfsites=readRDS(file="/scratch/project_2006203/TFBS//ATAC-seq-peaks/RData/top_motif_matches_human_artificialHTSelex_version2.2.Rds") # 
+top_motif_matches_halfsites=top_motif_matches_halfsites[-1]
+
+print(length(top_motif_matches_halfsites))
+
+print(head(names(top_motif_matches_halfsites)[which(!(names(top_motif_matches_halfsites) %in% halfsites$ID))]))
+
+
+
+match_numbers=unlist(lapply(top_motif_matches_halfsites, length))
+
+df=data.frame(ID=names(match_numbers),match_numbers=as.vector(match_numbers))
+
+# Use the merge function to add a column from df2 to df1
+merged_halfsites <- merge(halfsites, df[,c('ID','match_numbers')], by = 'ID', all.x = TRUE)
+
+#Minimum integer threshold used to call the motifs
+
+floor(min(top_motif_matches_halfsites[[1]]$score))
+min(top_motif_matches_halfsites[[1]]$score)
+
+f1 <- function(x) floor(min(x$score))
+
+thresholds=lapply(top_motif_matches_halfsites, f1) #, simplity="array"
+thresholds_double=lapply(top_motif_matches_halfsites, function(x) min(x$score)) #, simplity="array"
+# 
+df=data.frame(ID=names(top_motif_matches_halfsites),
+              threshold=unlist(thresholds), threshold_double=unlist(thresholds_double))
+# 
+halfsites <- merge(merged_halfsites, df[,c('ID','threshold', 'threshold_double')], by = 'ID', all.x = TRUE)
+
+
+
+halfsites$phyloP_threshold=NA
+
+files=dir("/scratch/project_2007567/conservation_thresholds_final_version2.2_correct")
+for(file in paste0(halfsites$ID, ".csv")){
+  #file=files[1]
+  
+  ID=gsub(".csv", "",file)
+  thresholds=as.data.frame(read_delim(paste0("/scratch/project_2007567/conservation_thresholds_final_version2.2_correct/", file), delim=" "))
+  print(which(representatives$ID==ID))
+  halfsites$phyloP_threshold[which(halfsites$ID==ID)]=thresholds$conservation_threshold_signif
+  
+}
+
+common_columns=intersect(names(representatives), names(halfsites))
+
+test<- rbind(representatives[, common_columns], halfsites[,common_columns])
+
+test$study[test$study=="fromYimeng"]="Current study"
+test$study[test$study=="artificial_halfsites"]="Artificial halfsite"
+
+custom_levels <- c("Current study","Jolma2013", "Jolma2015",   "Nitta2015",  "Morgunova2015", "Yin2017", "Artificial halfsite")
+
+# Convert the 'group' column to a factor with the specified levels
+test$study <- factor(test$study, levels = custom_levels)
+
+#sort based on study, artificial halfsites last 
+test <- test %>%
+  arrange(study,experiment)
+
+
+
+#"ID"	"family"	"study"	"experiment"	"motif match numbers in GRCh38"	"mean phyloP threshold"
+
+test=test[,c("ID",                
+  "Lambert2018_families",
+  "study",               
+"experiment",
+"match_numbers",
+"phyloP_threshold") ]
+
+names(test)=c("ID",	"family",	"study",	"experiment",	"motif match numbers in GRCh38",	"mean phyloP threshold")
+
+
+write_tsv(test, "../../PWMs_final_version2.2/metadata_with_halfsites.tsv") #3294
+# 
+
+saveRDS(test,"/scratch/project_2006203/TFBS/ATAC-seq-peaks/RData/metadata_with_halfsites.Rds") 
