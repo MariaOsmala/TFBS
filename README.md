@@ -12,6 +12,8 @@ The codes
   - perform logistic regression analysis to predict cell-type-specificity of a cCRE based on motif matches
   - analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned againt the composite motif
 
+**More documentation and instructions on how to run the code are coming soon.**
+
 ## Installation
 
 <!-- This is a comment and will not be displayed
