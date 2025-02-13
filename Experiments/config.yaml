@@ -1,0 +1,12 @@
+# The root folder in which all the data will be kept.
+# This is something you probably need to change to fit your system.
+data_dir: /Users/osmalama/projects/TFBS/Data
+
+# Analysis parameters (examples)
+cell_lines: [K562, Gm12878]
+
+# Settings for motif matching
+motif_matching:
+  match_number: 300000
+  match_score_threshold: 2
+  

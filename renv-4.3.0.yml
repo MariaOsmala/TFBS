@@ -1,0 +1,51 @@
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  # For preprocessing pipeline
+  - r-base=4.3.0
+  - r-essentials
+  - r-data.table
+  - r-ggplot2
+  - r-ggraph
+  - r-tidyr
+  - r-dplyr
+  - r-tidyverse
+  - r-knitr
+  - r-devtools
+  - r-testthat
+  - r-readr
+  - bioconductor-biomart
+  - bioconductor-ensembldb
+  - bioconductor-org.hs.eg.db
+  - r-magick
+  - bioconductor-bsgenome.hsapiens.ucsc.hg19
+  - bioconductor-bsgenome.hsapiens.ucsc.hg38
+  - r-rmarkdown
+  - bioconductor-genomicranges
+  - bioconductor-rtracklayer
+  - bioconductor-genomicdistributions
+  - bioconductor-chipseeker
+  - bioconductor-annotationhub
+  - bioconductor-universalmotif
+  - bedtools
+  - r-gtools
+  - r-webgestaltr
+  - r-gprofiler2
+  - bioconductor-genetonic
+  - bioconductor-genomation
+  - bioconductor-complexheatmap
+  - r-readxl
+  - r-openxlsx
+  - r-httr
+  - r-ggseqlogo
+  - bioconductor-motifstack
+  - bioconductor-genomicfeatures
+  - bioconductor-rsamtools
+  - r-rsvg
+  - r-grImport
+  - bioconductor-monalisa
+  
+  

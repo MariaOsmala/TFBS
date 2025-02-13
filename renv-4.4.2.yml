@@ -1,0 +1,203 @@
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+
+dependencies:
+  - r-base=4.4.2
+  - r-essentials
+  - r-biocmanager
+  - r-data.table
+  - r-ggplot2
+  - r-ggraph
+  - r-tidyr
+  - r-dplyr
+  - r-tidyverse
+  - r-data.table
+  - r-knitr
+  - r-devtools
+  - r-testthat
+  - r-rcpp
+  - r-rcpparmadillo
+  - r-readr
+  - r-magick
+  - r-rmarkdown
+  - r-gtools
+  - r-gprofiler2
+  - r-readxl
+  - r-openxlsx
+  - r-httr
+  - r-ggseqlogo
+  - r-rsvg
+  - r-grImport
+  - r-plotly
+  - r-viridis
+  - r-viridislite
+  - r-gtable
+  - r-ggridges
+  - r-ggrepel
+  - r-rcolorbrewer
+  - r-gridextra
+#  - r-complexheatmap
+  - r-pheatmap
+  - r-circlize
+  - r-cluster
+  - r-stringr
+  - r-jsonlite
+  - r-yaml
+  - r-cli
+  - r-scales
+  - r-glue
+  - r-matrix
+  - r-matrixstats
+  - r-lattice
+  - r-codetools
+ # - r-parallel
+  - r-registry
+  - r-digest
+  - r-htmltools
+  - r-htmlwidgets
+  - r-globaloptions
+ # - r-restfulr
+  - r-seriation
+  - r-dendextend
+  - r-webshot
+  - r-fansi
+  - r-utf8
+  - r-fastmap
+  - r-rcurl
+  - r-vctrs
+  - r-xml
+  - r-hms
+  - r-zip
+  - r-doParallel
+  - r-foreach
+  - r-iterators
+  - r-tsp
+  - r-magrittr
+  - r-rjson
+  - r-assertthat
+  - r-rstudioapi
+  - r-stringi
+  - r-lazyeval
+  - r-timechange
+  - r-vroom
+  - r-munsell
+  - r-colorspace
+ # - r-tools
+  - r-shape
+  - r-bit
+  - r-bit64
+  - r-clue
+  - r-getoptlong
+  #- r-delayedarray
+  #- r-xvector
+#  - r-biocio
+ # - r-s4arrays
+  - r-lifecycle
+  - r-ggbreak
+  - r-glmnet
+  - r-caret
+  - r-nlme
+  - r-rpart
+  - r-nnet
+  - r-yulab.utils
+  - r-gridgraphics
+  - r-modelmetrics
+  - r-patchwork
+  - r-proc
+  - r-recipes
+  - r-listenv
+  - r-reshape2
+  - r-future.apply
+  - r-ggfun
+  - r-future
+  - r-gower
+  - r-prodlim
+  - r-timedate
+  - r-aplot
+  - r-hardhat
+  - r-lava
+  - r-globals
+  - r-ipred
+  - r-corrplot
+  - r-ggpubr
+  - r-cowplot
+  - r-gridbase
+  - r-rsqlite
+  - r-backports
+  - r-catools
+  - r-pracma
+  - r-cachem
+  - r-rootsolve
+  - r-mclust
+  - r-later
+  - r-filelock
+  - r-httpuv
+ # - r-ade4
+  - r-rappdirs
+  - r-xml2
+  - r-progress
+  - r-biocmanager
+  - r-mime
+  - r-prettyunits
+  - r-curl
+  - r-shiny
+  - r-promises
+  - r-blob
+  - r-broom
+  - r-car
+  - r-r.utils
+  - r-abind
+  - r-cardata
+  - r-kernsmooth
+  - r-ggsignif
+  - r-powerlaw
+  - r-plotrix
+  - r-rstatix
+  #- r-r.methodss3
+  - r-memoise
+  - r-r.oo
+  - r-ggseqlogo
+  - bioconductor-annotationdbi
+  - bioconductor-genomicranges
+  - bioconductor-iranges
+  - bioconductor-s4vectors
+  - bioconductor-biocgenerics
+  - bioconductor-genomeinfodb
+  # - bioconductor-rtracklayer
+  - bioconductor-biomart
+  # - bioconductor-ensembldb
+  # - bioconductor-org.hs.eg.db
+  # - bioconductor-bsgenome.hsapiens.ucsc.hg19
+  # - bioconductor-bsgenome.hsapiens.ucsc.hg38
+  # - bioconductor-genomicdistributions
+  # - bioconductor-chipseeker
+  - bioconductor-biostrings
+  - bioconductor-annotationhub
+  # - bioconductor-universalmotif
+  # - bioconductor-genetonic
+  # - bioconductor-genomation
+  - bioconductor-complexheatmap
+  # - bioconductor-motifmatchr
+  # - bioconductor-motifstack
+  # - bioconductor-genomicfeatures
+  # - bioconductor-rsamtools
+  # - bioconductor-monalisa
+  # - bioconductor-go.db
+  # - bioconductor-biocfilecache
+  # - bioconductor-annotate
+  # - bioconductor-tfbstools
+  - bioconductor-seqlogo
+  # - bioconductor-tfmpvalue
+  # - bioconductor-seqpattern
+  # - bioconductor-keggreest
+  # - bioconductor-impute
+  # - bioconductor-biocversion
+  # - bioconductor-dirichletmultinomial
+  # - bioconductor-cner
+
+
+
+
+
