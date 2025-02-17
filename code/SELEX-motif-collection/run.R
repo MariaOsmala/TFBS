@@ -20,3 +20,5 @@ source("extract_motifs_from_excel_Xie2025.R")
 source("collect_all_motif_metadata.R")  
 
 
+source("extract_motifs_from_excel_artificial_halfsites.R")
+

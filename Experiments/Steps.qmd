@@ -21,12 +21,24 @@ Reads motifs and associated metadata from Excel files. Writes motifs in differen
 
 Motifs will be here: `TFBS/Data/PWMs/`
 
+Also processes artificial halfsites for TFs for which the monomeric motif is homodimer. Note that these are not included to the final SELEX collection as they are not real motifs. These are used in ... TODO: need to recognise homodimers and extract the artificial halfsite motifs automatically also for other TFs. 
+
 ```{r}
 setwd("/code/SELEX-motif-collection")
 source("run.R")
 ```
 
 ![Taipale lab SELEX motif collection](../images/Selex-motif-collection.png){fig-align="center"}
+
+## Create scrambled control motifs (aka. artificial motifs)
+
+```{r}
+
+# Generate artificial motifs
+TFBS/RProjects/TFBS/code/generate_artificial_motifs.R
+TFBS/RProjects/TFBS/code/artificial_motif_functions.R
+
+```
 
 ## Compute motif similarities
 
@@ -110,10 +122,9 @@ sbatch Experiments/motifsimilarity/run_motifsimilarity_sbatch_array.sh
 
 ```
 
-## Minimum Dominating Set analysis 
+## Minimum Dominating Set analysis
 
-Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK LP/MIP Solver 5.0.
-The code uses SSTAT similarities
+Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK LP/MIP Solver 5.0. The code uses SSTAT similarities.
 
 ```{bash}
 perl -v 
@@ -127,14 +138,17 @@ glpsol -v
 Experiments/SELEX-Dominating-Set-Analysis/run_domset_example.sh
 ```
 
-Process the results to add representativeness info to motif metadata (new_representative; YES or NO)
-Form motif clusters aka motifs represented by representatives
+Process the results to add representativeness info to motif metadata (new_representative; YES or NO). Form motif clusters aka motifs represented by representatives.
+
+The minimum dominating analysis was performed for all 3933 motifs and the new 1131 composites.
+
 ```{r}
-motif-clustering-Viestra-private/code/process_DSA_results.R
-TFBS/RProjects/TFBS/code/motifs_represented_by_representatives.R
+code/SELEX-Dominating-Set-Analysis/process_DSA_results.R
+code/SELEX-Dominating-Set-Analysis/process_DSA_results_new_composites.R
+code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives.R
+code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives_new_composites.R
 
 ```
 
 
-
-
+## Motif matching
