@@ -17,7 +17,7 @@ The steps are also are described in `/code/motif_analysis_workflow.R`.
 
 ## Create SELEX motif collection
 
-Reads motifs and associated metadata from Excel files. Writes motifs in different formsta. Draws logos. Computes additional metadata.
+Reads motifs and associated metadata from Excel files. Writes motifs in different forms. Draws logos. Computes additional metadata.
 
 Motifs will be here: `TFBS/Data/PWMs/`
 
@@ -25,6 +25,8 @@ Motifs will be here: `TFBS/Data/PWMs/`
 setwd("/code/SELEX-motif-collection")
 source("run.R")
 ```
+
+![Taipale lab SELEX motif collection](../images/Selex-motif-collection.png){fig-align="center"}
 
 ## Compute motif similarities
 
@@ -57,12 +59,13 @@ Create conda environment with `meme.yml`. The code uses meme version 5.4.1
 see [sessionInfo](sessionInfos/meme_sessionInfo.txt)
 
 First convert motifs to meme format. True motifs and artificial half-sites.
+
 ```{bash}
 bash code/run_scpd2meme.sh
 
 ```
-The command for tomtom is 
-`tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1 $meme_file $meme_file -oc $results_path`
+
+The command for tomtom is `tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1 $meme_file $meme_file -oc $results_path`
 
 ```{bash}
 sbatch Experiments/tomtom/tomtom_all_true_motifs.sh
@@ -106,3 +109,32 @@ sbatch Experiments/motifsimilarity/run_motifsimilarity_sbatch_array.sh
 #runs this: run_motifsimilarity_final_version2.2.sh
 
 ```
+
+## Minimum Dominating Set analysis 
+
+Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK LP/MIP Solver 5.0.
+The code uses SSTAT similarities
+
+```{bash}
+perl -v 
+#This is perl 5, version 34, subversion 1 (v5.34.1) built for darwin-thread-multi-2level
+glpsol -v    
+#GLPSOL--GLPK LP/MIP Solver 5.0
+```
+
+```{bash}
+
+Experiments/SELEX-Dominating-Set-Analysis/run_domset_example.sh
+```
+
+Process the results to add representativeness info to motif metadata (new_representative; YES or NO)
+Form motif clusters aka motifs represented by representatives
+```{r}
+motif-clustering-Viestra-private/code/process_DSA_results.R
+TFBS/RProjects/TFBS/code/motifs_represented_by_representatives.R
+
+```
+
+
+
+

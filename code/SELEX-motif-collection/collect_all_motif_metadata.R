@@ -148,6 +148,23 @@ write.table(metadata$ID,
 write.table(metadata$motif_ID, 
             file="../../Data/SELEX-motif-collection/motif_IDs.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
 
+stop()
+#Print motif numbers 
 
-#
+metadata %>% filter(study=="Jolma2013"& organism=="Homo_sapiens") %>% nrow() #687
+metadata %>% filter(study=="Jolma2013"& organism=="Mus_musculus") %>% nrow() #133
 
+metadata %>% filter(study=="Jolma2015"& experiment=="CAP-SELEX") %>% nrow() #562
+metadata %>% filter(study=="Jolma2015"& experiment=="HT-SELEX") %>% nrow() #31
+metadata %>% filter(study=="Morgunova2015") %>% nrow() #1
+metadata %>% filter(study=="Nitta2015") %>% nrow() #10
+
+metadata %>% filter(study=="Yin2017"& experiment=="HT-SELEX") %>% nrow() #864
+metadata %>% filter(study=="Yin2017"& experiment=="Methyl-HT-SELEX") %>% nrow() #297
+
+metadata %>% filter(study=="Xie2025"& experiment=="CAP-SELEX") %>% nrow() #1336
+metadata %>% filter(study=="Xie2025"& experiment=="CAP-SELEX") %>% count(type) 
+#1: composite  1131
+#2:   spacing   205
+
+metadata %>% filter(study=="Xie2025"& experiment=="HT-SELEX") %>% nrow() #12
