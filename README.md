@@ -5,12 +5,14 @@ software/package versions for the analysis of transcription factor motifs and bi
 
 The codes 
   - create the Taipale Lab SELEX motif collection including heterodimeric motifs from the new CAP-SELEX experiments
+  - create artificial half-site motifs of homodimers
+  - create scrambled control motifs (artificial control motifs)
   - contain commands to perform various motif similarity computations 
   - perform minimum dominating set analysis
   - contain commands to perform motif matching
   - perform motif enrichment analysis at cell-type-specific candidate cis-regulatory elements (cCREs)
   - perform logistic regression analysis to predict cell-type-specificity of a cCRE based on motif matches
-  - analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned againt the composite motif
+  - analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned against the composite motif
 
 **More documentation and instructions on how to run the code are coming soon.**
 
