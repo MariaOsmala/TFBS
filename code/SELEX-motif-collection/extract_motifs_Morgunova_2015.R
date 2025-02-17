@@ -5,37 +5,31 @@
 library(tidyverse)
 library(readxl)
 library(universalmotif)
+library(ggplot2)
 rm(list=ls())
-
+source("read_excel_tables.R")
+source("paths_to_folders.R", echo=FALSE)
 #Adjacent dinucleotide model
 #17. Jolma, A. et al. DNA-binding specificities of human transcription factors. Cell
 #152, 327–339 (2013).
 
-dinucleotide=read.table("../../PWMs/Morgunova2015/E2F8_cycle4.adm", header=FALSE,nrows = 16)
+dinucleotide=read.table("../../Data/SELEX-motif-collection/E2F8_cycle4.adm", header=FALSE,nrows = 16)
 
-families=read_csv("../../../motif-clustering-Viestra-private/HumanTFs-ccbr-TableS1.csv")
-tmp=families[grep("E2F8", families$symbol),"DBD"]$DBD
+families=read_csv("../../Data/SELEX-motif-collection/HumanTFs-ccbr-TableS1.csv")
+#tmp=families[grep("E2F8", families$symbol),"DBD"]$DBD
 
-unique(families$DBD)
-pwm=read.table("../../PWMs/Morgunova2015/E2F8_cycle4.adm", header=FALSE, skip = 16)
+
+pwm=read.table("../../Data/SELEX-motif-collection/E2F8_cycle4.adm", header=FALSE, skip = 16)
 pwm=pwm[,-c(15,16)]
 
 pcm=as.matrix(pwm)*1000
 dimnames(pcm)=list(c("A", "C", "G", "T"))
 
 pcm_class <- TFBSTools::PFMatrix(ID="E2F8", name="E2F8", 
-                                 #matrixClass="Zipper-Type", 
-                                 strand="+", 
+                                strand="+", 
                                  bg=c(A=0.25, C=0.25, G=0.25, T=0.25), 
                                  tags=list(family=families[grep("E2F8", families$symbol),"DBD"]$DBD, 
                                            species="Homo_sapiens" 
-                                           #tax_group="vertebrates", 
-                                           #medline="7592839", 
-                                           #type="SELEX", 
-                                           #ACC="P53762", 
-                                           #pazar_tf_id="TF0000003",
-                                           #TFBSshape_ID="11", 
-                                           #TFencyclopedia_ID="580"
                                  ),
                                  profileMatrix=pcm
 )
@@ -60,19 +54,15 @@ pwm_class@profileMatrix
 
 
 
-#Probability matrices
-png(paste0("../../Logos2/png/prob/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
-print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = FALSE, 
-                                 ylab="probability", font="mono,Courier", fontface = "bold"))
-dev.off()
 
-pdf(paste0("../../Logos2/pdf/prob/","E2F8_Morgunova2015",".pdf"), width =ncol(pwm_class@profileMatrix), height = 4)
-print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = FALSE, 
-                                 ylab="probability", font="mono,Courier", fontface = "bold"))
-dev.off()
 
-library("ggplot2")
-png(paste0("../../Logos/png/prob/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+
+
+# Draw logos --------------------------------------------------------------
+
+
+
+png(paste0(logos_png_prob,"/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
 print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
         ggseqlogo::theme_logo()  +
         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -80,7 +70,7 @@ print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probabi
 dev.off()
 
 
-pdf(paste0("../../Logos/pdf/prob/","E2F8_Morgunova2015",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+pdf(paste0(logos_pdf_prob,"/","E2F8_Morgunova2015",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
 print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
         ggseqlogo::theme_logo()  +
         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -89,17 +79,7 @@ dev.off()
 #Information content matrices
 
 
-png(paste0("../../Logos2/png/ic/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
-print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = TRUE, 
-                                 ylab="bits", font="mono,Courier", fontface = "bold"))
-dev.off()
-
-pdf(paste0("../../Logos2/pdf/ic/","E2F8_Morgunova2015",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
-print(motifStack::plotMotifLogo( pwm_class@profileMatrix, motifName=pwm_class@name, ic.scale = TRUE, 
-                                 ylab="bits", font="mono,Courier", fontface = "bold"))
-dev.off()
-
-png(paste0("../../Logos/png/ic/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+png(paste0(logos_png_ic,"/","E2F8_Morgunova2015",".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
 print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
         ggseqlogo::theme_logo()  +
         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
@@ -107,11 +87,14 @@ print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", 
 dev.off()
 
 
-pdf(paste0("../../Logos/pdf/ic/","E2F8_Morgunova2015",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+pdf(paste0(logos_pdf_ic,"/","E2F8_Morgunova2015",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
 print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
         ggseqlogo::theme_logo()  +
         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
 dev.off()
+
+
+
 
 #Write pcm and pfm space and tab separated
 pwms="../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/"
@@ -121,37 +104,40 @@ dir.create(pwms, recursive=TRUE)
 dir.create(pwms_space, recursive=TRUE)
 dir.create(pwms_transfac, recursive=TRUE)
 
-write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_space/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-write.table(pwm_class@profileMatrix, file=paste0("../../PFMs_tab/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
 
-write.table(pcm_class@profileMatrix, file=paste0("../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
-write.table(pcm_class@profileMatrix, file=paste0("../../PWMs_final/Morgunova2015/pwms_space/Homo_sapiens/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+#pfms_tab_path
+#pfms_space_path
+#pfms_transfac_path
+#pfms_scpd
+#pwms_tab_path
+#pwms_space_path
+
+write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+
+write.table(pcm_class@profileMatrix, file=paste0(pfms_tab_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+write.table(pcm_class@profileMatrix, file=paste0(pfms_space_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
 
 
 
 
 
 icm <- TFBSTools::toICM(pcm_class, pseudocounts=0.01, schneider=FALSE)
-sum(TFBSTools::rowSums(icm)) #6.77892
+sum(TFBSTools::rowSums(icm))
 
 #motif length
 length(pcm_class)
 
-filename=paste0("../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/","E2F8_Morgunova2015", ".pfm")
+filename=paste0(pfms_tab_path,"/","E2F8_Morgunova2015", ".pfm")
 motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
 motif@name="E2F8_Morgunova2015"
 
-PWMs_metadata[m, "IC_universal"]=motif@icscore
-PWMs_metadata[m, "consensus"]=motif@consensus
-
-
-representatives <- read_tsv("../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length.tsv", col_names=TRUE)
-
 tmp=data.frame(ID="E2F8_Morgunova2015",
                symbol="E2F8",
+               Human_Ensemble_ID=families[grep("E2F8", families$symbol),]$`Gene Information/ID`, 
                clone="", 
                family="E2F",
-               Lambert2018.families="E2F",
+               Lambert2018_families="E2F",
                organism="Homo_sapiens",            
                study="Morgunova2015", 
                experiment="HT-SELEX",
@@ -163,19 +149,18 @@ tmp=data.frame(ID="E2F8_Morgunova2015",
                representative=NA,
                short="", 
                type="",  
-               comment="",
-               filename="../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/E2F8_Morgunova2015.pfm",
+               comment=families[grep("E2F8", families$symbol),]$`Binding mode`,
+               filename=filename,
                IC=sum(TFBSTools::rowSums(icm)),
                length=length(pcm_class),
-               IC_universal=motif@icscore,
                consensus=motif@consensus
 
 )
 
-write.table(tmp, file="../../PWMs_final/Morgunova2015/metadata.csv", row.names = FALSE, sep="\t")
-saveRDS(tmp, file="Rdata/Morgunova2015.Rds")
+write.table(tmp, file="../../Data/SELEX-motif-collection/Morgunova2015_metadata.csv", row.names = FALSE, sep="\t")
 
-transfac=paste0(pwms_transfac, "/", tmp$ID,".pfm")
+
+transfac=paste0(pfms_transfac_path, "/", tmp$ID,".pfm")
 write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
 
 
@@ -183,20 +168,14 @@ PWM=as.matrix(pcm, dimnames=NULL)
 rownames(PWM)=c("A", "C", "G", "T")
 write.table(paste0(">",  tmp$ID),   
             append=FALSE, row.names = FALSE, col.names=FALSE, quote=FALSE,
-            file=paste0("../../PWMs_final/Morgunova2015/all", ".scpd"))
+            file=paste0(pfms_scpd,"/","/Morgunova2015", ".scpd"))
 append=TRUE
 
 write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-            file=paste0("../../PWMs_final/Morgunova2015/all", ".scpd"))
+            file=paste0(pfms_scpd,"/","/Morgunova2015", ".scpd"))
 
 
 
 
-
-#representatives
-  
-representatives=bind_rows(representatives, as_tibble(tmp))
-
-write_tsv(representatives, file="../../../motif-clustering-Viestra-private/metadata/new_representatives_IC_length_Morgunova.tsv")
 
 

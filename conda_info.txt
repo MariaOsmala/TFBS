@@ -1,0 +1,36 @@
+
+     active environment : base
+    active env location : /Users/osmalama/miniconda3
+            shell level : 1
+       user config file : /Users/osmalama/.condarc
+ populated config files : /Users/osmalama/miniconda3/.condarc
+                          /Users/osmalama/.condarc
+          conda version : 25.1.1
+    conda-build version : not installed
+         python version : 3.12.8.final.0
+                 solver : libmamba (default)
+       virtual packages : __archspec=1=m2
+                          __conda=25.1.1=0
+                          __osx=15.3=0
+                          __unix=0=0
+       base environment : /Users/osmalama/miniconda3  (writable)
+      conda av data dir : /Users/osmalama/miniconda3/etc/conda
+  conda av metadata url : None
+           channel URLs : https://conda.anaconda.org/conda-forge/osx-arm64
+                          https://conda.anaconda.org/conda-forge/noarch
+                          https://conda.anaconda.org/bioconda/osx-arm64
+                          https://conda.anaconda.org/bioconda/noarch
+                          https://repo.anaconda.com/pkgs/main/osx-arm64
+                          https://repo.anaconda.com/pkgs/main/noarch
+                          https://repo.anaconda.com/pkgs/r/osx-arm64
+                          https://repo.anaconda.com/pkgs/r/noarch
+          package cache : /Users/osmalama/miniconda3/pkgs
+                          /Users/osmalama/.conda/pkgs
+       envs directories : /Users/osmalama/miniconda3/envs
+                          /Users/osmalama/.conda/envs
+               platform : osx-arm64
+             user-agent : conda/25.1.1 requests/2.32.3 CPython/3.12.8 Darwin/24.3.0 OSX/15.3 solver/libmamba conda-libmamba-solver/25.1.1 libmambapy/2.0.5 aau/0.5.0 c/. s/. e/.
+                UID:GID : 1255581740:984178727
+             netrc file : None
+           offline mode : False
+

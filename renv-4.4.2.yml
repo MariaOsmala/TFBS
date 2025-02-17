@@ -4,7 +4,19 @@ channels:
   - defaults
 
 dependencies:
+  - rust
+  - python 
+  - clang 
+  - llvm
+  - gfortran
+  - lld
+  - make 
+  - cmake
+  - glib
   - r-base=4.4.2
+  - r-bh
+  - r-cpp11
+  - r-cairo
   - r-essentials
   - r-biocmanager
   - r-data.table
@@ -19,6 +31,7 @@ dependencies:
   - r-testthat
   - r-rcpp
   - r-rcpparmadillo
+  - r-textshaping
   - r-readr
   - r-magick
   - r-rmarkdown
@@ -178,6 +191,7 @@ dependencies:
   # - bioconductor-universalmotif
   # - bioconductor-genetonic
   # - bioconductor-genomation
+  - bioconductor-biocparallel
   - bioconductor-complexheatmap
   # - bioconductor-motifmatchr
   # - bioconductor-motifstack

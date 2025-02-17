@@ -1,63 +1,48 @@
 library(readr)
-
+library(tidyverse)
+library(data.table)
 rm(list=ls())
-#Lambert families missing
-Jolma2013 <- read_delim("~/projects/TFBS/PWMs_final/Jolma2013/metadata.csv", 
+source("paths_to_folders.R", echo=FALSE)
+#820x22
+Jolma2013 <- read_delim("../../Data/SELEX-motif-collection/Jolma2013_metadata.csv", 
                               delim = "\t", escape_double = FALSE, 
-                              trim_ws = TRUE) #21
-
-Jolma2015 <- read_delim("~/projects/TFBS/PWMs_final/Jolma2015/metadata.csv", 
+                              trim_ws = TRUE) #22
+#593 x 22
+Jolma2015 <- read_delim("../../Data/SELEX-motif-collection/Jolma2015_metadata.csv", 
                            delim = "\t", escape_double = FALSE, 
                            trim_ws = TRUE) #22
 
-
-Morgunova2015 <- read_delim("~/projects/TFBS/PWMs_final/Morgunova2015/metadata.csv", 
+#1 x 22
+Morgunova2015 <- read_delim("../../Data/SELEX-motif-collection/Morgunova2015_metadata.csv", 
+                            delim = "\t", escape_double = FALSE, 
+                            trim_ws = TRUE) #22
+#10 x 22
+Nitta2015 <- read_delim("../../Data/SELEX-motif-collection/Nitta2015_metadata.csv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #22
 
-colnames(Morgunova2015)[5]="Lambert2018_families"
-
-
-Nitta2015 <- read_delim("~/projects/TFBS/PWMs_final/Nitta2015/metadata.csv", 
-                            delim = "\t", escape_double = FALSE, 
-                            trim_ws = TRUE) #22
-
-Yin2017 <- read_delim("~/projects/TFBS/PWMs_final/Yin2017/metadata.csv", 
+#1161 x 23
+Yin2017 <- read_delim("../../Data/SELEX-motif-collection/Yin2017_metadata.csv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #23
 
-#This was used for the version 1
-# fromYimeng <- read_delim("~/projects/TFBS/PWMs_final/fromYimeng/metadata.csv", 
-#                             delim = "\t", escape_double = FALSE, 
-#                             trim_ws = TRUE) #22
-
-#fromYimeng_version2 <- read_delim("~/projects/TFBS/PWMs_final_version2/fromYimeng/metadata.csv", 
-#                             delim = "\t", escape_double = FALSE, 
-#                             trim_ws = TRUE) #22
-
-
-#Union from all fromYimeng motifs
-
-#fromYimeng <- read_delim("~/projects/TFBS/PWMs_final_union/fromYimeng/metadata.csv", 
-#                            delim = "\t", escape_double = FALSE, 
-#                            trim_ws = TRUE) #22
-
-#Version 2.2
-fromYimeng <- read_delim("~/projects/TFBS/PWMs_final_version2.2/fromYimeng/metadata.csv", 
+#1348 x 22
+Xie2025 <- vroom::vroom("../../Data/SELEX-motif-collection/Xie2025_metadata.csv", 
                                                      delim = "\t", escape_double = FALSE, 
                                                      trim_ws = TRUE) #22
                          
                          
                          
-column_order=c( "ID", "symbol", "clone","family", "Lambert2018_families", "organism", "study","experiment",          
+column_order=c( "ID", "symbol", "Human_Ensemble_ID" ,"clone","family", "Lambert2018_families", 
+                "organism", "study","experiment",          
 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-"type", "comment",  "filename", "IC", "IC_universal", "length","consensus")  
+"type", "comment",  "filename", "IC", "length","consensus")  
 
 metadata<- rbind( Jolma2013[, column_order], 
                   Jolma2015[, column_order],
                   Nitta2015[, column_order],
                   Morgunova2015[, column_order],
-                  fromYimeng[,column_order]
+                  Xie2025[,column_order]
                   )
 
 metadata$Methyl.SELEX.Motif.Category=""
@@ -97,7 +82,20 @@ metadata$family=gsub("p53l", "p53", metadata$family)
 
 metadata[which(is.na(metadata$Lambert2018_families)), "Lambert2018_families"]=metadata[which(is.na(metadata$Lambert2018_families)), "family"]
 
-write.table(metadata, file="../../PWMs_final_version2.2/metadata_3993_motifs.csv", row.names = FALSE, sep="\t")
+#3933 motifs
+
+#Could add better unique identifies
+setDT(metadata)
+
+metadata=metadata[,motif_ID := sprintf("ID-%04d", .I)]
+
+# motif_ID column after ID 
+
+metadata <- metadata %>%
+  relocate("motif_ID", .after = "ID")
+
+
+write.table(metadata, file="../../Data/SELEX-motif-collection/metadata.csv", row.names = FALSE, sep="\t")
 
 #Create scdc files from all
 
@@ -105,7 +103,7 @@ write.table(metadata, file="../../PWMs_final_version2.2/metadata_3993_motifs.csv
 
 append=FALSE
 
-for(i in 1:nrow(metadata)){ #3854
+for(i in 1:nrow(metadata)){ #3933
   
   PWM=read.table(paste0( metadata$filename[i]))
   PWM=as.matrix(PWM, dimnames=NULL)
@@ -113,19 +111,43 @@ for(i in 1:nrow(metadata)){ #3854
   
   write.table(paste0(">",  metadata$ID[i]),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final_version2.2/all", ".scpd"))
+              file=paste0(pfms_scpd,"/","all.scpd"))
   append=TRUE
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final_version2.2/all", ".scpd"))
+              file=paste0(pfms_scpd,"/","all.scpd"))
   }
 
+line_count <- as.numeric(system(paste("wc -l", paste0(pfms_scpd,"/all.scpd"), intern = TRUE)))
+#19665 total This is correct
+
+#Or just concatenate files, something wrong here 
+
+# List all .txt files
+#file_list <- list.files(path = "../../Data/PWMs/pfms_scpd", pattern = "\\.scpd$", full.names = TRUE)
+#remove all.scpd if it exists
+
+#file_list=file_list[!grepl("all.scpd", file_list)]
+
+# Concatenate and write to output file
+#cat(unlist(lapply(file_list, readLines)), sep = "\n", file = paste0(pfms_scpd,"/all_tmp.scpd"))
+
+#line_count <- as.numeric(system(paste("wc -l", paste0(pfms_scpd,"/all_tmp.scpd"), intern = TRUE)))
+#13860 total, too less
 
 #save filenames, without "../../
 
-write.table(gsub("../../","",metadata$filename), file="../../PWMs_final_version2.2/filenames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
-
-write.table(metadata$ID, file="../../PWMs_final_version2.2/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
-
+write.table(gsub("../../","",metadata$filename), 
+            file="../../Data/SELEX-motif-collection/filenames.csv",
+            row.names = FALSE, col.names=FALSE, quote=FALSE)
 #save motifnames
+write.table(metadata$ID, 
+            file="../../Data/SELEX-motif-collection/motifnames.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+
+
+write.table(metadata$motif_ID, 
+            file="../../Data/SELEX-motif-collection/motif_IDs.csv",row.names = FALSE, col.names=FALSE, quote=FALSE)
+
+
+#
 

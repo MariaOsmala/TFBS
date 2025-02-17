@@ -5,15 +5,11 @@
 library(tidyverse)
 library(readxl)
 library(universalmotif)
-#all_table <- read_excel("useful/tidyverse_notes/utility/multiple_tables_sheet.xlsx", col_names=FALSE)
-
-
-
-#Jolma2015
+library(ggplot2)
 rm(list=ls())
+source("read_excel_tables.R")
+source("paths_to_folders.R", echo=FALSE)
 
-
-source("code/read_excel_tables.R")
 # This table contains background subtracted PWMs for all of the TF pairs and individual TFs analyzed.  
 # First line for each factor contains information as follows:	
 # Base:	A, C, G or T
@@ -45,14 +41,16 @@ oranges=which(seq(20, 3335,5) %in% seq(2830,3160,5)) #67
 lilas=which(seq(20, 3335,5) %in% seq(3165,3325,5)) #33
 browns=which(seq(20, 3335,5) %in% seq(3330,3335,5)) #2
 
-all_table <- read_excel("../../PWMs/Jolma2015/41586_2015_BFnature15518_MOESM33_ESM.xlsx", 
+all_table <- read_excel("../../Data/SELEX-motif-collection/41586_2015_BFnature15518_MOESM33_ESM.xlsx", 
                         sheet="S2 PWM models", col_names=FALSE, skip=19, col_types=c(rep("text",13), rep("numeric",20)))
-#
 
- 
 PWMs=split_df(all_table)[[1]]
 
-PWMs_metadata=do.call(rbind,lapply(seq(1,nrow(PWMs),5), function(i) PWMs[i,-1]))
+PWMs_metadata=do.call(rbind,lapply(
+                                  seq(1,nrow(PWMs),5), 
+                                  function(i) PWMs[i,-1]
+                                  )
+                      )
 
 
 
@@ -89,15 +87,9 @@ PWMs_metadata=select(PWMs_metadata,c("symbol",	"clone","family", "organism",	"st
   "ligand",	"batch", "seed",	"multinomial",
   "cycle","representative", "short", "type","comment", "filename"))
 
-#add orange and lila information
-#na_ind=which(is.na(PWMs_metadata$comment[oranges]))
-#PWMs_metadata$comment[oranges[na_ind]]="technical-replicates"
-#PWMs_metadata$comment[oranges[-na_ind]]=paste0(PWMs_metadata$comment[oranges[-na_ind]], ", technical-replicates")
-#PWMs_metadata$comment[lilas]=paste0(PWMs_metadata$comment[lilas], ", new-individual-models")
 
 PWMs_metadata$ID=""
 PWMs_metadata$IC=NA
-PWMs_metadata$IC_universal=NA
 PWMs_metadata$length=NA
 PWMs_metadata$consensus=""
 
@@ -111,29 +103,8 @@ PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
 #remove ChIP-EXO motifs and replicates
 PWMs_list=PWMs_list[-c(snake_ind,oranges,browns)]
 
-pwms="../../PWMs_final/Jolma2015/pwms/Homo_sapiens"
-pwms_space="../../PWMs_final/Jolma2015/pwms_space/Homo_sapiens"
-pwms_transfac="../../PWMs_final/Jolma2015/transfac/Homo_sapiens"
-
-dir.create(pwms, recursive = TRUE)
-dir.create(pwms_space, recursive = TRUE)
-dir.create(pwms_transfac, recursive = TRUE)
-
 append=FALSE
 
-#[1] "Warning! Non-unique filenames and IDs"
-#[1] "POU2F1_ETV4_CAP-SELEX_TAGAAC40NAAT_AX_NCCGGATATGCAN_1_2"
-#[1] "Warning! Non-unique filenames and IDs"
-#[1] "POU2F1_SOX15_CAP-SELEX_TCGCCA40NCCT_AS_WTGMATAACAATR_1_2"
-#[1] "Warning! Non-unique filenames and IDs"
-#[1] "ERF_DLX2_CAP-SELEX_TCGAAA40NAAT_AAC_RSCGGAANNNNNYMATTA_1_3"
-#[1] "Warning! Non-unique filenames and IDs"
-#[1] "POU2F1_GSC2_CAP-SELEX_TGCCAT40NACC_AS_NNGATTANNNATGCAWNNN_1_2"
-
-#last column zero 
-#zero_column=c(28, 87, 101, 151, 183, 201, 202, 203, 227, 268)
-
-#PWMs_metadata$symbol[zero_column]
 
 remove=c()
 
@@ -165,26 +136,26 @@ for(m in 1:length(PWMs_list)){
     
     
     # Write .pfm tab-separated
-    filename=paste0(pwms,"/", 
+    filename=paste0(pfms_tab_path,"/", 
                     paste0(PWMs_metadata[m,
                                          -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
-                                                                              "representative", "short", "type", "filename","ID", "IC", "IC_universal","length", "consensus"))], collapse="_"),
+                                                                              "representative", "short", "type", "filename","ID", "IC","length", "consensus"))], collapse="_"),
                     ".pfm")
     ID=paste0(PWMs_metadata[m,
                             -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
-                                                                 "ID", "IC", "IC_universal","length", "consensus" ))], collapse="_")
+                                                                 "ID", "IC", "length", "consensus" ))], collapse="_")
     
     if(filename %in% PWMs_metadata$filename){
       print("Warning! Non-unique filenames and IDs")
       print(ID)
-      filename=paste0(pwms,"/", 
+      filename=paste0(pfms_tab_path,"/", 
                       paste0(PWMs_metadata[m,
                                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
-                                                                                "representative", "short", "type", "filename","ID", "IC", "IC_universal","length", "consensus"))], collapse="_"),
+                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus"))], collapse="_"),
                       "_v2",".pfm")
       ID=paste0( paste0(PWMs_metadata[m,
                               -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
-                                                                   "ID", "IC", "IC_universal","length", "consensus" ))], collapse="_"), "_v2")
+                                                                   "ID", "IC", "length", "consensus" ))], collapse="_"), "_v2")
       
       
       
@@ -200,13 +171,18 @@ for(m in 1:length(PWMs_list)){
     colnames(pcm)=NULL
     rownames(pcm)=c("A", "C", "G", "T")
     
-    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
+    
+    
+    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=PWMs_metadata$symbol[m],
                                 profileMatrix=pcm
     )
     
-    #pwm <- TFBSTools::toPWM(pfm, type="log2probratio", pseudocounts=0.01)
+    
+    pwm_class <- TFBSTools::toPWM(pfm, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    
     icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
-    PWMs_metadata[m, "IC"]=sum(rowSums(icm)) #6.77892 # universalmotif computes this wrong?
+    PWMs_metadata[m, "IC"]=sum(rowSums(icm)) 
     
     #motif length
     PWMs_metadata[m, "length"]=length(pfm)
@@ -214,43 +190,74 @@ for(m in 1:length(PWMs_list)){
     motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
     motif@name=ID
     
-    PWMs_metadata[m, "IC_universal"]=motif@icscore
     PWMs_metadata[m, "consensus"]=motif@consensus
     
-    transfac=paste0(pwms_transfac,"/", ID,".pfm")
+    transfac=paste0(pfms_transfac_path,"/", ID,".pfm")
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
   
     write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE, 
-                file=paste0(pwms_space,"/", ID, ".pfm"), sep=" ")
+                file=paste0(pfms_space_path,"/", ID, ".pfm"), sep=" ")
   
     PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
     rownames(PWM)=c("A", "C", "G", "T")
     write.table(paste0(">",  ID),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final/Jolma2015/all", ".scpd"))
+              file=paste0(pfms_scpd,"/","/Jolma2015.scpd"))
     append=TRUE
   
     write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
-              file=paste0("../../PWMs_final/Jolma2015/","all", ".scpd"))
+              file=paste0(pfms_scpd,"/","/Jolma2015.scpd"))
+    
+    
+    #Write also pwms 
+    
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
+    
+    # Draw logos --------------------------------------------------------------
+    
+    
+    
+    png(paste0(logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    dev.off()
+    
+    #Information content matrices
+    
+    
+    png(paste0(logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(logos_pdf_ic,"/","ID",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    dev.off()
   
   
   }
 }
 
 
-
-
-
-#there are some PWMs twice in the metadata table, the PWM for the latter occurrence is used, NOT ANYMORE
-#PWMs_metadata[which( duplicated(PWMs_metadata$filename)==TRUE),"filename"]
-
-#PWMs_metadata[ which(PWMs_metadata$filename %in% as.vector(PWMs_metadata[which( duplicated(PWMs_metadata$filename)==TRUE),]$filename)), ]
-
 #Add family mappings
-
-TF_family_mappings <- read_delim("~/projects/motif-clustering-Viestra-private/HumanTFs-ccbr-TableS1.csv", delim=",")
-
-#commondf <- merge(datas, TF_family_mappings, by = 'symbol', all.x = TRUE)
+#tmp=PWMs_metadata
+TF_family_mappings <- read_delim("../../Data/SELEX-motif-collection/HumanTFs-ccbr-TableS1.csv", delim=",")
 
 #There is no singles in this data
 single <- PWMs_metadata$symbol[str_detect(PWMs_metadata$symbol, "_") == FALSE] #31
@@ -294,46 +301,7 @@ which(is.na(PWMs_metadata$Lambert2018_families))
 PWMs_metadata[582, 1:5]
 PWMs_metadata$Lambert2018_families[582]=PWMs_metadata$family[582]
 
-write.table(PWMs_metadata, file="../../PWMs_final/Jolma2015/metadata.csv", row.names = FALSE, sep="\t")
-saveRDS(PWMs_metadata, file="Rdata/Jolma2015.Rds")
-
-stop()
-
-PWMs_metadata %>%
-  count(symbol) 
-#435
-
-PWMs_metadata %>%
-  count(family) 
-
-
-#Number of pairs
-PWMs_metadata %>%
-  count(symbol)%>%
-  filter(str_detect(symbol, "_") )
-#318   27 single
-
-
-
-#filter oranges and greens
-PWMs_metadata %>%
-  slice(-c(oranges, greens))%>%
-  count(symbol)
-#463
-
-
-
-#How many types unique(PWMs_metadata$`site type`)
-#[1] "monomeric"             "dimeric"               "monomer"               "monomeric or dimeric"  "dimer of dimers"       "putative multimer"    
-#[7] "monomer or dimer"      "trimeric"              "putatively multimeric"
-
-#Number of human TFs representative
-PWMs_metadata %>%
-  filter(`Matrix is one of the representative PWMs`=="no")%>%
-  count(symbol)
-
-#representative 223
-#nonrepresentative 167
+#Add ensemble gene ID info for monomers
 
 
 
@@ -341,5 +309,21 @@ PWMs_metadata %>%
 
 
 
-#display_table_shape(all_table)
+PWMs_metadata <- PWMs_metadata %>%
+  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID" ), by = 'symbol')
+
+# PWMs_metadata$`Gene Information/ID`[which(PWMs_metadata$experiment=="HT-SELEX")]
+
+PWMs_metadata <- PWMs_metadata %>% #Save this info only for human monomers
+  dplyr::rename("Human_Ensemble_ID"= "Gene Information/ID") %>%
+  relocate("Human_Ensemble_ID", .after = "symbol")
+
+#Relocate ID
+PWMs_metadata <- PWMs_metadata %>%
+  relocate("ID", .before = "symbol")
+
+
+write.table(PWMs_metadata, file="../../Data/SELEX-motif-collection/Jolma2015_metadata.csv", row.names = FALSE, sep="\t")
+
+
 

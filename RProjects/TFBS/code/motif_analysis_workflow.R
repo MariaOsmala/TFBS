@@ -13,7 +13,7 @@ TFBS/RProjects/TFBS/code/extract_motifs_from_excel_Yin2017.R
 #TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng.R  
 #TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_version2.R  
 
-TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_union_version1_version2.R
+#TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_union_version1_version2.R
 #creates /projects/TFBS/PWMs_final_union/fromYimeng/metadata.csv"
 
 TFBS/RProjects/TFBS/code/extract_motifs_from_excel_fromYimeng_version2.2.R
@@ -47,9 +47,6 @@ TFBS/RProjects/TFBS/code/motif_logos_better_version2.2.R
 # SSTAT similarity scores, computation
 MOSTA-SSTAT/Experiments/run_SSTAT_batch_array.sh
 MOSTA-SSTAT/Experiments/run_SSTAT_similarity_with_itself.sh
-
-MOSTA-SSTAT/Experiments/run_SSTAT_union.sh   
-MOSTA-SSTAT/Experiments/run_SSTAT_with_itself_union.sh
 
 
 # Collect SSTAT similarity scores, processing, output compatible with the dominating set analysis

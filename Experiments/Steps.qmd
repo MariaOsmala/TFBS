@@ -1,0 +1,108 @@
+---
+title: "Steps to reproduce the TFBS analysis"
+author: "Maria Osmala"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3  # Optional: Set depth of ToC levels
+    toc-location: left  # Optional: Adjust placement (left, right, float)
+---
+
+# Steps to reproduce the TFBS analysis
+
+First edit `Experiments/config.yaml` to specify the folders in which to place the data.
+
+The steps are also are described in `/code/motif_analysis_workflow.R`.
+
+## Create SELEX motif collection
+
+Reads motifs and associated metadata from Excel files. Writes motifs in different formsta. Draws logos. Computes additional metadata.
+
+Motifs will be here: `TFBS/Data/PWMs/`
+
+```{r}
+setwd("/code/SELEX-motif-collection")
+source("run.R")
+```
+
+## Compute motif similarities
+
+### MOSTA-SSTAT
+
+Install [MOSTA-SSTAT](https://github.com/MariaOsmala/MOSTA-SSTAT)
+
+The number of motifs is 3933. There are thus 3933\*(3933-1)/2=7732278 pairwise similarities. We will compute the similarities in 1000 batches of size 7730. We also need to compute the 3933 similarities of each motif with itself.
+
+These steps require the transfac -format of the motifs
+
+The scripts have been run on cluster. Uses local scratch to save intermediate results. Change the paths according to your system!
+
+```{bash}
+sbatch Experiments/MOSTA-SSTAT/run_SSTAT_batch_array.sh
+sbatch Experiments/MOSTA-SSTAT/run_SSTAT_similarity_with_itself.sh
+
+```
+
+Collect and process SSTAT similarity scores. The output is compatible with the dominating set analysis.
+
+```{r}
+code/motif-similarity/extract_SSTAT.R
+```
+
+### TOMTOM
+
+Create conda environment with `meme.yml`. The code uses meme version 5.4.1
+
+see [sessionInfo](sessionInfos/meme_sessionInfo.txt)
+
+First convert motifs to meme format. True motifs and artificial half-sites.
+```{bash}
+bash code/run_scpd2meme.sh
+
+```
+The command for tomtom is 
+`tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1 $meme_file $meme_file -oc $results_path`
+
+```{bash}
+sbatch Experiments/tomtom/tomtom_all_true_motifs.sh
+sbatch Experiments/tomtom/tomtom_artificialHTSelex_against_true.sh
+```
+
+### Gapped 10-mer similarity
+
+Install [motifsimilarity](https://github.com/jutaipal/motifsimilarity). Can be compiled to use a single core or multiple cores.
+
+```{bash}
+#for parallel, compile (mac):
+clang -latomic -fopenmp -lm -O3 -o motifsimilarity-parallel motifsimilarity.c
+#for one core
+clang -lm -O3 -o motifsimilarity-onecore motifsimilarity.c
+
+#or for parallel (linux):
+gcc -fopenmp -o motifsimilarity_openmp motifsimilarity.c -lm -latomic
+#for one core:
+gcc -o motifsimilarity motifsimilarity.c -lm
+
+```
+
+Usage:
+
+PWM motifs a.pfm and b.pfm must be formatted using tab separated columns with four rows in alphabetical order (A, C, G, T)
+
+```{bash}
+./motifsimilarity a.pfm b.pfm gapped 10
+```
+
+Experiments:
+
+Computes the similarities in 1000 batches of size 7730. No need to compute similarities of each motif with itself as it is always 1.
+
+Parallel, uses 4 cpus.
+
+```{bash}
+sbatch Experiments/motifsimilarity/run_motifsimilarity_sbatch_array.sh
+
+#runs this: run_motifsimilarity_final_version2.2.sh
+
+```

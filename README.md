@@ -60,7 +60,7 @@ Rscript install_bioconductor_packages.R #Remember to change here the path to the
 
 The steps are described here: `/RProjects/TFBS/code/motif_analysis_workflow.R`
 
-Cleaner version of the steps to reproduce the analysis as described in the paper are [here](Steps.md).
+Cleaner version of the steps to reproduce the analysis as described in the paper are [here](Experiments/Steps.qmd)
 
 ## Citation:
 
