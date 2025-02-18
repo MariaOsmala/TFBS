@@ -5,11 +5,15 @@ data_dir: /Users/osmalama/projects/TFBS/Data
 R_library_dir: /Users/osmalama/miniconda3/envs/TFBS/lib/R/library
 results_dir: /Users/osmalama/projects/TFBS/Results/
 experiments_dir: /Users/osmalama/projects/TFBS/Experiments/
+code_dir: /Users/osmalama/projects/TFBS/code
 
 # Analysis parameters (examples)
 cell_lines: [K562, Gm12878]
 
+motifs:
+  pseudocount: 0.01
+
 # Settings for motif matching
 motif_matching:
   match_number: 300000
-  match_score_threshold: 2
+  match_score_threshold: 2 #binding affinity score, natural logarithm

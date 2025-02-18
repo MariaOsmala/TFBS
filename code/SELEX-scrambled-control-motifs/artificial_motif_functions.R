@@ -18,8 +18,6 @@ get_other_pfm_slice_pair_orientations<- function(pcm, cut_point){
   slice1_rc = reverseComplement(slice1)
   slice2_rc = reverseComplement(slice2)    
 
-  #Need to save slices into a file?
-    
   # paste in all orders
   # HT1 ++, first, second, this would be the original
   #my $ht1 = paste($slice1, $slice2);

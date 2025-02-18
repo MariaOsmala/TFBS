@@ -9,12 +9,8 @@
 #SBATCH --mem-per-cpu=80G #
 #SBATCH --cpus-per-task=1
 #SBATCH --gres=nvme:50
-#SBATCH --array=1-393 # #0-393  version2.2 
+#SBATCH --array=1-393 # #0-393  
 
-#22712177_[0]
-#22712324_[1-393]
-
-#sacct --format JobID%-20,State -j 21137238
 
 #Request local storage using the --gres flag in the job submission:
 #--gres=nvme:<local_storage_space_per_node>
@@ -24,11 +20,7 @@
 
 #Use the environment variable $LOCAL_SCRATCH in your batch job scripts to access the local storage on each node.
 
-
-
-srun MOODS_final_version2.2_correct.sh ${SLURM_ARRAY_TASK_ID} #Final version2.2
+srun MOODS_final.sh ${SLURM_ARRAY_TASK_ID} #Final version2.2
 #srun MOODS_final_artificialHTSelex.sh ${SLURM_ARRAY_TASK_ID} #Not an array job
-
-#srun MOODS_mouse.sh ${SLURM_ARRAY_TASK_ID} #USE THIS
 
 seff $SLURM_JOBID

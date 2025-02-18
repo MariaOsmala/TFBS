@@ -28,3 +28,23 @@ dir.create(logos_png_prob, recursive=TRUE)
 dir.create(logos_png_ic, recursive=TRUE)
 dir.create(logos_pdf_prob, recursive=TRUE)
 dir.create(logos_pdf_ic, recursive=TRUE)
+
+
+
+# Scrambled motif paths ---------------------------------------------------
+
+scrambled_pfms_tab_path="../../Data/PWMs/scrambled_pfms_tab"
+scrambled_pfms_space_path="../../Data/PWMs/scrambled_pfms_space"
+scrambled_pfms_transfac_path="../../Data/PWMs/scrambled_pfms_tranfac"
+scrambled_pfms_scpd="../../Data/PWMs/scrambled_pfms_scpd" #this can be converted to meme format
+
+scrambled_pwms_tab_path="../../Data/PWMs/scrambled_pwms_tab"
+scrambled_pwms_space_path="../../Data/PWMs/scrambled_pwms_space"
+
+
+dir.create(scrambled_pfms_tab_path, recursive=TRUE)
+dir.create(scrambled_pfms_space_path, recursive=TRUE)
+dir.create(scrambled_pfms_transfac_path, recursive=TRUE)
+dir.create(scrambled_pfms_scpd, recursive=TRUE)
+dir.create(scrambled_pwms_tab_path, recursive=TRUE)
+dir.create(scrambled_pwms_space_path, recursive=TRUE)

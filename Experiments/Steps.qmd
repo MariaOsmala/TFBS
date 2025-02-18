@@ -21,22 +21,33 @@ Reads motifs and associated metadata from Excel files. Writes motifs in differen
 
 Motifs will be here: `TFBS/Data/PWMs/`
 
-Also processes artificial halfsites for TFs for which the monomeric motif is homodimer. Note that these are not included to the final SELEX collection as they are not real motifs. These are used in ... TODO: need to recognise homodimers and extract the artificial halfsite motifs automatically also for other TFs. 
+Also processes artificial halfsites for TFs for which the monomeric motif is homodimer. Note that these are not included to the final SELEX collection as they are not real motifs. These are used in ... TODO: need to recognise homodimers and extract the artificial halfsite motifs automatically also for other TFs.
 
 ```{r}
-setwd("/code/SELEX-motif-collection")
-source("run.R")
+source("code/SELEX-motif-collection/run.R")
 ```
 
 ![Taipale lab SELEX motif collection](../images/Selex-motif-collection.png){fig-align="center"}
+
+### Draw different types of motif logos
+
+```{r}
+TFBS/RProjects/TFBS/code/motifs_logos_better.R
+TFBS/RProjects/TFBS/code/motif_logos_better_version2.2.R
+```
+Spacek, normal and bar logos. 
+```{bash}
+~/spacek/Experiments/draw_logos.sh
+```
 
 ## Create scrambled control motifs (aka. artificial motifs)
 
 ```{r}
 
 # Generate artificial motifs
-TFBS/RProjects/TFBS/code/generate_artificial_motifs.R
-TFBS/RProjects/TFBS/code/artificial_motif_functions.R
+code/SELEX-scrambled-control-motifs/generate_artificial_motifs.R
+code/SELEX-scrambled-control-motifs/generate_artificial_motifs_artificialHTSELEX_halfsites.R
+code/SELEX-scrambled-control-motifs/artificial_motif_functions.R
 
 ```
 
@@ -122,6 +133,28 @@ sbatch Experiments/motifsimilarity/run_motifsimilarity_sbatch_array.sh
 
 ```
 
+Compute 10-mer gapped similarities for artificial half-sites against true motifs? Are these computed? Not needed?
+
+```{bash}
+
+
+```
+
+Compute 10-mer gapped similarities between true/real motif and the corresponding scrambled control motifs. We will remove those scrambled motifs from the analysis if they are similar (> 0.1 similarity) to the true motif. TODO: Remove also control motifs if they are similar to any true/real motif. Process 10 true motifs at a time
+
+```{bash}
+Experiments/motifsimilarity/run_motifsimilarity_true_vs_corresponding_artificial_sbatch_array.sh
+Experiments/motifsimilarity/run_motifsimilarity_true_vs_corresponding_artificial.sh
+```
+
+
+TODO: Remove also control motifs if they are similar to any true/real motif. Find gapped 10-mer similarity threshold for DSA
+
+## Other similarity measures
+
+MosBat, Kolmogorov-Smirnov statistics of motif matches
+
+
 ## Minimum Dominating Set analysis
 
 Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK LP/MIP Solver 5.0. The code uses SSTAT similarities.
@@ -149,6 +182,133 @@ code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives.R
 code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives_new_composites.R
 
 ```
+## Circular plot of motif clusters
+
+## Jeff Viersta style webpage of motif clusters
+
+## Cytoscape visualisation of the motif network
+
+
+## Human genome sequence and annotations
+
+Download human genome hg38 from here: `https://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/`
+
+
+```{bash}
+Experiments/Genome-and-annotations/download_genome.sh
+```
+
+Results in the genome which is used for motif matching: `Genomes/hg38/chr_sequences.fa`
+Size: 3,150,035,398 ~3.15 GB or 3,139,741,166 (on Puhti)?
+
+TODO: Alternative genomes, mouse genome, think more carefully the repeast masking
+```{bash}
+Experiments/Genome-and-annotations/download_genome_T2T.sh
+Experiments/Genome-and-annotations/download_genome_analysisSet.sh
+
+```
+
+This code extracts the genome annotations as a gtf file. How this is used?
+```{r}
+"Experiments/Genome-and-annotations/extract_genome_annotations.R"
+```
+
+Gencode annotations (used for conservation analysis)
+
+Repeats (used for conservation analysis)
 
 
 ## Motif matching
+
+Create conda environment with `MOODS.yml`. The code uses python v2.7.15 and moods v1.9.4.1 see [sessionInfo](sessionInfos/MOODS_sessionInfo.txt)
+
+The command to run moods is `moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $genome`. Here
+
+-   pwms contain paths to the space-delimited pfms
+
+-   we run moods to 10 pfms at a time
+
+-   default parameters are used for background distributions (uniform) and pseudocount (0.01).
+
+-   Minimum motif match/binding affinity score is 2 (natural logarithm)
+
+-   the output is written to `csv.gz` files
+
+Match 3933 true/real/original motifs to the human genome. Match also the artificial half-sites.
+Change the paths accordingly!
+
+TODO: create artificial-half-site-motifs/motifnames.csv
+
+```{bash}
+sbatch Experiments/MOODS/run_MOODS_batch_array_better.sh
+#This runs either of these:
+#Experiments/MOODS/MOODS_final_version2.2_correct.sh
+#Experiments/MOODS/MOODS_final_artificialHTSelex.sh
+
+```
+
+Match artificial motifs to the genome. Here
+
+- we match the artificial motifs of 5 true motifs at a time
+
+```{bash}
+sbatch Experiments/MOODS/run_MOODS_artificial_motifs.sh
+#This runs either of these: 
+#Experiments/MOODS/MOODS_artificial_motifs.sh
+#Experiments/MOODS/MOODS_artificial_motifs_artificialHTSELEX_halfsites.sh
+```
+
+### Process MOODS results
+
+The codes uses R environment 4.2.1 on CSC Puhti.
+
+Creates GRanges objects (.Rds files) and bed files of motif matches.
+```{bash}
+sbatch /projappl/project_2006203/TFBS/Experiments/run_process_MOODS.sh
+```
+Runs the following. See [sessionInfo](sessionInfos/sessionInfo_MOODS_results_to_database.txt)
+
+```{r}
+#To process true motif matches
+code/MOODS/MOODS_results_to_database.R 
+
+#To process artificial half-site motif matches
+
+code/MOODS/MOODS_artificialHTSelex_results_to_database.R 
+
+#To process scrambled motif matches
+code/MOODS/MOODS_artificial_results_to_database.R 
+
+#To process scrambled artificial half-site motif matches
+code/MOODS/MOODS_artificial_artificialHTSelex_results_to_database.R 
+
+```
+
+Moods results to a single GRangesList
+```{bash}
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/MOODS_results_to_single_GRangesList.sh
+```
+
+Runs this code (R-4.2.1), same sessionInfo as above. 
+```{r}
+code/MOODS/MOODS_results_to_single_GRangesList.R 
+```
+
+Match numbers and MOODS threshold to obtain the match numbers, add to the metadata
+
+Extract also the mean PhyloP thresholds for the conservation analysis (need to be computed first)
+
+This uses R environment 4.3.0 on CSC Puhti. SessionInfo?
+
+```{bash}
+sbatch Experiments/MOODS/process_and_analyse_top_MOODS_hits.sh
+#runs the following
+#code/MOODS/process_and_analyse_top_MOODS_hits.R
+```
+
+## Motif match enrichment at cell-type-specific candidate cis-regulatory elements (cCREs)
+
+cell-type-specific cCREs obtained from Zhang et al. 2021
+
+
+

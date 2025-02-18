@@ -1,6 +1,4 @@
-packages in environment at /CSC_CONTAINER/miniconda/envs/env1:
-#
-Name                    Version                   Build  Channel
+# Name                    Version                   Build  Channel
 _libgcc_mutex             0.1                 conda_forge    conda-forge
 _openmp_mutex             4.5                       2_gnu    conda-forge
 alsa-lib                  1.2.3.2              h166bdaf_0    conda-forge
@@ -266,3 +264,5 @@ zeromq                    4.3.4                h9c3ff4c_1    conda-forge
 zipp                      3.8.1              pyhd8ed1ab_0    conda-forge
 zlib                      1.2.12               h166bdaf_2    conda-forge
 zstd                      1.5.2                h6239696_4    conda-forge
+
+

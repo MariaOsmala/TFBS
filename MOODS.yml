@@ -1,0 +1,10 @@
+channels:
+  - conda-forge
+  - bioconda
+
+dependencies:
+  - python=2.7
+  - gcc_linux-64
+  - gxx_linux-64
+  - gfortran_linux-64
+  - moods
