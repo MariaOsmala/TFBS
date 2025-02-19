@@ -11,7 +11,7 @@ format:
 
 # Steps to reproduce the TFBS analysis
 
-First edit `Experiments/config.yaml` to specify the folders in which to place the data.
+First edit `Experiments/config.yaml` to specify the folders in which to place the data. NOTE: currently many paths are hard-coded in the scripts.
 
 The steps are also are described in `/code/motif_analysis_workflow.R`.
 
@@ -150,9 +150,9 @@ Experiments/motifsimilarity/run_motifsimilarity_true_vs_corresponding_artificial
 
 TODO: Remove also control motifs if they are similar to any true/real motif. Find gapped 10-mer similarity threshold for DSA
 
-## Other similarity measures
+### Other similarity measures
 
-MosBat, Kolmogorov-Smirnov statistics of motif matches
+MosBat, Kolmogorov-Smirnov statistics of motif matches.
 
 
 ## Minimum Dominating Set analysis
@@ -230,7 +230,7 @@ The command to run moods is `moods-dna.py -m ${pwms[@]:$start_ind:$length} --thr
 
 -   default parameters are used for background distributions (uniform) and pseudocount (0.01).
 
--   Minimum motif match/binding affinity score is 2 (natural logarithm)
+-   Minimum motif match/binding affinity score is 2 (natural logarithm). This produces an excess number of motif matches.
 
 -   the output is written to `csv.gz` files
 
@@ -260,7 +260,9 @@ sbatch Experiments/MOODS/run_MOODS_artificial_motifs.sh
 
 ### Process MOODS results
 
-The codes uses R environment 4.2.1 on CSC Puhti.
+Sort the motive matches by score from highest to lowest, select the score of the 300 000th match, and select all matches with at least this score. 
+
+The codes uses R environment 4.2.1 on CSC Puhti. 
 
 Creates GRanges objects (.Rds files) and bed files of motif matches.
 ```{bash}
@@ -308,7 +310,120 @@ sbatch Experiments/MOODS/process_and_analyse_top_MOODS_hits.sh
 
 ## Motif match enrichment at cell-type-specific candidate cis-regulatory elements (cCREs)
 
-cell-type-specific cCREs obtained from Zhang et al. 2021
+Cell-type-specific cCREs obtained from Zhang et al. 2021. Data can be downloaded [here](https://data.mendeley.com/datasets/yv4fzv6cnm/)
+
+TODO: Analyse also fetal cCREs and differential cCREs between adult and fetus. CRE modules?
+
+### Extract coordinates of cCREs, cell-type groups, and better cell type names
+Extract coordinates from Zhang et al. 2021 data. I have used the bed-files in yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/. There is a .bed file for each of the 111 adult cell-types. For more info and more descriptive names of the cell types and cell type groupings, see [this table](Data/Zhang2021/Adult_Celltypes_mapping.csv) and an R-script `cell_type_names.R`.
+
+```{bash}
+mkdir Experiments/motif-match-enrichment-at-cell-type-specific-cCREs
+mkdir Experiments/predict-cell-type-specificity-of-cCREs-from-motif-matches
+
+Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/download.sh
+code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/sets_of_accessible_regions.R
+code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/cell_type_names.R
+```
+
+### Motif enrichment at cCREs
+
+Uses R-4.3.0. [sessionInfo](sessionInfos/sessionInfo_enrichment_at_CREs.txt)
+
+To investigate whether the motif matches are enriched or depleted at the cell-type-specific cCREs, we applied the Fisher’s Exact Test. We computed the p-value to evaluate the deviation from the null hypothesis that the presence of a motif match at a cCRE is independent of whether the cCRE belongs to a set of cell-type-specific cCREs. The motif match enrichment at particular cell type specific cCREs was determined as relative enrichment compared to frequency of matches of the same motif at all cell-type specific cCREs (relative frequency fold change).
+
+Processes batches of 10 motifs. Distributed to ~3933/10 cpus. Outputs p-values and the fold change of enrichment.
+
+```{bash}
+
+sbatch Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/analysis_CRE_enrichment_final_parts.sh
+
+```
+
+```{r}
+code/motif-match-enrichment-at-cell-type-specific-cCREs/enrichment_at_CREs_final_all_motifs_parts.R
+code/motif-match-enrichment-at-cell-type-specific-cCREs/FishersExact.R
+```
+Collects the results from the batches.
+```{r}
+code/motif-match-enrichment-at-cell-type-specific-cCREs/collect_enrichment_at_CREs_final_all_motifs_parts.R
+```
+
+Draw heatmaps of the data and count the number of enriched representative composite and spacing motifs 
+
+sessionInfos/sessionInfo_analyse_TF_enrichment_heatmap_final.txt
+
+Only for representative motifs
+Volcano plots
+Interactive heatmaps?
+Other visualisations?
+
+```{r}
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/analyse_TF_enrichment_heatmap_final.R #not well-structured code
+# essential input Data/Zhang2021/Adult_Celltypes_mapping.csv
+code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/cell_type_names.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R #Is this needed?
+
+```
+
+### Draw Figure 6d
+
+#ComplexHeatmap_2.16.0
+# Figure 6d
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_enrichment_at_CREs_final_bHLH_homeodomain.txt
+
+#This is for the last version of the figure
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain_representatives.R
+
+
+################ Logistic regression analysis of motif matches at cCREs #################
+
+# Prepare matrices, prepare this for renv/421
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/matrices_for_predictive_analysis.sh
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/matrices_for_predictive_analysis.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_matrices_for_predictive_analysis.txt
+
+# Logistic regression analysis
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/run_predictive_analysis_logistic_regression.sh
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/predictive_analysis_logistic_regression.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_predictive_analysis_logistic_regression.txt
+
+# Analyse logistic regression results
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/analyse_results_of_predictive_analysis_logistic_regression.R
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/run_analyse_results_of_predictive_analysis_logistic_regression.sh
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_analysis_results_of_predictive_analysis_logistic_regression.txt
+
+#AUC values from logistic regression analysis
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/AUC_values_predictive_analysis_logistic_regression.R
+
+# Mark the t-test p-value for the different between means
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/AUCS.xlsx
+
+# AUC boxplots 
+/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_AUC_boxplots/
+
+#Regression coefficient figures
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/figures_predictive_analysis_logistic_regression.R
+
+#Produces
+#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs/
+#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs_new_motifs/
+#/scratch/project_2006203/TFBS/ATAC-seq-peaks/reg_coeff_excels/
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/figures_predictive_analysis_logistic_regression_selected_TF_pairs.R
+#generates
+#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs_selected_motifs/
+
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/volcano_plots_for_selected_TF_pairs.R
+#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_volcanoes/
+
+# Figure 6d
+/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_family_pairs.R
+
 
 
 
