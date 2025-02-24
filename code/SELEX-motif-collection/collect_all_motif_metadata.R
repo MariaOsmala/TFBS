@@ -3,30 +3,30 @@ library(tidyverse)
 library(data.table)
 rm(list=ls())
 source("paths_to_folders.R", echo=FALSE)
-#820x22
+#820x23
 Jolma2013 <- read_delim("../../Data/SELEX-motif-collection/Jolma2013_metadata.csv", 
                               delim = "\t", escape_double = FALSE, 
                               trim_ws = TRUE) #22
-#593 x 22
+#593 x 23
 Jolma2015 <- read_delim("../../Data/SELEX-motif-collection/Jolma2015_metadata.csv", 
                            delim = "\t", escape_double = FALSE, 
                            trim_ws = TRUE) #22
 
-#1 x 22
+#1 x 23
 Morgunova2015 <- read_delim("../../Data/SELEX-motif-collection/Morgunova2015_metadata.csv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #22
-#10 x 22
+#10 x 23
 Nitta2015 <- read_delim("../../Data/SELEX-motif-collection/Nitta2015_metadata.csv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #22
 
-#1161 x 23
+#1161 x 24
 Yin2017 <- read_delim("../../Data/SELEX-motif-collection/Yin2017_metadata.csv", 
                             delim = "\t", escape_double = FALSE, 
                             trim_ws = TRUE) #23
 
-#1348 x 22
+#1348 x 23
 Xie2025 <- vroom::vroom("../../Data/SELEX-motif-collection/Xie2025_metadata.csv", 
                                                      delim = "\t", escape_double = FALSE, 
                                                      trim_ws = TRUE) #22
@@ -36,7 +36,7 @@ Xie2025 <- vroom::vroom("../../Data/SELEX-motif-collection/Xie2025_metadata.csv"
 column_order=c( "ID", "symbol", "Human_Ensemble_ID" ,"clone","family", "Lambert2018_families", 
                 "organism", "study","experiment",          
 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-"type", "comment",  "filename", "IC", "length","consensus")  
+"type", "comment",  "filename", "IC", "length","consensus","kld_between_revcomp")  
 
 metadata<- rbind( Jolma2013[, column_order], 
                   Jolma2015[, column_order],

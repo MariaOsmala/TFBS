@@ -9,6 +9,7 @@ config <- yaml.load_file("Experiments/config.yaml", readLines.warn=FALSE)
 
 setwd(paste0(config$base_dir, "code/SELEX-motif-collection"))
 
+#Draws logos using ggseqlogo package
 
 source("extract_motifs_from_excel_Jolma2013.R")
 source("extract_motifs_Morgunova_2015.R")

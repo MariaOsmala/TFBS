@@ -7,47 +7,76 @@ format:
     toc: true
     toc-depth: 3  # Optional: Set depth of ToC levels
     toc-location: left  # Optional: Adjust placement (left, right, float)
+editor: 
+  markdown: 
+    wrap: 72
 ---
 
 # Steps to reproduce the TFBS analysis
 
-First edit `Experiments/config.yaml` to specify the folders in which to place the data. NOTE: currently many paths are hard-coded in the scripts.
+Open this file in RStudio.
+
+First edit `Experiments/config.yaml` to specify the folders in which to
+place the data. NOTE: currently many paths are hard-coded in the
+scripts.
 
 The steps are also are described in `/code/motif_analysis_workflow.R`.
 
 ## Create SELEX motif collection
 
-Reads motifs and associated metadata from Excel files. Writes motifs in different forms. Draws logos. Computes additional metadata.
+Reads motifs and associated metadata from Excel files. Writes motifs in
+different forms. Draws logos. Computes additional metadata.
 
 Motifs will be here: `TFBS/Data/PWMs/`
 
-Also processes artificial halfsites for TFs for which the monomeric motif is homodimer. Note that these are not included to the final SELEX collection as they are not real motifs. These are used in ... TODO: need to recognise homodimers and extract the artificial halfsite motifs automatically also for other TFs.
+Also processes artificial halfsites for TFs for which the monomeric
+motif is homodimer. Note that these are not included to the final SELEX
+collection as they are not real motifs. These are used in ... TODO: need
+to recognise homodimers and extract the artificial halfsite motifs
+automatically also for other TFs.
 
 ```{r}
+#| eval: false
+#| include: false
 source("code/SELEX-motif-collection/run.R")
 ```
 
-![Taipale lab SELEX motif collection](../images/Selex-motif-collection.png){fig-align="center"}
+![Taipale lab SELEX motif
+collection](../images/Selex-motif-collection.png){fig-align="center"}
 
 ### Draw different types of motif logos
 
 ```{r}
-TFBS/RProjects/TFBS/code/motifs_logos_better.R
-TFBS/RProjects/TFBS/code/motif_logos_better_version2.2.R
+#| eval: false
+#| include: false
+source("TFBS/RProjects/TFBS/code/motifs_logos_better.R")
+source("TFBS/RProjects/TFBS/code/motif_logos_better_version2.2.R")
 ```
-Spacek, normal and bar logos. 
+
+#### Spacek logos
+
+Normal and bar logos. Spacek tool from
+https://github.com/taipalelab/spacek, private?. Compiled code can be
+obtained from Nitta et al. 2015.
+
 ```{bash}
-~/spacek/Experiments/draw_logos.sh
+#| eval: false
+#| include: false
+Experiments/draw_logos.sh #draws normal logos and barcode logos in png and svg formats, requires magick
+/Experiments/spacek/convert_svg_to_pdf.sh #converts svg to pdf, needs inkscape
 ```
+
+Also for artificial half sites
 
 ## Create scrambled control motifs (aka. artificial motifs)
 
 ```{r}
-
+#| eval: false
+#| include: false
 # Generate artificial motifs
-code/SELEX-scrambled-control-motifs/generate_artificial_motifs.R
-code/SELEX-scrambled-control-motifs/generate_artificial_motifs_artificialHTSELEX_halfsites.R
-code/SELEX-scrambled-control-motifs/artificial_motif_functions.R
+source("code/SELEX-scrambled-control-motifs/generate_artificial_motifs.R")
+source("code/SELEX-scrambled-control-motifs/generate_artificial_motifs_artificialHTSELEX_halfsites.R")
+source("code/SELEX-scrambled-control-motifs/artificial_motif_functions.R")
 
 ```
 
@@ -57,49 +86,68 @@ code/SELEX-scrambled-control-motifs/artificial_motif_functions.R
 
 Install [MOSTA-SSTAT](https://github.com/MariaOsmala/MOSTA-SSTAT)
 
-The number of motifs is 3933. There are thus 3933\*(3933-1)/2=7732278 pairwise similarities. We will compute the similarities in 1000 batches of size 7730. We also need to compute the 3933 similarities of each motif with itself.
+The number of motifs is 3933. There are thus 3933\*(3933-1)/2=7732278
+pairwise similarities. We will compute the similarities in 1000 batches
+of size 7730. We also need to compute the 3933 similarities of each
+motif with itself.
 
 These steps require the transfac -format of the motifs
 
-The scripts have been run on cluster. Uses local scratch to save intermediate results. Change the paths according to your system!
+The scripts have been run on cluster. Uses local scratch to save
+intermediate results. Change the paths according to your system!
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/MOSTA-SSTAT/run_SSTAT_batch_array.sh
 sbatch Experiments/MOSTA-SSTAT/run_SSTAT_similarity_with_itself.sh
 
 ```
 
-Collect and process SSTAT similarity scores. The output is compatible with the dominating set analysis.
+Collect and process SSTAT similarity scores. The output is compatible
+with the dominating set analysis.
 
 ```{r}
-code/motif-similarity/extract_SSTAT.R
+#| eval: false
+#| include: false
+source("code/motif-similarity/extract_SSTAT.R")
 ```
 
 ### TOMTOM
 
-Create conda environment with `meme.yml`. The code uses meme version 5.4.1
+Create conda environment with `meme.yml`. The code uses meme version
+5.4.1
 
 see [sessionInfo](sessionInfos/meme_sessionInfo.txt)
 
-First convert motifs to meme format. True motifs and artificial half-sites.
+First convert motifs to meme format. True motifs and artificial
+half-sites.
 
 ```{bash}
+#| eval: false
+#| include: false
 bash code/run_scpd2meme.sh
 
 ```
 
-The command for tomtom is `tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1 $meme_file $meme_file -oc $results_path`
+The command for tomtom is
+`tomtom -dist kullback -motif-pseudo 0.1 -thresh 1 -min-overlap 1 $meme_file $meme_file -oc $results_path`
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/tomtom/tomtom_all_true_motifs.sh
 sbatch Experiments/tomtom/tomtom_artificialHTSelex_against_true.sh
 ```
 
 ### Gapped 10-mer similarity
 
-Install [motifsimilarity](https://github.com/jutaipal/motifsimilarity). Can be compiled to use a single core or multiple cores.
+Install [motifsimilarity](https://github.com/jutaipal/motifsimilarity).
+Can be compiled to use a single core or multiple cores.
 
 ```{bash}
+#| eval: false
+#| include: false
 #for parallel, compile (mac):
 clang -latomic -fopenmp -lm -O3 -o motifsimilarity-parallel motifsimilarity.c
 #for one core
@@ -114,52 +162,68 @@ gcc -o motifsimilarity motifsimilarity.c -lm
 
 Usage:
 
-PWM motifs a.pfm and b.pfm must be formatted using tab separated columns with four rows in alphabetical order (A, C, G, T)
+PWM motifs a.pfm and b.pfm must be formatted using tab separated columns
+with four rows in alphabetical order (A, C, G, T)
 
 ```{bash}
+#| eval: false
+#| include: false
 ./motifsimilarity a.pfm b.pfm gapped 10
 ```
 
 Experiments:
 
-Computes the similarities in 1000 batches of size 7730. No need to compute similarities of each motif with itself as it is always 1.
+Computes the similarities in 1000 batches of size 7730. No need to
+compute similarities of each motif with itself as it is always 1.
 
 Parallel, uses 4 cpus.
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/motifsimilarity/run_motifsimilarity_sbatch_array.sh
 
 #runs this: run_motifsimilarity_final_version2.2.sh
 
 ```
 
-Compute 10-mer gapped similarities for artificial half-sites against true motifs? Are these computed? Not needed?
+Compute 10-mer gapped similarities for artificial half-sites against
+true motifs? Are these computed? Not needed?
 
 ```{bash}
-
+#| eval: false
+#| include: false
 
 ```
 
-Compute 10-mer gapped similarities between true/real motif and the corresponding scrambled control motifs. We will remove those scrambled motifs from the analysis if they are similar (> 0.1 similarity) to the true motif. TODO: Remove also control motifs if they are similar to any true/real motif. Process 10 true motifs at a time
+Compute 10-mer gapped similarities between true/real motif and the
+corresponding scrambled control motifs. We will remove those scrambled
+motifs from the analysis if they are similar (\> 0.1 similarity) to the
+true motif. TODO: Remove also control motifs if they are similar to any
+true/real motif. Process 10 true motifs at a time
 
 ```{bash}
+#| eval: false
+#| include: false
 Experiments/motifsimilarity/run_motifsimilarity_true_vs_corresponding_artificial_sbatch_array.sh
 Experiments/motifsimilarity/run_motifsimilarity_true_vs_corresponding_artificial.sh
 ```
 
-
-TODO: Remove also control motifs if they are similar to any true/real motif. Find gapped 10-mer similarity threshold for DSA
+TODO: Remove also control motifs if they are similar to any true/real
+motif. Find gapped 10-mer similarity threshold for DSA
 
 ### Other similarity measures
 
 MosBat, Kolmogorov-Smirnov statistics of motif matches.
 
-
 ## Minimum Dominating Set analysis
 
-Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK LP/MIP Solver 5.0. The code uses SSTAT similarities.
+Computations done on mac. The code uses perl 5.34.1 and GLPSOL--GLPK
+LP/MIP Solver 5.0. The code uses SSTAT similarities.
 
 ```{bash}
+#| eval: false
+#| include: false
 perl -v 
 #This is perl 5, version 34, subversion 1 (v5.34.1) built for darwin-thread-multi-2level
 glpsol -v    
@@ -167,79 +231,137 @@ glpsol -v
 ```
 
 ```{bash}
-
+#| eval: false
+#| include: false
 Experiments/SELEX-Dominating-Set-Analysis/run_domset_example.sh
 ```
 
-Process the results to add representativeness info to motif metadata (new_representative; YES or NO). Form motif clusters aka motifs represented by representatives.
+Process the results to add representativeness info to motif metadata
+(new_representative; YES or NO). Form motif clusters aka motifs
+represented by representatives.
 
-The minimum dominating analysis was performed for all 3933 motifs and the new 1131 composites.
+The minimum dominating analysis was performed for all 3933 motifs and
+the new 1131 composites.
 
 ```{r}
-code/SELEX-Dominating-Set-Analysis/process_DSA_results.R
-code/SELEX-Dominating-Set-Analysis/process_DSA_results_new_composites.R
-code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives.R
-code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives_new_composites.R
+#| eval: false
+#| include: false
+source("code/SELEX-Dominating-Set-Analysis/process_DSA_results.R")
+source("code/SELEX-Dominating-Set-Analysis/process_DSA_results_new_composites.R")
+source("code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives.R")
+source("code/SELEX-Dominating-Set-Analysis/motifs_represented_by_representatives_new_composites.R")
 
 ```
+## Composite motif overlap similarity to individual monomer motif flanks
+
+Find the alignment of individual monomeric motifs to the heterodimeric CAP-selex motifs. Infer which motifs are spacing and composites
+
+The code utilises the offsets and orientations obtained by tomtom. Tomtom similarity obtained between all true motifs and between artificial 
+half sites and all true motifs.
+
+Selects a monomer for each TF, the shortest motif was chosen. For equal width motifs, the one with the highest information content was selected.
+
+Find the start position and end position of the monomers wrt. heterodimer. Check whether the monomers aligned against the heterodimer are overlapping or not (gap). The info can be used to computationally infer the heterodimer type (composite or spacing), but currently the
+overlap info is not enough to infer the heterodimer type. TODO: check also similarity.
+
+TODO: Perform the same analysis with spacek or some other tool.
+
+```{r}
+source("code/composite-monomer-flank-similarity/half_site_recognition_in_motifs_and_artificial_spacing.R")
+source("code/composite-monomer-flank-similarity/half_site_recognition_functions.R")
+```
+
+Codes to compute the Jensen-Shannon divergence and Jaccard index of high affinity k-mers between the composite overlap and individual motif flanks. 
+Includes a function to create all possible k-mers up to length of 13 bp.
+
+Processes each of 1131 composites separately.
+
+```{bash}
+sbatch Experiments/composite-monomer-flank-similarity/run_create_kmers.sh
+sbatch Experiments/composite-monomer-flank-similarity/run_similarities_between_composite_cores_and_monomer_flanks.sh
+
+#runs the following: 
+#code/composite-monomer-flank-similarity/create_kmers.R                                                             # code/composite-monomer-flank-similarity/similarities_between_composite_core_and_overlapping_monomer_flanks.R
+```
+### Draw figures Extended Data Fig. 3h and 3i 
+
+```{r}
+
+source("process_similarities_between_composite_core_and_overlapping_monomer_flanks.R")
+```
+
 ## Circular plot of motif clusters
 
 ## Jeff Viersta style webpage of motif clusters
 
 ## Cytoscape visualisation of the motif network
 
-
 ## Human genome sequence and annotations
 
-Download human genome hg38 from here: `https://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/`
-
+Download human genome hg38 from here:
+`https://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/`
 
 ```{bash}
+#| eval: false
+#| include: false
 Experiments/Genome-and-annotations/download_genome.sh
 ```
 
-Results in the genome which is used for motif matching: `Genomes/hg38/chr_sequences.fa`
-Size: 3,150,035,398 ~3.15 GB or 3,139,741,166 (on Puhti)?
+Results in the genome which is used for motif matching:
+`Genomes/hg38/chr_sequences.fa` Size: 3,150,035,398 \~3.15 GB or
+3,139,741,166 (on Puhti)?
 
-TODO: Alternative genomes, mouse genome, think more carefully the repeast masking
+TODO: Alternative genomes, mouse genome, think more carefully the
+repeast masking
+
 ```{bash}
 Experiments/Genome-and-annotations/download_genome_T2T.sh
 Experiments/Genome-and-annotations/download_genome_analysisSet.sh
 
 ```
 
-This code extracts the genome annotations as a gtf file. How this is used?
+This code extracts the genome annotations as a gtf file. How this is
+used?
+
 ```{r}
-"Experiments/Genome-and-annotations/extract_genome_annotations.R"
+#| eval: false
+#| include: false
+source("Experiments/Genome-and-annotations/extract_genome_annotations.R")
 ```
 
 Gencode annotations (used for conservation analysis)
 
 Repeats (used for conservation analysis)
 
-
 ## Motif matching
 
-Create conda environment with `MOODS.yml`. The code uses python v2.7.15 and moods v1.9.4.1 see [sessionInfo](sessionInfos/MOODS_sessionInfo.txt)
+Create conda environment with `MOODS.yml`. The code uses python v2.7.15
+and moods v1.9.4.1 see [sessionInfo](sessionInfos/MOODS_sessionInfo.txt)
 
-The command to run moods is `moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $genome`. Here
+The command to run moods is
+`moods-dna.py -m ${pwms[@]:$start_ind:$length} --threshold 2 -s $genome`.
+Here
 
 -   pwms contain paths to the space-delimited pfms
 
 -   we run moods to 10 pfms at a time
 
--   default parameters are used for background distributions (uniform) and pseudocount (0.01).
+-   default parameters are used for background distributions (uniform)
+    and pseudocount (0.01).
 
--   Minimum motif match/binding affinity score is 2 (natural logarithm). This produces an excess number of motif matches.
+-   Minimum motif match/binding affinity score is 2 (natural logarithm).
+    This produces an excess number of motif matches.
 
 -   the output is written to `csv.gz` files
 
-Match 3933 true/real/original motifs to the human genome. Match also the artificial half-sites.
-Change the paths accordingly!
+Match 3933 true/real/original motifs to the human genome. Match also the
+artificial half-sites. Change the paths accordingly!
 
 TODO: create artificial-half-site-motifs/motifnames.csv
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/MOODS/run_MOODS_batch_array_better.sh
 #This runs either of these:
 #Experiments/MOODS/MOODS_final_version2.2_correct.sh
@@ -249,9 +371,11 @@ sbatch Experiments/MOODS/run_MOODS_batch_array_better.sh
 
 Match artificial motifs to the genome. Here
 
-- we match the artificial motifs of 5 true motifs at a time
+-   we match the artificial motifs of 5 true motifs at a time
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/MOODS/run_MOODS_artificial_motifs.sh
 #This runs either of these: 
 #Experiments/MOODS/MOODS_artificial_motifs.sh
@@ -260,19 +384,28 @@ sbatch Experiments/MOODS/run_MOODS_artificial_motifs.sh
 
 ### Process MOODS results
 
-Sort the motive matches by score from highest to lowest, select the score of the 300 000th match, and select all matches with at least this score. 
+Sort the motive matches by score from highest to lowest, select the
+score of the 300 000th match, and select all matches with at least this
+score.
 
-The codes uses R environment 4.2.1 on CSC Puhti. 
+The codes uses R environment 4.2.1 on CSC Puhti.
 
 Creates GRanges objects (.Rds files) and bed files of motif matches.
+
 ```{bash}
+#| eval: false
+#| include: false
 sbatch /projappl/project_2006203/TFBS/Experiments/run_process_MOODS.sh
 ```
-Runs the following. See [sessionInfo](sessionInfos/sessionInfo_MOODS_results_to_database.txt)
+
+Runs the following. See
+[sessionInfo](sessionInfos/sessionInfo_MOODS_results_to_database.txt)
 
 ```{r}
+#| eval: false
+#| include: false
 #To process true motif matches
-code/MOODS/MOODS_results_to_database.R 
+code/MOODS/MOODS_results_to_database.R
 
 #To process artificial half-site motif matches
 
@@ -287,22 +420,32 @@ code/MOODS/MOODS_artificial_artificialHTSelex_results_to_database.R
 ```
 
 Moods results to a single GRangesList
+
 ```{bash}
+#| eval: false
+#| include: false
 /projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/MOODS_results_to_single_GRangesList.sh
 ```
 
-Runs this code (R-4.2.1), same sessionInfo as above. 
+Runs this code (R-4.2.1), same sessionInfo as above.
+
 ```{r}
+#| eval: false
+#| include: false
 code/MOODS/MOODS_results_to_single_GRangesList.R 
 ```
 
-Match numbers and MOODS threshold to obtain the match numbers, add to the metadata
+Match numbers and MOODS threshold to obtain the match numbers, add to
+the metadata
 
-Extract also the mean PhyloP thresholds for the conservation analysis (need to be computed first)
+Extract also the mean PhyloP thresholds for the conservation analysis
+(need to be computed first)
 
 This uses R environment 4.3.0 on CSC Puhti. SessionInfo?
 
 ```{bash}
+#| eval: false
+#| include: false
 sbatch Experiments/MOODS/process_and_analyse_top_MOODS_hits.sh
 #runs the following
 #code/MOODS/process_and_analyse_top_MOODS_hits.R
@@ -310,120 +453,172 @@ sbatch Experiments/MOODS/process_and_analyse_top_MOODS_hits.sh
 
 ## Motif match enrichment at cell-type-specific candidate cis-regulatory elements (cCREs)
 
-Cell-type-specific cCREs obtained from Zhang et al. 2021. Data can be downloaded [here](https://data.mendeley.com/datasets/yv4fzv6cnm/)
+Cell-type-specific cCREs obtained from Zhang et al. 2021. Data can be
+downloaded [here](https://data.mendeley.com/datasets/yv4fzv6cnm/)
 
-TODO: Analyse also fetal cCREs and differential cCREs between adult and fetus. CRE modules?
+TODO: Analyse also fetal cCREs and differential cCREs between adult and
+fetus. CRE modules?
 
 ### Extract coordinates of cCREs, cell-type groups, and better cell type names
-Extract coordinates from Zhang et al. 2021 data. I have used the bed-files in yv4fzv6cnm-4/Zhang et al Figure 2/2E_Cell_type_restricted_peaks/. There is a .bed file for each of the 111 adult cell-types. For more info and more descriptive names of the cell types and cell type groupings, see [this table](Data/Zhang2021/Adult_Celltypes_mapping.csv) and an R-script `cell_type_names.R`.
+
+Extract coordinates from Zhang et al. 2021 data. I have used the
+bed-files in yv4fzv6cnm-4/Zhang et al Figure
+2/2E_Cell_type_restricted_peaks/. There is a .bed file for each of the
+111 adult cell-types. For more info and more descriptive names of the
+cell types and cell type groupings, see [this
+table](Data/Zhang2021/Adult_Celltypes_mapping.csv) and an R-script
+`cell_type_names.R`.
 
 ```{bash}
+#| eval: false
+#| include: false
 mkdir Experiments/motif-match-enrichment-at-cell-type-specific-cCREs
 mkdir Experiments/predict-cell-type-specificity-of-cCREs-from-motif-matches
 
 Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/download.sh
-code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/sets_of_accessible_regions.R
-code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/cell_type_names.R
+```
+
+```{r}
+
+source("code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/sets_of_accessible_regions.R")
+source("code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/cell_type_names.R")
+
 ```
 
 ### Motif enrichment at cCREs
 
-Uses R-4.3.0. [sessionInfo](sessionInfos/sessionInfo_enrichment_at_CREs.txt)
+Uses R-4.3.0.
+[sessionInfo](sessionInfos/sessionInfo_enrichment_at_CREs.txt)
 
-To investigate whether the motif matches are enriched or depleted at the cell-type-specific cCREs, we applied the Fisher’s Exact Test. We computed the p-value to evaluate the deviation from the null hypothesis that the presence of a motif match at a cCRE is independent of whether the cCRE belongs to a set of cell-type-specific cCREs. The motif match enrichment at particular cell type specific cCREs was determined as relative enrichment compared to frequency of matches of the same motif at all cell-type specific cCREs (relative frequency fold change).
+To investigate whether the motif matches are enriched or depleted at the
+cell-type-specific cCREs, we applied the Fisher’s Exact Test. We
+computed the p-value to evaluate the deviation from the null hypothesis
+that the presence of a motif match at a cCRE is independent of whether
+the cCRE belongs to a set of cell-type-specific cCREs. The motif match
+enrichment at particular cell type specific cCREs was determined as
+relative enrichment compared to frequency of matches of the same motif
+at all cell-type specific cCREs (relative frequency fold change).
 
-Processes batches of 10 motifs. Distributed to ~3933/10 cpus. Outputs p-values and the fold change of enrichment.
+Processes batches of 10 motifs. Distributed to \~3933/10 cpus. Outputs
+p-values and the fold change of enrichment.
 
 ```{bash}
-
+#| eval: false
+#| include: false
 sbatch Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/analysis_CRE_enrichment_final_parts.sh
 
 ```
 
 ```{r}
+#| eval: false
+#| include: false
 code/motif-match-enrichment-at-cell-type-specific-cCREs/enrichment_at_CREs_final_all_motifs_parts.R
 code/motif-match-enrichment-at-cell-type-specific-cCREs/FishersExact.R
 ```
+
 Collects the results from the batches.
+
 ```{r}
-code/motif-match-enrichment-at-cell-type-specific-cCREs/collect_enrichment_at_CREs_final_all_motifs_parts.R
+#| eval: false
+#| include: false
+source("code/motif-match-enrichment-at-cell-type-specific-cCREs/collect_enrichment_at_CREs_final_all_motifs_parts.R")
 ```
 
-Draw heatmaps of the data and count the number of enriched representative composite and spacing motifs 
+Draw heatmaps of the data and count the number of enriched
+representative composite and spacing motifs
 
 sessionInfos/sessionInfo_analyse_TF_enrichment_heatmap_final.txt
 
-Only for representative motifs
-Volcano plots
-Interactive heatmaps?
-Other visualisations?
+Only for representative motifs Volcano plots Interactive heatmaps? Other
+visualisations?
 
 ```{r}
+#| eval: false
+#| include: false
 
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/analyse_TF_enrichment_heatmap_final.R #not well-structured code
+source("code/motif-match-enrichment-at-cell-type-specific-cCREs/analyse_TF_enrichment_heatmap_final.R") #not well-structured 
+
 # essential input Data/Zhang2021/Adult_Celltypes_mapping.csv
 code/Experiments/motif-match-enrichment-at-cell-type-specific-cCREs/cell_type_names.R
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/heatmap_motor.R #Is this needed?
+code/motif-match-enrichment-at-cell-type-specific-cCREs/heatmap_motor.R #Is this needed?
 
 ```
 
-### Draw Figure 6d
+### Draw Xie et al. 2025 Figure 5c
 
-#ComplexHeatmap_2.16.0
-# Figure 6d
+Uses ComplexHeatmap_2.16.0.
+[sessionInfo](sessionInfos/sessionInfo_enrichment_at_CREs_final_bHLH_homeodomain.txt)
 
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain.R
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_enrichment_at_CREs_final_bHLH_homeodomain.txt
+```{r}
+#| eval: false
+#| include: false
+source("code/motif-match-enrichment-at-cell-type-specific-cCREs/enrichment_at_CREs_final_bHLH_homeodomain_representatives.R")
+```
 
-#This is for the last version of the figure
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_bHLH_homeodomain_representatives.R
+## Logistic regression analysis of motif matches at cCREs
 
+R-4.2.1 used, see sessionInfos.
 
-################ Logistic regression analysis of motif matches at cCREs #################
+### Prepare matrices for logistic regression 
 
-# Prepare matrices, prepare this for renv/421
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/matrices_for_predictive_analysis.sh
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/matrices_for_predictive_analysis.R
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_matrices_for_predictive_analysis.txt
+[sessionInfo](sessionInfos/sessionInfo_matrices_for_predictive_analysis.txt)
 
-# Logistic regression analysis
+```{bash}
+sbatch Experiments/predict-cell-type-specificity-of-cCREs-from-motif-matches/matrices_for_predictive_analysis.sh
 
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/run_predictive_analysis_logistic_regression.sh
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/predictive_analysis_logistic_regression.R
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_predictive_analysis_logistic_regression.txt
+#runs
+#code/predict-cell-type-specificity-of-cCREs-from-motif-matches/matrices_for_predictive_analysis.R
+```
 
-# Analyse logistic regression results
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/analyse_results_of_predictive_analysis_logistic_regression.R
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/Experiments/run_analyse_results_of_predictive_analysis_logistic_regression.sh
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/sessionInfos/sessionInfo_analysis_results_of_predictive_analysis_logistic_regression.txt
+### Logistic regression analysis
 
-#AUC values from logistic regression analysis
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/AUC_values_predictive_analysis_logistic_regression.R
+Key packages: glmnet_4.1-4 and caret_6.0-92? [sessionInfo](sessionInfos/sessionInfo_predictive_analysis_logistic_regression.txt)
 
-# Mark the t-test p-value for the different between means
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/RProject/AUCS.xlsx
+```{bash}
 
-# AUC boxplots 
-/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_AUC_boxplots/
+sbatch Experiments/predict-cell-type-specificity-of-cCREs-from-motif-matches/run_predictive_analysis_logistic_regression.sh
+#runs
+#code/predict-cell-type-specificity-of-cCREs-from-motif-matches/predictive_analysis_logistic_regression.R
 
-#Regression coefficient figures
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/figures_predictive_analysis_logistic_regression.R
-
-#Produces
-#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs/
-#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs_new_motifs/
-#/scratch/project_2006203/TFBS/ATAC-seq-peaks/reg_coeff_excels/
-
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/figures_predictive_analysis_logistic_regression_selected_TF_pairs.R
-#generates
-#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_reg_coeffs_selected_motifs/
-
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/volcano_plots_for_selected_TF_pairs.R
-#/scratch/project_2006203/TFBS/ATAC-seq-peaks/Figures/cell_group_volcanoes/
-
-# Figure 6d
-/projappl/project_2006203/TFBS/ATAC-seq-peaks/code/enrichment_at_CREs_final_family_pairs.R
+```
 
 
+### Analyse logistic regression results
 
+Collects data from the individual logistic regression analysis and draws figures
+
+[sessionInfo](sessionInfos/sessionInfo_analysis_results_of_predictive_analysis_logistic_regression.txt)
+```{bash}
+Experiments/predict-cell-type-specificity-of-cCREs-from-motif-matches/run_analyse_results_of_predictive_analysis_logistic_regression.sh
+
+#runs
+#code/predict-cell-type-specificity-of-cCREs-from-motif-matches/analyse_results_of_predictive_analysis_logistic_regression.R
+
+#see also 
+#code/predict-cell-type-specificity-of-cCREs-from-motif-matches/collect_logistic_regression_results.R
+#code/predict-cell-type-specificity-of-cCREs-from-motif-matches/figures_predictive_analysis_logistic_regression.R
+```
+
+Data for Supplementary Table S4b
+
+```{r}
+
+source("code/predict-cell-type-specificity-of-cCREs-from-motif-matches/AUC_values_predictive_analysis_logistic_regression.R")
+
+```
+
+### Draw Xie et al 2025 Figure 5d
+```{r}
+
+source("code/predict-cell-type-specificity-of-cCREs-from-motif-matches/enrichment_at_CREs_final_family_pairs.R")
+
+```
+
+see also for drawing some extra figures
+```{r}
+
+source("code/predict-cell-type-specificity-of-cCREs-from-motif-matches/figures_predictive_analysis_logistic_regression_selected_TF_pairs.R")
+source("code/predict-cell-type-specificity-of-cCREs-from-motif-matches//volcano_plots_for_selected_TF_pairs.R")
+
+```
 

@@ -4,48 +4,42 @@ channels:
   - defaults
 
 dependencies:
-  # For preprocessing pipeline
+  - rust
+  - python 
+  - clang
+#  - gxx
+#  - gcc
+#  - libgcc
+  - lapack 
+  - blas
+  - llvm
+  - gfortran
+  - lld
+  - make 
+  - cmake
+  - libx11-cos7-aarch64
+  - glib
   - r-base=4.2.1
+  - r-bh
+  - r-cpp11
+  - r-cairo
   - r-essentials
+  - r-biocmanager
   - r-data.table
   - r-ggplot2
-  - r-ggraph
   - r-tidyr
   - r-dplyr
   - r-tidyverse
+  - r-data.table
   - r-knitr
   - r-devtools
   - r-testthat
-  - r-readr
-  - bioconductor-biomart
-  - bioconductor-ensembldb
-  - bioconductor-org.hs.eg.db
-  - r-magick
-  - bioconductor-bsgenome.hsapiens.ucsc.hg19
-  - bioconductor-bsgenome.hsapiens.ucsc.hg38
-  - r-rmarkdown
-  - bioconductor-genomicranges
-  - bioconductor-rtracklayer
-  - bioconductor-genomicdistributions
-  - bioconductor-chipseeker
-  - bioconductor-annotationhub
-  - bioconductor-universalmotif
-  - bedtools
-  - r-gtools
-  - r-webgestaltr
-  - r-gprofiler2
-  - bioconductor-genetonic
-  - bioconductor-genomation
-  - bioconductor-complexheatmap
-  - r-readxl
-  - r-openxlsx
-  - r-httr
-  - r-ggseqlogo
-  - bioconductor-motifstack
-  - bioconductor-genomicfeatures
-  - bioconductor-rsamtools
-  - r-rsvg
-  - r-grImport
-  - bioconductor-monalisa
-  
-  
+  - r-rcpp
+  - r-rcpparmadillo
+  - r-rcppeigen
+#  - bioconductor-rsamtools
+#  - biocondcuctor-rhtslib 
+#  - bioconductor-s4vectors 
+#  - bioconductor-biostrings 
+#  - bioconductor-genomicranges
+ 

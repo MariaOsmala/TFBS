@@ -2,7 +2,8 @@
 # This is something you probably need to change to fit your system.
 base_dir: /Users/osmalama/projects/TFBS/
 data_dir: /Users/osmalama/projects/TFBS/Data
-R_library_dir: /Users/osmalama/miniconda3/envs/TFBS/lib/R/library
+R4.2.2_library_dir: /Users/osmalama/.local/share/mamba/envs/TFBS/lib/R/library
+R4.2.1_library_dir: /Users/osmalama/.local/share/mamba/envs/TFBS-R4.2.1/lib/R/library
 results_dir: /Users/osmalama/projects/TFBS/Results/
 experiments_dir: /Users/osmalama/projects/TFBS/Experiments/
 code_dir: /Users/osmalama/projects/TFBS/code

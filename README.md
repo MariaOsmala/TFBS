@@ -32,6 +32,13 @@ The code depends on software tools, R-packages, and Bioconductor packages (liste
 To install the required software, R packages etc., on your laptop, workstation, cluster, etc. 
 we recommend using [anaconda or miniconda](https://www.anaconda.com/products/individual) and the provided `renv-4.2.1.yml`,  `renv-4.3.0.yml`, and `renv-4.4.2.yml` files:
 
+
+
+
+
+
+
+
 Installation on Mac M2: The current conda channels (see conda_info.txt) do not support R-4.3.0 with bioconductor packages so the installation is done with R-4.2.1 and R-4.4.2.
 
 Conda does not install all cran and bioconductor packages automatically so need to install some manually.
@@ -49,8 +56,9 @@ conda config --set channel_priority flexible
 conda config --show
 
 conda install -n base -c conda-forge mamba
+conda activate base
 
-conda env create -f renv-4.4.2.yml -n TFBS
+mamba env create -f renv-4.4.2.yml -n TFBS
 mamba activate TFBS
 
 

@@ -11,7 +11,7 @@ library(ggplot2)
 rm(list=ls())
 source("read_excel_tables.R")
 source("paths_to_folders.R", echo=FALSE)
-
+source("compute_kl_divergence.R", echo=FALSE)
 # Table S2 PWM models																									
 # This table contains background subtracted PWMs for all of the TF pairs and individual TFs analyzed. 
 # First line for each factor contains information as follows:																									
@@ -72,6 +72,7 @@ PWMs_metadata$ID=""
 PWMs_metadata$IC=NA
 PWMs_metadata$length=NA
 PWMs_metadata$consensus=""
+PWMs_metadata$kld_between_revcomp=NA #Kullback-Leibler divergence between the motif and its reverse complement. Gives idea whether the motif is palindromic.
 
 
 PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
@@ -114,11 +115,11 @@ for(m in 1:length(PWMs_list)){
     filename=paste0(pfms_tab_path,"/", 
                     paste0(PWMs_metadata[m,
                                          -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "experiment",
-                                                                              "representative", "short", "type", "filename","ID", "IC","length", "consensus"))], collapse="_"),
+                                                                              "representative", "short", "type", "filename","ID", "IC","length", "consensus", "kld_between_revcomp"))], collapse="_"),
                     ".pfm")
     ID=paste0(PWMs_metadata[m,
                             -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "experiment","representative", "short", "type", "filename",
-                                                                 "ID", "IC", "length", "consensus" ))], collapse="_")
+                                                                 "ID", "IC", "length", "consensus", "kld_between_revcomp" ))], collapse="_")
     
     if(filename %in% PWMs_metadata$filename){
       print("Warning! Non-unique filenames and IDs")
@@ -126,11 +127,11 @@ for(m in 1:length(PWMs_list)){
       filename=paste0(pfms_tab_path,"/", 
                       paste0(PWMs_metadata[m,
                                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "experiment",
-                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus"))], collapse="_"),
+                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),
                       "_v2",".pfm")
       ID=paste0( paste0(PWMs_metadata[m,
                                       -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "experiment","representative", "short", "type", "filename",
-                                                                           "ID", "IC", "length", "consensus" ))], collapse="_"), "_v2")
+                                                                           "ID", "IC", "length", "consensus","kld_between_revcomp" ))], collapse="_"), "_v2")
       
       
       
@@ -146,14 +147,40 @@ for(m in 1:length(PWMs_list)){
     colnames(pcm)=NULL
     rownames(pcm)=c("A", "C", "G", "T")
     
+    # Make reverse complement
+    # Reverse the matrix = flip the matrix horizontally
+    pcm_rev=pcm[,ncol(pcm):1]
+    
+    #Substitute nucleotides with complements = flip the orders of A&T and C&G
+    
+    pcm_rev_comp=pcm_rev
+    pcm_rev_comp["A", ]=pcm_rev["T",]
+    pcm_rev_comp["T", ]=pcm_rev["A",]
+    pcm_rev_comp["C", ]=pcm_rev["G",]
+    pcm_rev_comp["G", ]=pcm_rev["C",]
+    
     
     
     pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=PWMs_metadata$symbol[m],
                                 profileMatrix=pcm
     )
     
+    pfm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=PWMs_metadata$symbol[m],
+                                         profileMatrix=pcm_rev_comp
+    )
+    
     
     pwm_class <- TFBSTools::toPWM(pfm, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    pwm_class_revcomp <- TFBSTools::toPWM(pfm_rev_comp, type="prob", 
+                                          pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    #Compute the KL-divergence between the original and the reverse complement
+    
+    # Compute KL divergence, it does not matter in which order you give the matrices to the function
+    kl_divergence <- as.numeric(compute_kl_divergence(pwm_class@profileMatrix, pwm_class_revcomp@profileMatrix))
+    
+    PWMs_metadata[m, "kld_between_revcomp"]=kl_divergence
     
     
     icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
@@ -189,6 +216,12 @@ for(m in 1:length(PWMs_list)){
     write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
     write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
     
+    #Write reverse complements
+    
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
+    
     
     # Draw logos --------------------------------------------------------------
     
@@ -219,11 +252,50 @@ for(m in 1:length(PWMs_list)){
     dev.off()
     
     
-    pdf(paste0(logos_pdf_ic,"/","ID",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    pdf(paste0(logos_pdf_ic,"/",ID,".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
     print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
             ggseqlogo::theme_logo()  +
             labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
     dev.off()
+    
+    
+    #Reverse complements 
+    
+    png(paste0(revcomp_logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    png(paste0(revcomp_logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_ic,"/",ID,".pdf"),  width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
     
     
   }
@@ -284,7 +356,7 @@ PWMs_metadata <- add_column(PWMs_metadata, Lambert2018_families = pair_families,
 
 column_order=c( "ID", "symbol", "clone","family", "Lambert2018_families", "organism", "study","experiment",          
                 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-                "type", "comment",  "filename", "IC",  "length","consensus")  
+                "type", "comment",  "filename", "IC",  "length","consensus", "kld_between_revcomp")  
 
 PWMs_metadata=PWMs_metadata[,column_order]
 
@@ -350,6 +422,7 @@ append=TRUE
 datas$IC=NA
 datas$length=NA
 datas$consensus=""
+datas$kld_between_revcomp=NA
 #Remove these from metadata, empty TFs
 remove=c()
 
@@ -396,9 +469,40 @@ for(m in 1:nrow(datas)){
     colnames(pcm)=NULL
     rownames(pcm)=c("A", "C", "G", "T")
     
+    # Make reverse complement
+    # Reverse the matrix = flip the matrix horizontally
+    pcm_rev=pcm[,ncol(pcm):1]
+    
+    #Substitute nucleotides with complements = flip the orders of A&T and C&G
+    
+    pcm_rev_comp=pcm_rev
+    pcm_rev_comp["A", ]=pcm_rev["T",]
+    pcm_rev_comp["T", ]=pcm_rev["A",]
+    pcm_rev_comp["C", ]=pcm_rev["G",]
+    pcm_rev_comp["G", ]=pcm_rev["C",]
+    
+    
     pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25), name=datas$symbol[m],
                                 profileMatrix=pcm
     )
+    
+    pfm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=datas$symbol[m],
+                                         profileMatrix=pcm_rev_comp
+    )
+    
+    pwm_class <- TFBSTools::toPWM(pfm, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    pwm_class_revcomp <- TFBSTools::toPWM(pfm_rev_comp, type="prob", 
+                                          pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    #Compute the KL-divergence between the original and the reverse complement
+    
+    # Compute KL divergence, it does not matter in which order you give the matrices to the function
+    kl_divergence <- as.numeric(compute_kl_divergence(pwm_class@profileMatrix, pwm_class_revcomp@profileMatrix))
+    
+    datas[m, "kld_between_revcomp"]=kl_divergence
+    
+    
     
     icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
    
@@ -418,6 +522,18 @@ for(m in 1:nrow(datas)){
     transfac=paste0(pfms_transfac_path,"/",filename_final)
     
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
+    
+    #Write also pwms 
+    
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
+    
+    #Write reverse complement
+    
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
     
     
     #Write .scpd format, all into a single file
@@ -446,7 +562,7 @@ for(m in 1:nrow(datas)){
 
 column_order=c( "ID", "symbol", "Human_Ensemble_ID","clone","family", "Lambert2018_families", "organism", "study","experiment",          
                 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-                "type", "comment",  "filename", "IC", "length","consensus")  
+                "type", "comment",  "filename", "IC", "length","consensus", "kld_between_revcomp")  
 datas=datas[,column_order]
 
 PWMs_metadata=rbind(PWMs_metadata, datas)

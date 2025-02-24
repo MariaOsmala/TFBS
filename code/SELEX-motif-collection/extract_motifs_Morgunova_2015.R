@@ -9,6 +9,7 @@ library(ggplot2)
 rm(list=ls())
 source("read_excel_tables.R")
 source("paths_to_folders.R", echo=FALSE)
+source("compute_kl_divergence.R", echo=FALSE)
 #Adjacent dinucleotide model
 #17. Jolma, A. et al. DNA-binding specificities of human transcription factors. Cell
 #152, 327–339 (2013).
@@ -25,6 +26,19 @@ pwm=pwm[,-c(15,16)]
 pcm=as.matrix(pwm)*1000
 dimnames(pcm)=list(c("A", "C", "G", "T"))
 
+# Make reverse complement
+# Reverse the matrix = flip the matrix horizontally
+pcm_rev=pcm[,ncol(pcm):1]
+
+#Substitute nucleotides with complements = flip the orders of A&T and C&G
+
+pcm_rev_comp=pcm_rev
+pcm_rev_comp["A", ]=pcm_rev["T",]
+pcm_rev_comp["T", ]=pcm_rev["A",]
+pcm_rev_comp["C", ]=pcm_rev["G",]
+pcm_rev_comp["G", ]=pcm_rev["C",]
+
+
 pcm_class <- TFBSTools::PFMatrix(ID="E2F8", name="E2F8", 
                                 strand="+", 
                                  bg=c(A=0.25, C=0.25, G=0.25, T=0.25), 
@@ -34,10 +48,22 @@ pcm_class <- TFBSTools::PFMatrix(ID="E2F8", name="E2F8",
                                  profileMatrix=pcm
 )
 
-
+pcm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name="E2F8",
+                                     profileMatrix=pcm_rev_comp
+)
 
 
 pwm_class <- TFBSTools::toPWM(pcm_class, type="prob", pseudocounts = 0, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+pwm_class_revcomp <- TFBSTools::toPWM(pcm_rev_comp, type="prob", 
+                                      pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+
+#Compute the KL-divergence between the original and the reverse complement
+
+# Compute KL divergence, it does not matter in which order you give the matrices to the function
+kl_divergence <- as.numeric(compute_kl_divergence(pwm_class@profileMatrix, pwm_class_revcomp@profileMatrix))
+
+
 
 
 #The two matrices below are the same
@@ -93,16 +119,44 @@ print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", 
         labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
 dev.off()
 
+ID="E2F8_Morgunova2015"
+
+png(paste0(revcomp_logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+
+print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+        ggseqlogo::theme_logo()  +
+        labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+
+dev.off()
 
 
 
-#Write pcm and pfm space and tab separated
-pwms="../../PWMs_final/Morgunova2015/pwms/Homo_sapiens/"
-pwms_space="../../PWMs_final/Morgunova2015/pwms_space/Homo_sapiens/"
-pwms_transfac="../../PWMs_final/Morgunova2015/pwms_transfac/Homo_sapiens/"
-dir.create(pwms, recursive=TRUE)
-dir.create(pwms_space, recursive=TRUE)
-dir.create(pwms_transfac, recursive=TRUE)
+pdf(paste0(revcomp_logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+
+print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+        ggseqlogo::theme_logo()  +
+        labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+
+dev.off()
+
+
+png(paste0(revcomp_logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+
+print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+        ggseqlogo::theme_logo()  +
+        labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+
+dev.off()
+
+
+pdf(paste0(revcomp_logos_pdf_ic,"/",ID,".pdf"),  width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+
+print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+        ggseqlogo::theme_logo()  +
+        labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+
+dev.off()
+
 
 
 #pfms_tab_path
@@ -118,8 +172,10 @@ write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/","E2F8_Morguno
 write.table(pcm_class@profileMatrix, file=paste0(pfms_tab_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
 write.table(pcm_class@profileMatrix, file=paste0(pfms_space_path,"/","E2F8_Morgunova2015", ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
 
+#Write reverse complements
 
-
+write.table(pcm_rev_comp@profileMatrix, file=paste0(rev_comp_pfms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+write.table(pcm_rev_comp@profileMatrix, file=paste0(rev_comp_pfms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
 
 
 icm <- TFBSTools::toICM(pcm_class, pseudocounts=0.01, schneider=FALSE)
@@ -153,7 +209,8 @@ tmp=data.frame(ID="E2F8_Morgunova2015",
                filename=filename,
                IC=sum(TFBSTools::rowSums(icm)),
                length=length(pcm_class),
-               consensus=motif@consensus
+               consensus=motif@consensus, 
+               kld_between_revcomp=kl_divergence
 
 )
 

@@ -5,7 +5,7 @@ library(universalmotif)
 library(ggplot2)
 rm(list=ls())
 
-
+source("compute_kl_divergence.R", echo=FALSE)
 
 
 #I checked that the following TFs have a spacing motif but the monomer looks homodimer. 
@@ -65,6 +65,24 @@ dir.create(logos_pdf_prob, recursive=TRUE)
 dir.create(logos_pdf_ic, recursive=TRUE)
 
 
+rev_comp_pfms_tab_path=paste0(path, "PWMs-reverse-complement/pfms_tab")
+rev_comp_pfms_space_path=paste0(path, "PWMs-reverse-complement/pfms_space")
+
+dir.create(rev_comp_pfms_tab_path, recursive=TRUE)
+dir.create(rev_comp_pfms_space_path, recursive=TRUE)
+dir.create(paste0(path, "PWMs-reverse-complement/pfms_transfac"), recursive=TRUE) #Is this needed?
+
+revcomp_logos_png_prob=paste0(path, "PWMs-reverse-complement/Logos/png/prob")
+revcomp_logos_pdf_prob=paste0(path, "PWMs-reverse-complement/Logos/pdf/prob")
+revcomp_logos_png_ic=paste0(path, "PWMs-reverse-complement/Logos/png/ic")
+revcomp_logos_pdf_ic=paste0(path, "PWMs-reverse-complement/Logos/pdf/ic")
+
+
+dir.create(revcomp_logos_png_prob, recursive=TRUE)
+dir.create(revcomp_logos_png_ic, recursive=TRUE)
+dir.create(revcomp_logos_pdf_prob, recursive=TRUE)
+dir.create(revcomp_logos_pdf_ic, recursive=TRUE)
+
 
 
 datas=as_tibble(do.call(rbind,
@@ -99,6 +117,9 @@ datas$IC=NA
 datas$length=NA
 
 datas$consensus=""
+datas$kld_between_revcomp=NA #Kullback-Leibler divergence between the motif and its reverse complement. Gives idea whether the motif is palindromic.
+
+
 #Remove these from metadata, empty TFs
 remove=c()
 
@@ -147,11 +168,38 @@ for(m in 1:nrow(datas)){
     colnames(pcm)=NULL
     rownames(pcm)=c("A", "C", "G", "T")
     
+    # Make reverse complement
+    # Reverse the matrix = flip the matrix horizontally
+    pcm_rev=pcm[,ncol(pcm):1]
+    
+    #Substitute nucleotides with complements = flip the orders of A&T and C&G
+    
+    pcm_rev_comp=pcm_rev
+    pcm_rev_comp["A", ]=pcm_rev["T",]
+    pcm_rev_comp["T", ]=pcm_rev["A",]
+    pcm_rev_comp["C", ]=pcm_rev["G",]
+    pcm_rev_comp["G", ]=pcm_rev["C",]
+    
+    
     pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),
                                 profileMatrix=pcm, name=datas$symbol[m],
     )
     
+    pfm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=datas$symbol[m],
+                                         profileMatrix=pcm_rev_comp
+    )
+    
     pwm_class <- TFBSTools::toPWM(pfm, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    pwm_class_revcomp <- TFBSTools::toPWM(pfm_rev_comp, type="prob", 
+                                          pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
+    
+    #Compute the KL-divergence between the original and the reverse complement
+    
+    # Compute KL divergence, it does not matter in which order you give the matrices to the function
+    kl_divergence <- as.numeric(compute_kl_divergence(pwm_class@profileMatrix, pwm_class_revcomp@profileMatrix))
+    
+    datas[m, "kld_between_revcomp"]=kl_divergence
   
     icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
    
@@ -176,6 +224,10 @@ for(m in 1:nrow(datas)){
     write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",datas$ID[m], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
     
     
+    #Write reverse complements
+    
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_space_path,"/",datas$ID[m], ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_tab_path,"/",datas$ID[m], ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
     
     
   
@@ -222,10 +274,48 @@ for(m in 1:nrow(datas)){
     dev.off()
     
     
-    pdf(paste0(logos_pdf_ic,"/","ID",".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    pdf(paste0(logos_pdf_ic,"/",ID,".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
     print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
             ggseqlogo::theme_logo()  +
             labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    dev.off()
+    
+    
+    #Reverse complements 
+    
+    png(paste0(revcomp_logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    png(paste0(revcomp_logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_ic,"/",ID,".pdf"),  width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
     dev.off()
     
     
@@ -254,11 +344,23 @@ datas <- datas %>% #Save this info only for human monomers
 
 column_order=c( "ID", "symbol", "Human_Ensemble_ID","clone","family", "Lambert2018_families", "organism", "study","experiment",          
                 "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-                "type", "comment",  "filename", "IC",  "length","consensus")  
+                "type", "comment",  "filename", "IC",  "length","consensus", "kld_between_revcomp")  
 
 datas=datas[,column_order]
 
 
 
 write.table(datas, file=paste0(path, "metadata.csv"), row.names = FALSE,sep="\t")
+
+
+write.table(gsub("../../","",datas$filename), 
+            file=paste0(path, "filenames.csv"),
+            row.names = FALSE, col.names=FALSE, quote=FALSE)
+#save motifnames
+write.table(datas$ID, 
+            file=paste0(path, "motifnames.csv"),row.names = FALSE, col.names=FALSE, quote=FALSE)
+
+
+
+
 

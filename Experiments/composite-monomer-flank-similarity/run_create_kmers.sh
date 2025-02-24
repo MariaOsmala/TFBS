@@ -1,17 +1,24 @@
 #!/bin/bash -l
-#SBATCH --job-name=Kvon
+#SBATCH --job-name=create_kmers
 #SBATCH --account=project_2006203
-#SBATCH --output=outs/Kvon.out
-#SBATCH --error=errs/Kvon.err
+#SBATCH --output=outs/create_kmers_%A_%a.txt
+#SBATCH --error=errs/create_kmers_%A_%a.txt
 #SBATCH --partition=small
-#SBATCH --time=03-00:00:00 #2.5days?
+#SBATCH --time=06:00:00 #2.5days?
 #SBATCH --ntasks=1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=50G  #200G
+#SBATCH --mem-per-cpu=350G  #200G
+#SBATCH --array=15
 
+
+#24031139_14-17
+#24031351_15-17
+#24033438_16-17
 # Load r-env
+
 module load r-env/430
+
 
 # Clean up .Renviron file in home directory
 if test -f ~/.Renviron; then
@@ -22,6 +29,7 @@ fi
 echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 
 # Run the R script
-srun apptainer_wrapper exec Rscript --no-save ../motif_matches_at_Kvon_limb_enhancers_mouse.R
+
+srun apptainer_wrapper exec Rscript --no-save ../code/create_kmers.R ${SLURM_ARRAY_TASK_ID}
 
 seff $SLURM_JOBID

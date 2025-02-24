@@ -14,10 +14,12 @@ dir.create(pfms_scpd, recursive=TRUE)
 dir.create(pwms_tab_path, recursive=TRUE)
 dir.create(pwms_space_path, recursive=TRUE)
 
+rev_comp_pfms_tab_path="../../Data/PWMs-reverse-complement/pfms_tab"
+rev_comp_pfms_space_path="../../Data/PWMs-reverse-complement/pfms_space"
 
-dir.create("../../Data/PWMs-reverse-complement/pfms_tab", recursive=TRUE)
-dir.create("../../Data/PWMs-reverse-complement/pfms_space", recursive=TRUE)
-dir.create("../../Data/PWMs-reverse-complement/pfms_transfac", recursive=TRUE)
+dir.create(rev_comp_pfms_tab_path, recursive=TRUE)
+dir.create(rev_comp_pfms_space_path, recursive=TRUE)
+dir.create("../../Data/PWMs-reverse-complement/pfms_transfac", recursive=TRUE) #Is this needed?
 
 logos_png_prob="../../Data/PWMs/Logos/png/prob"
 logos_png_ic="../../Data/PWMs/Logos/png/ic"
@@ -29,7 +31,15 @@ dir.create(logos_png_ic, recursive=TRUE)
 dir.create(logos_pdf_prob, recursive=TRUE)
 dir.create(logos_pdf_ic, recursive=TRUE)
 
+revcomp_logos_png_prob="../../Data/PWMs-reverse-complement/Logos/png/prob"
+revcomp_logos_png_ic="../../Data/PWMs-reverse-complement/Logos/png/ic"
+revcomp_logos_pdf_prob="../../Data/PWMs-reverse-complement/Logos/pdf/prob"
+revcomp_logos_pdf_ic="../../Data/PWMs-reverse-complement/Logos/pdf/ic"
 
+dir.create(revcomp_logos_png_prob, recursive=TRUE)
+dir.create(revcomp_logos_png_ic, recursive=TRUE)
+dir.create(revcomp_logos_pdf_prob, recursive=TRUE)
+dir.create(revcomp_logos_pdf_ic, recursive=TRUE)
 
 # Scrambled motif paths ---------------------------------------------------
 

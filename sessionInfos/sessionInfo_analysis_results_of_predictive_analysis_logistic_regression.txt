@@ -1,0 +1,50 @@
+R version 4.2.1 (2022-06-23)
+Platform: x86_64-pc-linux-gnu (64-bit)
+Running under: Rocky Linux 8.6 (Green Obsidian)
+
+Matrix products: default
+BLAS/LAPACK: /opt/intel/oneapi/mkl/2022.1.0/lib/intel64/libmkl_gf_lp64.so.2
+
+locale:
+[1] C
+
+attached base packages:
+ [1] compiler  tools     parallel  grid      stats4    stats     graphics  grDevices utils     datasets  methods  
+[12] base     
+
+other attached packages:
+ [1] gridExtra_2.3        ggrepel_0.9.1        reshape2_1.4.4       glmnet_4.1-4         Matrix_1.4-1        
+ [6] caret_6.0-92         lattice_0.20-45      readr_2.1.2          ggbreak_0.1.0        ggplot2_3.3.6       
+[11] dplyr_1.0.9          dbplyr_2.2.1         rtracklayer_1.58.0   GenomicRanges_1.50.2 GenomeInfoDb_1.34.9 
+[16] IRanges_2.32.0       S4Vectors_0.36.2     BiocGenerics_0.44.0 
+
+loaded via a namespace (and not attached):
+ [1] nlme_3.1-158                bitops_1.0-7                matrixStats_0.62.0         
+ [4] lubridate_1.8.0             utf8_1.2.2                  R6_2.5.1                   
+ [7] rpart_4.1.16                DBI_1.1.3                   colorspace_2.0-3           
+[10] nnet_7.3-17                 withr_2.5.0                 tidyselect_1.1.2           
+[13] cli_3.3.0                   Biobase_2.58.0              DelayedArray_0.24.0        
+[16] scales_1.2.0                stringr_1.4.0               digest_0.6.29              
+[19] Rsamtools_2.14.0            yulab.utils_0.0.4           XVector_0.38.0             
+[22] pkgconfig_2.0.3             parallelly_1.32.0           MatrixGenerics_1.10.0      
+[25] rlang_1.0.3                 GlobalOptions_0.1.2         rstudioapi_0.13            
+[28] shape_1.4.6                 gridGraphics_0.5-1          BiocIO_1.8.0               
+[31] generics_0.1.2              BiocParallel_1.32.6         ModelMetrics_1.2.2.2       
+[34] RCurl_1.98-1.7              magrittr_2.0.3              ggplotify_0.1.0            
+[37] GenomeInfoDbData_1.2.9      patchwork_1.1.1             Rcpp_1.0.9                 
+[40] munsell_0.5.0               fansi_1.0.3                 lifecycle_1.0.1            
+[43] pROC_1.18.0                 stringi_1.7.8               yaml_2.3.5                 
+[46] MASS_7.3-57                 SummarizedExperiment_1.28.0 zlibbioc_1.44.0            
+[49] plyr_1.8.7                  recipes_0.2.0               listenv_0.8.0              
+[52] crayon_1.5.1                Biostrings_2.66.0           splines_4.2.1              
+[55] hms_1.1.1                   pillar_1.7.0                rjson_0.2.21               
+[58] future.apply_1.9.0          codetools_0.2-18            XML_3.99-0.10              
+[61] glue_1.6.2                  ggfun_0.0.6                 data.table_1.14.2          
+[64] vctrs_0.4.1                 tzdb_0.3.0                  foreach_1.5.2              
+[67] gtable_0.3.0                purrr_0.3.4                 future_1.26.1              
+[70] assertthat_0.2.1            gower_1.0.0                 prodlim_2019.11.13         
+[73] restfulr_0.0.15             class_7.3-20                survival_3.3-1             
+[76] timeDate_3043.102           tibble_3.1.8                iterators_1.0.14           
+[79] aplot_0.1.6                 GenomicAlignments_1.34.1    hardhat_1.1.0              
+[82] cluster_2.1.3               lava_1.6.10                 globals_0.15.1             
+[85] ellipsis_0.3.2              ipred_0.9-13   

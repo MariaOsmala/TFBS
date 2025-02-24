@@ -1,5 +1,6 @@
 # Read the YAML file
 #setwd("~/projects/TFBS")
+.libPaths("/Users/osmalama/.local/share/mamba/envs/TFBS/lib/R/library")
 library(yaml)
 config <- yaml.load_file("Experiments/config.yaml", readLines.warn=FALSE)
 
@@ -14,10 +15,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE)) {
   install.packages("BiocManager")
 }
 
-BiocManager::version()
-#‘3.20’
-
-# List of Bioconductor packages to install
+BiocManager::version() #‘3.20’ 
 
 # List of Bioconductor packages to install
 bioconductor_packages <- c(
@@ -51,12 +49,15 @@ bioconductor_packages <- c(
   "CNEr"
 )
 
-Sys.getenv("CC")
-Sys.getenv("CXX")
+Sys.setenv("CC"="/Users/osmalama/.local/share/mamba/envs/TFBS/bin/clang")
+Sys.setenv("CXX"="/Users/osmalama/.local/share/mamba/envs/TFBS/bin/clang++")
+
+
+
 
 # Install missing Bioconductor packages
 for (pkg in bioconductor_packages) {
-  #pkg=bioconductor_packages[1]
+  #pkg=bioconductor_packages[8]
   if (!requireNamespace(pkg, quietly = TRUE)) {
     BiocManager::install(pkg, ask = FALSE)  # ask=FALSE prevents prompts
   } else {
@@ -83,4 +84,9 @@ sink()
 
 # Confirm installation
 message("All Bioconductor and CRAN packages installed successfully!")
+
+
+
+
+
 
