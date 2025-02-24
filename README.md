@@ -5,16 +5,16 @@ software/package versions for the analysis of transcription factor motifs and bi
 
 The codes 
   - create the Taipale Lab SELEX motif collection including heterodimeric motifs from the new CAP-SELEX experiments
+  - create motif in different formats and visualises logos
   - create artificial half-site motifs of homodimers
   - create scrambled control motifs (artificial control motifs)
   - contain commands to perform various motif similarity computations 
   - perform minimum dominating set analysis
+  - analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned against the composite motif
   - contain commands to perform motif matching
   - perform motif enrichment analysis at cell-type-specific candidate cis-regulatory elements (cCREs)
   - perform logistic regression analysis to predict cell-type-specificity of a cCRE based on motif matches
-  - analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned against the composite motif
-
-**More documentation and instructions on how to run the code are coming soon.**
+  
 
 ## Cmputing environment and package/tool installation
 
@@ -23,27 +23,22 @@ The codes
 -->
 The codes have been run on [CSC Puhti](https://docs.csc.fi/computing/systems-puhti/) or Apple MacBook M2 Pro Sequoai 15.3.
 
-Used [R](https://www.r-project.org)-environments in Puhti are 4.2.1 and 4.3.0[info](https://docs.csc.fi/apps/r-env/) [Container recipies](https://github.com/CSCfi/singularity-recipes/tree/main/r-env-singularity)
+Used [R](https://www.r-project.org)-environments in Puhti are 4.2.1 and 4.3.0 [info](https://docs.csc.fi/apps/r-env/) [Container recipies](https://github.com/CSCfi/singularity-recipes/tree/main/r-env-singularity)
 
 The documentation lists [Tykky](https://docs.csc.fi/computing/containers/tykky/) environments
 
 The code depends on software tools, R-packages, and Bioconductor packages (listed in documentation)
 
 To install the required software, R packages etc., on your laptop, workstation, cluster, etc. 
-we recommend using [anaconda or miniconda](https://www.anaconda.com/products/individual) and the provided `renv-4.2.1.yml`,  `renv-4.3.0.yml`, and `renv-4.4.2.yml` files:
+we recommend using [anaconda or miniconda](https://www.anaconda.com/products/individual) and the provided `renv-4.2.1.yml`, `renv-4.3.0.yml`, 
+and `renv-4.4.2.yml` files:
 
 
-
-
-
-
-
-
-Installation on Mac M2: The current conda channels (see conda_info.txt) do not support R-4.3.0 with bioconductor packages so the installation is done with R-4.2.1 and R-4.4.2.
+Installation on Mac M2: The current conda channels (see conda_info.txt) do not support R-4.2.1 & R-4.3.0 with bioconductor packages so the installation is done with R-4.4.2.
 
 Conda does not install all cran and bioconductor packages automatically so need to install some manually.
 
-Install mamba to the conda base environment
+Install mamba to the conda base environment.
 
 ```
 conda info > conda_info.txt
@@ -62,7 +57,7 @@ mamba env create -f renv-4.4.2.yml -n TFBS
 mamba activate TFBS
 
 
-Rscript install_bioconductor_packages.R #Remember to change here the path to the mamba env library
+Rscript install_bioconductor_packages.4.4.2.R #Remember to change here the path to the mamba env library
 ```
 
 
