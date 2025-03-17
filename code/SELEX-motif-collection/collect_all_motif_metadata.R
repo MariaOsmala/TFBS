@@ -95,7 +95,7 @@ metadata <- metadata %>%
   relocate("motif_ID", .after = "ID")
 
 
-write.table(metadata, file="../../Data/SELEX-motif-collection/metadata.csv", row.names = FALSE, sep="\t")
+write.table(metadata, file="../../Data/SELEX-motif-collection/metadata.tsv", row.names = FALSE, quote=FALSE, sep="\t")
 
 #Create scdc files from all
 
@@ -151,6 +151,11 @@ write.table(metadata$motif_ID,
 stop()
 #Print motif numbers 
 
+metadata %>% dplyr::select(representative) %>% table()
+
+metadata %>% dplyr::filter(type=="composite") %>% dplyr::select(representative) %>% table() #347
+metadata %>% dplyr::filter(type=="spacing") %>% dplyr::select(representative) %>% table() #112
+
 metadata %>% filter(study=="Jolma2013"& organism=="Homo_sapiens") %>% nrow() #687
 metadata %>% filter(study=="Jolma2013"& organism=="Mus_musculus") %>% nrow() #133
 
@@ -168,3 +173,4 @@ metadata %>% filter(study=="Xie2025"& experiment=="CAP-SELEX") %>% count(type)
 #2:   spacing   205
 
 metadata %>% filter(study=="Xie2025"& experiment=="HT-SELEX") %>% nrow() #12
+

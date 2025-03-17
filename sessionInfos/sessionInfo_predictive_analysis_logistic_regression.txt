@@ -11,7 +11,7 @@ locale:
 attached base packages:
 [1] stats4    stats     graphics  grDevices utils     datasets  methods   base     
 
-other attached packages:
+other attached packages:q
  [1] ggbreak_0.1.0        purrr_0.3.4          glmnet_4.1-4         Matrix_1.4-1         caret_6.0-92         lattice_0.20-45     
  [7] readr_2.1.2          ggplot2_3.3.6        dplyr_1.0.9          dbplyr_2.2.1         rtracklayer_1.56.1   GenomicRanges_1.48.0
 [13] GenomeInfoDb_1.32.3  IRanges_2.30.1       S4Vectors_0.34.0     BiocGenerics_0.42.0 
