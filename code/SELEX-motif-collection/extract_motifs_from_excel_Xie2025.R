@@ -1,9 +1,5 @@
 
-#library(dplyr)
-#library(tidyr)
-#library(purrr)
-#library(stringr)
-#library(readr)
+
 library(tidyverse)
 library(readxl)
 library(universalmotif)
@@ -27,8 +23,8 @@ source("compute_kl_divergence.R", echo=FALSE)
 # Matrix is one of the representative PWMs; value yes or no																								
 
 
-all_table <- read_excel("../../Data/SELEX-motif-collection/Xie et al. 2025 Supplementary_Tables.xlsx", 
-                        sheet="Table S2PWMs", col_names=FALSE, skip=13, col_types=c(rep("text",10), rep("numeric",19)))
+all_table <- read_excel("../../Data/SELEX-motif-collection/41586_2025_8844_MOESM5_ESM.xlsx", 
+                        sheet="Supplementary Table S3", col_names=FALSE, skip=13, col_types=c(rep("text",9), rep("numeric",20)))
 
 
 
@@ -325,7 +321,6 @@ names(commondf_pairs2)=c("symbol0", "symbol1", "DBD0", "DBD1")
 #Are there some TFs for which there is no family info
 unique(commondf_pairs2[which(is.na(commondf_pairs2$DBD0)),"symbol0"])
 
-#"THHEX" This is monomer?
 #"BHLHB2" bHLH
 #"BHLHB8" bHLH
 #"FOXO3A" Forkhead
@@ -362,110 +357,115 @@ PWMs_metadata=PWMs_metadata[,column_order]
 
 
 
-# Novel HT-SELEX ----------------------------------------------------------
+# Novel HT-SELEX monomers----------------------------------------------------------
 
-path="../../Data/SELEX-motif-collection/Xie2025-HT-SELEX/" #12 motifs
+PWMs=split_df(all_table)[[3]]
 
-datas=tibble()
-data=as_tibble(do.call(rbind,strsplit(dir(path),split="_")))
-data$V7=gsub(".pfm", "", data$V7)
-names(data)=c("symbol","ligand", "batch", "seed", "multinomial", "cycle", "short")
-data$study="Xie2025"
-data$type=NA
-data$organism="Homo_sapiens"
-data$clone=NA
-data$family=NA
-data$experiment="HT-SELEX"
-data$representative=NA
-data$comment=NA
-data$filename=paste0(path, dir(paste0(path)))
-data$ID=gsub(".pfm", "",do.call(rbind, strsplit(data$filename, "/"))[,6])
-data=data %>% relocate(ID, .before=symbol)
-datas=rbind(datas, data)
+monomer_metadata=do.call(rbind,lapply(
+  seq(1,nrow(PWMs),5), 
+  function(i) PWMs[i,-1]
+)
+)
 
 
+colnames(monomer_metadata)=c("symbol",	"ligand",	"batch", "seed",	"multinomial",
+                          "cycle","type","representative")
 
 
-datas=datas[, c("ID","symbol",	"clone","family",	"organism","study","experiment",
-                "ligand",	"batch", "seed",	"multinomial",
-                "cycle","short","representative", "type","comment","filename")]
+monomer_metadata=monomer_metadata[, c("symbol",	"ligand",	"batch", "seed",	"multinomial",
+                                "cycle","type","representative")]
 
 
-datas <- datas %>%
-  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID","DBD" ), by = 'symbol')
-
-datas <- add_column(datas, Lambert2018_families = datas$DBD, .before = 4)
-
-#Rename Gene Information/ID column and relocate column 
-
-
-datas<- datas %>% #Save this info only for human monomers
-  dplyr::rename("Human_Ensemble_ID"="Gene Information/ID") %>%
-  relocate("Human_Ensemble_ID", .after = "symbol")
-
-datas$DBD=NULL
-
-
-datas[which(is.na(datas$Lambert2018_families)),]
-#THHEX, do not know the family of this 
+monomer_metadata$clone=NA
+monomer_metadata$study="Xie2025"
+monomer_metadata$experiment="HT-SELEX"
+monomer_metadata$short=NA
+monomer_metadata$family=NA
+monomer_metadata$filename=NA
+monomer_metadata$comment=NA
+monomer_metadata$organism="Homo_sapiens"
 
 
 
-PWMs_metadata$Human_Ensemble_ID=NA
-PWMs_metadata<- PWMs_metadata %>%
-  relocate("Human_Ensemble_ID", .after = "symbol")
+monomer_metadata=select(monomer_metadata,c("symbol",	"clone","family", "organism",	"study","experiment",
+                                     "ligand",	"batch", "seed",	"multinomial",
+                                     "cycle","representative", "short", "type","comment", "filename"))
 
-names(PWMs_metadata)[which(!is.element(names(PWMs_metadata),names(datas)))]
 
-append=TRUE
+monomer_metadata$ID=""
+monomer_metadata$IC=NA
+monomer_metadata$length=NA
+monomer_metadata$consensus=""
+monomer_metadata$kld_between_revcomp=NA #Kullback-Leibler divergence between the motif and its reverse complement. Gives idea whether the motif is palindromic.
 
-datas$IC=NA
-datas$length=NA
-datas$consensus=""
-datas$kld_between_revcomp=NA
-#Remove these from metadata, empty TFs
+
+PWMs_list=lapply(seq(1,nrow(PWMs),5), function(i) PWMs[(i+1):(i+4),] %>%
+                   select_if(~ !any(is.na(.))) )
+
+
+
 remove=c()
 
-
-for(m in 1:nrow(datas)){
-  print(m)
-  f=datas$filename[m]
-  PWM=as.matrix(read_tsv(f, col_names=FALSE))
-  #Empty matrix
-  if( ncol(PWM) ==1 ) {
-    remove=c(remove, m)
-    print(paste0("Empty matrix: ", f))
-    #Zero matrix
-  }else if( sum(as.numeric(as.matrix(PWM[,-1]))) ==0 ){
-    remove=c(remove, m)    
-    print(paste0("Zero matrix: ",f))
-  }else{
+for(m in 1:length(PWMs_list)){
   
+  numeric_matrix <- matrix(as.numeric(as.vector(as.matrix(PWMs_list[[m ]][,-1]))), nrow = nrow(as.matrix(PWMs_list[[m ]][,-1])))
+  
+  if( ncol(PWMs_list[[m ]]) ==1 ) {
+    remove=c(remove, m)
+    print(m)
+    #Zero matrix
+  }else if( sum(as.numeric(as.matrix(PWMs_list[[ m ]][,-1]))) ==0 ){
+    remove=c(remove, m)    
+    print(m)
     
-    filename=paste0(strsplit(f, "/")[[1]][-c(1,2,3,4,5)],collapse="/")  
-    
-    #add extension
-    if(length(grep("_short.pfm", filename))!=0){
-      filename_final=paste0(gsub("_short.pfm", "", filename), ".pfm") 
-    }else{
-      filename_final=filename
+  }else{
+    #There are zero columns in the matrix, remove them
+    if(length(which(colSums(numeric_matrix)==0))>0){
+      # Assume 'char_matrix' is your character matrix
+      numeric_matrix <- matrix(as.numeric(as.vector(as.matrix(PWMs_list[[m ]][,-1]))), nrow = nrow(as.matrix(PWMs_list[[m ]][,-1])))
+      print(m)
+      #print(PWMs_list[[m ]])
+      #Remove the zero column, it is always the last
+      PWMs_list[[m ]]=PWMs_list[[m ]][,-ncol(PWMs_list[[m ]])]
+      
     }
     
     
-    ID=gsub(".pfm", "",filename_final)
-    datas$ID[m]=ID
-        
-    #write if to pwms, tab separated
-    write.table(PWM,row.names = FALSE, col.names=FALSE, quote=FALSE,
-                file=paste0(pfms_tab_path,"/",filename_final) ,sep="\t")
     
     
-  
-    write.table(PWM,row.names = FALSE, col.names=FALSE, quote=FALSE,
-                file=paste0(pfms_space_path,"/",filename_final) ,sep=" ")
+    # Write .pfm tab-separated
+    filename=paste0(pfms_tab_path,"/", 
+                    paste0(monomer_metadata[m,
+                                         -which(colnames(monomer_metadata)%in% c("clone", "family","organism", "study","comment", "experiment",
+                                                                              "representative", "short", "type", "filename","ID", "IC","length", "consensus", "kld_between_revcomp"))], collapse="_"),
+                    ".pfm")
+    ID=paste0(monomer_metadata[m,
+                            -which(colnames(monomer_metadata)%in% c("clone", "family","organism", "study","comment", "experiment","representative", "short", "type", "filename",
+                                                                 "ID", "IC", "length", "consensus", "kld_between_revcomp" ))], collapse="_")
+    
+    if(filename %in% monomer_metadata$filename){
+      print("Warning! Non-unique filenames and IDs")
+      print(ID)
+      filename=paste0(pfms_tab_path,"/", 
+                      paste0(monomer_metadata[m,
+                                           -which(colnames(monomer_metadata)%in% c("clone", "family","organism", "study","comment", "experiment",
+                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),
+                      "_v2",".pfm")
+      ID=paste0( paste0(monomer_metadata[m,
+                                      -which(colnames(monomer_metadata)%in% c("clone", "family","organism", "study","comment", "experiment","representative", "short", "type", "filename",
+                                                                           "ID", "IC", "length", "consensus","kld_between_revcomp" ))], collapse="_"), "_v2")
+      
+      
+      
+    }
+    
+    monomer_metadata$filename[m]=filename
+    monomer_metadata$ID[m]=ID
     
     
-    pcm=as.matrix( read.csv(paste0(pfms_tab_path,"/",filename_final), header=FALSE, sep="\t") )
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE,file=filename, sep="\t")
+    
+    pcm=as.matrix( read.csv(filename, header=FALSE, sep="\t") )
     colnames(pcm)=NULL
     rownames(pcm)=c("A", "C", "G", "T")
     
@@ -482,13 +482,15 @@ for(m in 1:nrow(datas)){
     pcm_rev_comp["G", ]=pcm_rev["C",]
     
     
-    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25), name=datas$symbol[m],
+    
+    pfm <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=monomer_metadata$symbol[m],
                                 profileMatrix=pcm
     )
     
-    pfm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=datas$symbol[m],
+    pfm_rev_comp <- TFBSTools::PFMatrix( bg=c(A=0.25, C=0.25, G=0.25, T=0.25),name=monomer_metadata$symbol[m],
                                          profileMatrix=pcm_rev_comp
     )
+    
     
     pwm_class <- TFBSTools::toPWM(pfm, type="prob", pseudocounts = 0.01, bg=c(A=0.25, C=0.25, G=0.25, T=0.25))
     
@@ -500,44 +502,27 @@ for(m in 1:nrow(datas)){
     # Compute KL divergence, it does not matter in which order you give the matrices to the function
     kl_divergence <- as.numeric(compute_kl_divergence(pwm_class@profileMatrix, pwm_class_revcomp@profileMatrix))
     
-    datas[m, "kld_between_revcomp"]=kl_divergence
-    
+    monomer_metadata[m, "kld_between_revcomp"]=kl_divergence
     
     
     icm <- TFBSTools::toICM(pfm, pseudocounts=0.01, schneider=FALSE)
-   
-    datas$IC[m]=sum(rowSums(icm)) #6.77892 # universalmotif computes this wrong?
+    monomer_metadata[m, "IC"]=sum(rowSums(icm)) 
     
     #motif length
-    datas$length[m]=length(pfm)
+    monomer_metadata[m, "length"]=length(pfm)
     
-    motif=universalmotif::read_matrix(file=paste0(pfms_tab_path,"/",filename_final), sep="\t", header=FALSE)
+    motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
+    motif@name=ID
     
-   
-    datas[m, "consensus"]=motif@consensus
+    monomer_metadata[m, "consensus"]=motif@consensus
     
-    
-    #Write transfac format
-    
-    transfac=paste0(pfms_transfac_path,"/",filename_final)
-    
+    transfac=paste0(pfms_transfac_path,"/", ID,".pfm")
     write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
     
-    #Write also pwms 
+    write.table(PWMs_list[[m]][,-1],row.names = FALSE, col.names=FALSE, quote=FALSE, 
+                file=paste0(pfms_space_path,"/", ID, ".pfm"), sep=" ")
     
-    write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-    write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
-    
-    
-    #Write reverse complement
-    
-    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
-    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
-    
-    
-    
-    #Write .scpd format, all into a single file
-    PWM=as.matrix(PWM, dimnames=NULL)
+    PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
     rownames(PWM)=c("A", "C", "G", "T")
     write.table(paste0(">",  ID),   
                 append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
@@ -548,26 +533,131 @@ for(m in 1:nrow(datas)){
                 file=paste0(pfms_scpd,"/","/Xie2025.scpd"))
     
     
-    datas$filename[m]=paste0(pfms_tab_path,"/",filename_final)
+    #Write also pwms 
     
-  
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pwm_class@profileMatrix, file=paste0(pwms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
+    #Write reverse complements
+    
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_space_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep=" ") 
+    write.table(pcm_rev_comp, file=paste0(rev_comp_pfms_tab_path,"/",ID, ".pfm"), row.names = FALSE, col.names=FALSE, sep="\t") 
+    
+    
+    
+    # Draw logos --------------------------------------------------------------
+    
+    
+    
+    png(paste0(logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    dev.off()
+    
+    #Information content matrices
+    
+    
+    png(paste0(logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(logos_pdf_ic,"/",ID,".pdf"), width=ncol(pwm_class@profileMatrix), height = 4)
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    dev.off()
+    
+    
+    #Reverse complements 
+    
+    png(paste0(revcomp_logos_png_prob,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_prob,"/",ID,".pdf"), width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="probability", font="roboto_medium", col_scheme="auto" ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    png(paste0(revcomp_logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class_revcomp@profileMatrix), height = 2500)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    pdf(paste0(revcomp_logos_pdf_ic,"/",ID,".pdf"),  width=ncol(pwm_class_revcomp@profileMatrix), height = 4)
+    
+    print(ggplot() + ggseqlogo::geom_logo(  pwm_class_revcomp@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
+            ggseqlogo::theme_logo()  +
+            labs(title=pwm_class_revcomp@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))
+    
+    dev.off()
+    
+    
+    
   }
 }
 
 
+ 
+# Merge two data frames
+monomer_metadata <- monomer_metadata %>%
+  left_join(select(TF_family_mappings, "symbol", "Gene Information/ID","DBD" ), by = 'symbol')
+
+monomer_metadata <- add_column(monomer_metadata, Lambert2018_families = monomer_metadata$DBD, .before = 4)
+
+
+monomer_metadata <- monomer_metadata %>% #Save this info only for human monomers
+  dplyr::rename("Human_Ensemble_ID"= "Gene Information/ID") %>%
+  relocate("Human_Ensemble_ID", .after = "symbol")
+
+monomer_metadata$DBD=NULL
 
 
 
 
 
-column_order=c( "ID", "symbol", "Human_Ensemble_ID","clone","family", "Lambert2018_families", "organism", "study","experiment",          
-                "ligand", "batch","seed", "multinomial","cycle","representative",  "short",               
-                "type", "comment",  "filename", "IC", "length","consensus", "kld_between_revcomp")  
-datas=datas[,column_order]
-
-PWMs_metadata=rbind(PWMs_metadata, datas)
 
 
+monomer_metadata[which(is.na(monomer_metadata$Lambert2018_families)),]
+#THHEX, do not know the family of this 
+
+
+
+PWMs_metadata$Human_Ensemble_ID=NA
+PWMs_metadata<- PWMs_metadata %>%
+  relocate("Human_Ensemble_ID", .after = "symbol")
+
+names(PWMs_metadata)[which(!is.element(names(PWMs_metadata),names(monomer_metadata)))]
+
+monomer_metadata=monomer_metadata[,names(PWMs_metadata)]
+
+PWMs_metadata=rbind(PWMs_metadata, monomer_metadata)
 
 write.table(PWMs_metadata, file="../../Data/SELEX-motif-collection/Xie2025_metadata.csv", row.names = FALSE,sep="\t")
 

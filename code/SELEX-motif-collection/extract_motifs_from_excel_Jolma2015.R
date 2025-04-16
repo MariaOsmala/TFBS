@@ -109,6 +109,8 @@ append=FALSE
 
 remove=c()
 
+
+
 for(m in 1:length(PWMs_list)){
   
   numeric_matrix <- matrix(as.numeric(as.vector(as.matrix(PWMs_list[[m ]][,-1]))), nrow = nrow(as.matrix(PWMs_list[[m ]][,-1])))
@@ -152,11 +154,11 @@ for(m in 1:length(PWMs_list)){
       filename=paste0(pfms_tab_path,"/", 
                       paste0(PWMs_metadata[m,
                                            -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
-                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus"))], collapse="_"),
+                                                                                "representative", "short", "type", "filename","ID", "IC", "length", "consensus","kld_between_revcomp"))], collapse="_"),
                       "_v2",".pfm")
       ID=paste0( paste0(PWMs_metadata[m,
                               -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
-                                                                   "ID", "IC", "length", "consensus" ))], collapse="_"), "_v2")
+                                                                   "ID", "IC", "length", "consensus","kld_between_revcomp" ))], collapse="_"), "_v2")
       
       
       
@@ -266,6 +268,7 @@ for(m in 1:length(PWMs_list)){
     
     
     png(paste0(logos_png_ic,"/",ID,".png"), res=600,  width = 2500/4*ncol(pwm_class@profileMatrix), height = 2500)
+    
     print(ggplot() + ggseqlogo::geom_logo(  pwm_class@profileMatrix, method="bits", font="roboto_medium", col_scheme="auto"  ) + 
             ggseqlogo::theme_logo()  +
             labs(title=pwm_class@name)+ theme(title =element_text(size=8, face='bold'))+ guides(scale="none"))

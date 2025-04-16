@@ -45,7 +45,7 @@ metadata<- rbind( Jolma2013[, column_order],
                   Xie2025[,column_order]
                   )
 
-metadata$Methyl.SELEX.Motif.Category=""
+metadata$Methyl.SELEX.Motif.Category=NA
 metadata=rbind(metadata, Yin2017) #3933
 
 #Families are missing
@@ -116,7 +116,7 @@ for(i in 1:nrow(metadata)){ #3933
   
   write.table(PWM,append=append, row.names = TRUE, col.names=FALSE, quote=FALSE,
               file=paste0(pfms_scpd,"/","all.scpd"))
-  }
+}
 
 line_count <- as.numeric(system(paste("wc -l", paste0(pfms_scpd,"/all.scpd"), intern = TRUE)))
 #19665 total This is correct
@@ -151,7 +151,7 @@ write.table(metadata$motif_ID,
 stop()
 #Print motif numbers 
 
-metadata %>% dplyr::select(representative) %>% table()
+metadata %>% dplyr::select(representative) %>% table(useNA="always") #This is the wrong info
 
 metadata %>% dplyr::filter(type=="composite") %>% dplyr::select(representative) %>% table() #347
 metadata %>% dplyr::filter(type=="spacing") %>% dplyr::select(representative) %>% table() #112

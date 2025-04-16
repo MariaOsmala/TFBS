@@ -28,19 +28,18 @@ wrong_names=sstat_DSA$ID[wrong_inds]
 correct_names=correct_names[wrong_inds,]
 
 #There are some with the column 7 value as "NA", move the column values to the right by one starting from the second column
-#Do not convert the indexes of the new HT-SELEX motifs
 
 na_ind=which(is.na(correct_names$V7))
-correct_names=correct_names[-na_ind,]
-wrong_names=wrong_names[-na_ind ]
-wrong_inds=wrong_inds[-na_ind]
-#correct_names$V7[na_ind]=correct_names$V6[na_ind]
-#correct_names$V6[na_ind]=correct_names$V5[na_ind]
-#correct_names$V5[na_ind]=correct_names$V4[na_ind]
-#correct_names$V4[na_ind]=correct_names$V3[na_ind]
-#correct_names$V3[na_ind]=correct_names$V2[na_ind]
-
-#correct_names$V2[na_ind]=NA
+#correct_names=correct_names[-na_ind,]
+#wrong_names=wrong_names[-na_ind ]
+#wrong_inds=wrong_inds[-na_ind]
+correct_names$V7[na_ind]=correct_names$V6[na_ind]
+correct_names$V6[na_ind]=correct_names$V5[na_ind]
+correct_names$V5[na_ind]=correct_names$V4[na_ind]
+correct_names$V4[na_ind]=correct_names$V3[na_ind]
+correct_names$V3[na_ind]=correct_names$V2[na_ind]
+correct_names$V2[na_ind]=NA
+correct_names$V8=NULL
 
 #Select the number after m in column 6 and the number after c in column 7 
 

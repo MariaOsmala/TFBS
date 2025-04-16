@@ -12,9 +12,11 @@ List of motif files and where to download them:
 
 -   Yin et al. 2017 Supplementary Tables S1-S6 [aaj2239_yin_sm_tables_s1-s6.xlsx](https://www.science.org/doi/suppl/10.1126/science.aaj2239/suppl_file/aaj2239_yin_sm_tables_s1-s6.xlsx)
 
--   Xie et al. 2025 Supplementary Tables S1-S8 [Xie et al. 2025 Supplementary Tables.xlsx]()
+-   Xie et al. 2025 Supplementary Tables S3 [41586_2025_8844_MOESM5_ESM.xlsx](https://static-content.springer.com/esm/art%3A10.1038%2Fs41586-025-08844-z/MediaObjects/41586_2025_8844_MOESM5_ESM.xlsx)
 
 Protein family information of Human TFs: [HumanTFs-ccbr-TableS1.csv](https://humantfs.ccbr.utoronto.ca/download/v_1.01/TableS1.csv)
+
+To create the collection and metadata:
 
 ```{r}
 Rscript code/SELEX-motif-collection/run.R
