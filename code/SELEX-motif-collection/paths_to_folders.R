@@ -1,6 +1,6 @@
 pfms_tab_path="../../Data/PWMs/pfms_tab"
 pfms_space_path="../../Data/PWMs/pfms_space"
-pfms_transfac_path="../../Data/PWMs/pfms_tranfac"
+pfms_transfac_path="../../Data/PWMs/pfms_transfac"
 pfms_scpd="../../Data/PWMs/pfms_scpd" #this can be converted to meme format
 
 pwms_tab_path="../../Data/PWMs/pwms_tab"

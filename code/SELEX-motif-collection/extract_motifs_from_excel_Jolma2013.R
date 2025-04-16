@@ -34,7 +34,9 @@ source("compute_kl_divergence.R", echo=FALSE)
 oranges=which(seq(18, 4228,5) %in% seq(4118,4168,5)) #11
 greens=which(seq(18, 4228,5) %in% seq(4173,4228,5)) #12
 
-all_table <- read_excel("../../Data/SELEX-motif-collection/mmc3.xls", sheet="Table S3 - PWM models", col_names=FALSE, skip=17, col_types=c(rep("text",11), rep("numeric",13)))
+all_table <- read_excel("../../Data/SELEX-motif-collection/mmc3.xls", 
+                        sheet="Table S3 - PWM models", col_names=FALSE, skip=17, 
+                        col_types=c(rep("text",11), rep("numeric",13)))
 #display_table_shape(all_table)
 
 PWMs=split_df(all_table)[[1]]

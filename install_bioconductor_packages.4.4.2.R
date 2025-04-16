@@ -7,7 +7,7 @@ config <- yaml.load_file("Experiments/config.yaml", readLines.warn=FALSE)
 # Print the loaded configuration
 # print(config)
 
-.libPaths(config$R_library_dir) #Or add this to ~/.Renviron
+.libPaths(config$R4.2.2_library_dir) #Or add this to ~/.Renviron
 
 # Check if BiocManager is installed, and install it if missing
 

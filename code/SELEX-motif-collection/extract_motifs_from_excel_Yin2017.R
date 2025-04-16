@@ -95,11 +95,13 @@ for(m in 1:length(PWMs_list)){
   filename=paste0(pfms_tab_path, "/",
                   paste0(PWMs_metadata[m,
                                        -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
-                                                                            "representative", "short", "type", "filename","ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),
+                                                                            "representative", "short", "type", "filename",
+                                                                            "ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),
                   ".pfm")
   
   ID=paste0(PWMs_metadata[m,
-                       -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative", "short", "type", "filename",
+                       -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", 
+                                                            "representative", "short", "type", "filename",
                                                             "ID", "IC", "length", "consensus","kld_between_revcomp" ))], collapse="_")
   
   
@@ -171,14 +173,15 @@ for(m in 1:length(PWMs_list)){
   
   motif=universalmotif::read_matrix(file=filename, sep="\t", header=FALSE)
   motif@name=paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "representative","short", "type", "filename",
-                                                                         "ID", "IC", "length", "consensus"))], collapse="_")
+                                                                         "ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_")
+  
   
   PWMs_metadata[m, "consensus"]=motif@consensus
   
   #Write transfac format
   transfac=paste0(pfms_transfac_path,"/",
                   paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone","family","comment", "study","organism","representative","short", "type","filename",
-                                                                              "ID", "IC", "length", "consensus"))], collapse="_"),".pfm")
+                                                                              "ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),".pfm")
   write_transfac(motif, file=transfac, overwrite = TRUE, append = FALSE)
     
   #Write .pfm space separated
@@ -186,14 +189,14 @@ for(m in 1:length(PWMs_list)){
               file=paste0(pfms_space_path, "/",
                           paste0(PWMs_metadata[m,
                                                -which(colnames(PWMs_metadata)%in% c("clone", "family","organism", "study","comment", "representative","short", "type", "filename",
-                                                                                    "ID", "IC", "length", "consensus"))], collapse="_"),
+                                                                                    "ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_"),
                           ".pfm"), sep=" ")
   
   #Write .scpd format, all into a single file
   PWM=as.matrix(PWMs_list[[m]][,-1], dimnames=NULL)
   rownames(PWM)=c("A", "C", "G", "T")
   write.table(paste0(">",  paste0(PWMs_metadata[m,-which(colnames(PWMs_metadata)%in% c("clone", "family", "organism", "study","comment", "representative", "short", "type", "filename",
-                                                                                       "ID", "IC", "length", "consensus"))], collapse="_")),   
+                                                                                       "ID", "IC", "length", "consensus", "kld_between_revcomp"))], collapse="_")),   
               append=append, row.names = FALSE, col.names=FALSE, quote=FALSE,
               file=paste0(pfms_scpd,"/", "Yin2017_all", ".scpd"))
   append=TRUE
@@ -291,7 +294,7 @@ for(m in 1:length(PWMs_list)){
   }
 }
 
-PWMs_metadata=PWMs_metadata[-remove,]
+PWMs_metadata=PWMs_metadata[-remove,] #How many are removed (7)
 
 #Add Family Info
 
@@ -324,7 +327,7 @@ Methyl_SELEX_motif_categories=read_delim("../../Data/SELEX-motif-collection/Meth
 PWMs_metadata=PWMs_metadata %>%
   left_join(select(Methyl_SELEX_motif_categories, "ID", "final suggestion" ), by = 'ID')
 
-
+#Check the error!
 colnames(PWMs_metadata)[24]="Methyl.SELEX.Motif.Category"
 
 table(PWMs_metadata$Methyl.SELEX.Motif.Category) #some typos
@@ -341,13 +344,44 @@ pie(categories,
 
 remove=c("Little effect", "MethylMinus", "No CpG")
 
-PWMs_metadata=PWMs_metadata[-which(PWMs_metadata$Methyl.SELEX.Motif.Category %in% remove),]
+PWMs_metadata_all=PWMs_metadata
+
+PWMs_metadata=PWMs_metadata[-which(PWMs_metadata$Methyl.SELEX.Motif.Category %in% remove),] #1161
 
 sum(table(PWMs_metadata$Methyl.SELEX.Motif.Category)) #297
 
 #HT-SELEX Methyl-HT-SELEX 
 #864             297 
 
-write.table(PWMs_metadata, file="../../Data/SELEX-motif-collection/Yin2017_metadata.csv", row.names = FALSE,sep="\t")
+#Remove files corresponding to removed motifs
+
+#which(!(PWMs_metadata_all$ID %in% PWMs_metadata$ID)) %>% length() #626
+
+for(ri in which(!(PWMs_metadata_all$ID %in% PWMs_metadata$ID)) ){
+  #ri=which(!(PWMs_metadata_all$ID %in% PWMs_metadata$ID))[1]
+  
+  fn=PWMs_metadata_all$filename[ri]
+  file.remove(fn)
+  
+  file.remove(gsub("pfms_tab", "pfms_space", fn))
+  file.remove(gsub("pfms_tab", "pfms_transfac", fn))
+  file.remove(gsub("pfms_tab", "pwms_space", fn))
+  file.remove(gsub("pfms_tab", "pwms_tab", fn))
+  
+  
+  
+  fn=paste0(gsub("\\.[^.]*$", "", fn), ".pdf")
+  
+  file.remove(gsub("pfms_tab", "Logos/pdf/ic", fn))
+  file.remove(gsub("pfms_tab", "Logos/pdf/prob", fn))
+  fn=paste0(gsub("\\.[^.]*$", "", fn), ".png")
+  file.remove(gsub("pfms_tab", "Logos/png/ic", fn))
+  file.remove(gsub("pfms_tab", "Logos/png/prob", fn))
+
+}
+
+file.remove("../../Data/PWMs/pfms_scpd/Yin2017_all.scpd") #remove the file with all motifs as this contains non-included motifs
+
+write.table(PWMs_metadata, file="../../Data/SELEX-motif-collection/Yin2017_metadata.csv", row.names = FALSE,sep="\t") #1161
 
 

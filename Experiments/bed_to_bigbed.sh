@@ -3,6 +3,7 @@ export PATH="/projappl/project_2007567/softwares/ucsc-tools:$PATH"
 #cd /scratch/project_2006203/TFBS/Results/MOODS_human_final_processed/ old
 cd /scratch/project_2006203/TFBS/Results/MOODS_human_final_version2.2_correct_processed
 
+module load biokit #for tabix
 
 fetchChromSizes hg38 > hg38.chrom.sizes
 
@@ -16,17 +17,24 @@ mkdir MOODS_bigbed_sorted
 # reps=metadata %>% filter(new_representative=="YES") %>% select(ID) %>% pull(ID)
 # 
 # write.table(reps, file="/projappl/project_2006203/TFBS/PWMs_final_version2.2/representatives.csv", sep=",", 
-#             col.names=FALSE, row.names = FALSE,quote=FALSE)
+#            col.names=FALSE, row.names = FALSE,quote=FALSE)
 
 
 
 readarray -t lines < /projappl/project_2006203/TFBS/PWMs_final_version2.2/representatives.csv #1232
 
+mkdir -p MOODS_bigbed_sorted/bgzip
+mkdir -p MOODS_bigbed_sorted/tabix
+
 # Loop through the array elements
 for TF in "${lines[@]}"
 do
     echo $TF
-    bedSort MOODS_bigbed/$TF"_top.bed" MOODS_bigbed_sorted/$TF"_top.bed"
+    bedSort MOODS_bigbed/$TF"_top.bed" MOODS_bigbed_sorted/bgzip/$TF"_top.bed"
+    
+    bgzip MOODS_bigbed_sorted/bgzip/$TF"_top.bed"
+    tabix -p bed MOODS_bigbed_sorted/bgzip/$TF"_top.bed.gz"
+    mv MOODS_bigbed_sorted/bgzip/$TF"_top.bed.gz.tbi" MOODS_bigbed_sorted/tabix/
     
     #bedtobedGraph
     #awk '{ print $1"\t"$2"\t"$3"\t"$5 }' MOODS_bigbed_sorted/$TF"_top.bed" > MOODS_bedGraph_representatives/$TF"_top.bedGraph";
@@ -38,6 +46,18 @@ do
 done
 
 
+tar -cjvf MOODS_matches_human_hg38_representative.tar.bz MOODS_bigbed_sorted/
+
+#Move to allas
+
+#Creates a new bucket with public access and uploads the data to the bucket. 
+
+#Command a-publish creates the bucket and uploads the selected files into it. 
+#Parameter -b is used to define the name for the bucket, in this case TFBS-project-public.
+
+module load allas
+allas-conf project_2006203
+a-publish -b TFBS-project-public MOODS_matches_human_hg38_representative.tar.bz MOODS_matches_human_hg38_representative.tar.bz
 
 
 #bedToBigBed in.bed chrom.sizes out.bb
