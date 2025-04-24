@@ -14,6 +14,8 @@ Motif metadata e.g. with info for representativeness of the motifs (representati
 Data/SELEX-motif-collection/metadata_final.tsv
 ```
 
+Metadata contains also the column old_ID. ID and old_ID are different for the new Xie et al. 2025 motifs. The motif IDs in Xie et al. 2025 supplementary data are the old_IDs.
+
 The .pfm and transfac files for only the representatives are in
 
 ```         
@@ -34,7 +36,7 @@ The codes
 
 -   analyse the difference between composite motif center and overlapping flanks of monomeric motifs aligned against the composite motif
 
--   contain commands to perform motif matching
+-   contain commands to perform motif matching. The matches of representative motifs used in Xie et al. (2025) in bed format (old_ID) can be downloaded from <https://a3s.fi/TFBS-project-public/MOODS_matches_human_hg38_representative.tar.bz>. Please see `Experiments/bed_to_bigbed.sh`.
 
 -   perform motif enrichment analysis at cell-type-specific candidate cis-regulatory elements (cCREs)
 
