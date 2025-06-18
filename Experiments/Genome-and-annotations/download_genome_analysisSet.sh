@@ -31,12 +31,12 @@ cd /projappl/project_2007567/Genomes/GRCh38.p14_31102023
 # The GRCh38 assembly contains more than just the chromosome sequences, 
 
 #but also 
-# a mitochondrial genome, 
-#chrM	16569
+# a mitochondrial genome, #chrM	16569
 
 #unplaced sequences, 
 
 #centromeric sequences
+
 # and alternates. 
 
 
@@ -786,21 +786,28 @@ cd /projappl/project_2007567/Genomes/GRCh38.p14_31102023
 # chr15_ML143369v1_fix
 
 
-
 #the UCSC hg38 file. hg38.fa.gz - "Soft-masked" assembly sequence in one file.
 #Repeats from RepeatMasker and Tandem Repeats Finder (with period of 12 or
-#less) are shown in lower case; non-repeating sequence is shown in upper
-#case. (again, the most current version of this file is latest/hg38.fa.gz)
+#less) are shown in lower case; non-repeating sequence is shown in upper case. 
+#(again, the most current version of this file is latest/hg38.fa.gz)
 
 #The "latest/" symbolic link points to the subdirectory for the most recent
 #patch version. (patch release 14).
 
-#rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz . 
-
 # To unpack the *.tar.gz files:
 #     tar xvzf <file>.tar.gz
 # To uncompress the fa.gz files:
-#gunzip hg38.fa.gz
+
+#rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.gz . 
+#gunzip hg38.fa.gz. results in hg38.fa
+#grep ">" hg38.fa | wc -l #771
+
+#rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.chromFa.tar.gz .
+#tar xvzf hg38.chromFa.tar.gz #creates chroms/*.fa
+#ls chroms/ | wc -l #771
+
+
+
 
 #Analysis set, alternate sequences removed:
 rsync -avzP rsync://hgdownload.soe.ucsc.edu/goldenPath/hg38/bigZips/analysisSet/hg38.analysisSet.fa.gz .
@@ -809,16 +816,8 @@ gunzip hg38.analysisSet.fa.gz
 #grep ">" hg38.analysisSet.fa | wc -l #195
 
 
-#rsync://hgdownload.soe.ucsc.edu/goldenPath/mm39/bigZips/
-
-# The assembly sequence in one file per chromosome.
-#     Repeats from RepeatMasker and Tandem Repeats Finder (with period
-#     of 12 or less) are shown in lower case; non-repeating sequence is
-#     shown in upper case.
 
 
-#rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.chromFa.tar.gz .
-#tar xvzf hg38.chromFa.tar.gz
 
 # Analysis set
 # ^^^^^^^^^^^^
@@ -917,14 +916,25 @@ gunzip hg38.analysisSet.fa.gz
 #     June 20 2013 (open-4-0-3) version of RepeatMasker
 #     RepBase library: RELEASE 20130422
 
+rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.out.gz .
+gunzip hg38.fa.out.gz
+
+
+
 # hg38.fa.align.gz - RepeatMasker .align file.  RepeatMasker was run with the
 #     -s (sensitive) setting.
 #     June 20 2013 (open-4-0-3) version of RepeatMasker
 #     RepBase library: RELEASE 20130422
 
+rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.fa.align.gz .
+gunzip hg38.fa.align.gz
+
 # hg38.trf.bed.gz - Tandem Repeats Finder locations, filtered to keep repeats
 #     with period less than or equal to 12, and translated into UCSC's BED
 #     format.
+
+rsync -avzP rsync://hgdownload.cse.ucsc.edu/goldenPath/hg38/bigZips/latest/hg38.trf.bed.gz .
+gunzip hg38.trf.bed.gz
 
 # md5sum.txt - checksums of files in this directory
 

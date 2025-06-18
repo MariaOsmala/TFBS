@@ -29,6 +29,6 @@ echo "TMPDIR=/scratch/project_2006203/tmp///" >> ~/.Renviron
 # Run the R script
 
 
-srun apptainer_wrapper exec Rscript --no-save ../code/process_and_analyse_top_MOODS_hits.R 
+srun apptainer_wrapper exec Rscript --no-save ../code/MOODS/process_and_analyse_top_MOODS_hits_old.R #hg38 repeat masked 
 
 seff $SLURM_JOBID

@@ -408,7 +408,7 @@ S5a.
 #| include: false
 sbatch Experiments/MOODS/run_MOODS_batch_array_better.sh
 #This runs either of these:
-#Experiments/MOODS/MOODS_final_version2.2_correct.sh
+#Experiments/MOODS/MOODS_final.sh
 #Experiments/MOODS/MOODS_final_artificialHTSelex.sh
 
 ```
