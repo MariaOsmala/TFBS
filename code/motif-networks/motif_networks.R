@@ -1,31 +1,37 @@
-
-
-# readLines("../../../SELEX-Dominating-Set-Analysis/data/Selex_all.dat", 
-#          n=3)
-
-# graph_data <- read.table("../../../SELEX-Dominating-Set-Analysis/data/Selex_all.dat", header = FALSE, sep = "\t")
-
 library("readr")
 library("tidyverse")
 library("igraph")
 library("readr")
+library("RCy3")
+
+# install.packages(c("readr", "tidyverse", "igraph"))
+# if(!"RCy3" %in% installed.packages()){
+#   install.packages("BiocManager")
+#   BiocManager::install("RCy3")
+# }
 
 TFBS_path="/Users/osmalama/projects/TFBS/"
-#representatives <- read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/","metadata_representatives.tsv"), col_names=TRUE)
-representatives <- read_tsv("/Users/osmalama/projects/TFBS/Data/SELEX-motif-collection/metadata_final.tsv", col_names=TRUE)
 
-n=nrow(representatives)
+# Motif metadata ----------------------------------------------------------
+
+metadata <- read_tsv(paste0(TFBS_path,"Data/SELEX-motif-collection/metadata_final.tsv"), col_names=TRUE)
+
+n=nrow(metadata)
 n*(n-1)/2 #7732278
+
+# Extract SSTAT similarities and create distance matrix ----------------------------------------------
+
+# This has the old motif names
 
 df_motifsimilarity=read_tsv(paste0(TFBS_path, "PWMs_final_version2.2/", "sstat.tsv")) #7732278 rows
 
 sim_lt=pivot_wider(df_motifsimilarity, id_cols="Query_ID",
-                   names_from="Target_ID", values_from="Ssum")
-sim = matrix(0,dim(representatives)[1], dim(representatives)[1])
+                   names_from="Target_ID", values_from="Ssum") # 3932 3933
+sim = matrix(0,dim(metadata)[1], dim(metadata)[1]) #3933 3933
 dim(sim)
 diag(sim)=1
-tril_indices=lower.tri(sim, diag = FALSE)
-ltril_indices=lower.tri(matrix(0, nrow(sim_lt),nrow(sim_lt)), diag = TRUE)
+tril_indices=lower.tri(sim, diag = FALSE) #3933 3933
+ltril_indices=lower.tri(matrix(0, nrow(sim_lt),nrow(sim_lt)), diag = TRUE) #3932 3932
 
 sim[tril_indices]=sim_lt[,-1][ltril_indices]
 
@@ -40,30 +46,123 @@ a=c(a,b)
 rownames(sim_sym)=a
 colnames(sim_sym)=a
 
-#In this case, if the distance is less than or equal to the threshold, 
-#there is an edge between the nodes (represented by 1); otherwise, there is not (represented by 0). 
+colnames(sim_sym) %in% metadata$ID %>% table()
+rownames(sim_sym) %in% metadata$ID %>% table()
+
+match_ind=match(colnames(sim_sym), metadata$old_ID)
+colnames(sim_sym)=metadata$ID[match_ind]
+
+match_ind=match(rownames(sim_sym), metadata$old_ID)
+rownames(sim_sym)=metadata$ID[match_ind]
+
+#The SSTAT similarities with itself are missing from the distance matrix, but maybe they are not needed
+
+# Convert this distance matrix into an adjacency matrix using a threshold --------
+
+# If the distance is less than or equal to the threshold,  there is an edge between the nodes (represented by 1); 
+# Otherwise, there is not (represented by 0). 
 #The diagonal is set to 0 to remove self-loops?
 
-#Convert this distance matrix into an adjacency matrix using a threshold:
-
-threshold <- 1.5e-5  # replace with your threshold
+threshold <- 1.5e-5  #
 adj_mat <- ifelse(sim_sym > threshold, 1, 0)
-diag(adj_mat) <- 1  # #each query and target will at least be "close" to themselves in this hash. Or should this be 0
-head(adj_mat)
+diag(adj_mat) <- 0  # #each query and target will at least be "close" to themselves in this hash. Or should this be 0
+adj_mat[1:5,1:5]
 
-g <- graph_from_adjacency_matrix(adj_mat, mode = "undirected", diag = FALSE)
+g <- graph_from_adjacency_matrix(adj_mat, mode = "undirected", diag = FALSE) # 27481 connections
 
-plot(g)
-#Write to cytoscape compatible format
-write_graph(g, file="/Users/osmalama/projects/cytoscape/review/motif-network.gml", format = c("gml"))
-write_graph(g, file="/Users/osmalama/projects/cytoscape/review/motif-network.edgelist", format = c("edgelist"))
+edges=sapply(as_ids(E(g)), strsplit, "\\|")
+names(edges)=NULL
+
+edges=do.call(rbind, lapply(edges, function(x) data.frame(V1=x[1],V2=x[2]) ))
+
+unique(c(edges$V1, edges$V2)) %>% length() #3198
+
+# Find isolated nodes
+isolated_nodes <- V(g)$name[degree(g) == 0] #735
+
+# 735+3198 = 3933
+
+# Write network in sif format ---------------------------------------------
+
+#nodeA <relationship type> nodeB
+#nodeC <relationship type> nodeA
+#nodeD <relationship type> nodeE nodeF nodeB
+#nodeG
+#...
+#nodeY <relationship type> nodeZ
+
+names(edges)=c("Source", "Target")
+
+edges$interaction_type="motif-motif"
+
+#order columns 
+edges <- edges %>% select(Source, interaction_type, Target)
+
+write.table(edges, file="/Users/osmalama/projects/cytoscape/review/motif-network.sif", 
+            quote=FALSE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#write isolated nodes
+write.table(data.frame(isolated_nodes), file="/Users/osmalama/projects/cytoscape/review/motif-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+# Write network in ncol format --------------------------------------------
+
 write_graph(g, file="/Users/osmalama/projects/cytoscape/review/motif-network.ncol", format = c("NCOL"))
 
-#representatives <- as.list(read.table("../../../SELEX-Dominating-Set-Analysis/solutions/motifsimilarity_05_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
-representatives <- as.list(read.table("../../SELEX-Dominating-Set-Analysis/solutions/SELEX_all_version2.2_min_dom_set_list.txt", header = FALSE, sep = " ")$V1)
+# Now assign edge weights (similarities) from similarity matrix
+E(g)$weight <- apply(as_data_frame(g, what = "edges")[, 1:2], 1, function(x) {
+  sim_sym[x[1], x[2]]
+})
+
+write_graph(g, file="/Users/osmalama/projects/cytoscape/review/motif-network-SSTAT-similarity.ncol", format = c("NCOL"))
+
+write.table(isolated_nodes, file="/Users/osmalama/projects/cytoscape/review/isolated_nodes.ncol", 
+            quote=FALSE, row.names = FALSE,
+            col.names=FALSE)
+
+
+# Minimum dominating sets -------------------------------------------------
+
+#Don't use this as these have the old IDS
+#representatives <- as.list(
+#  read.table("~/projects/SELEX-Dominating-Set-Analysis/solutions/SELEX_all_version2.2_min_dom_set_list.txt", 
+#             header = FALSE, sep = " ")$V1)
+
+representatives = as.list(metadata %>% filter(representative=="YES") %>% pull(ID))
+
+# Initialize list to store results
+dom_neighborhoods <- list()
+
+for (node in unlist(representatives)) {
+  # Get neighbors of the node
+  #node=unlist(representatives)
+  neighbors_node <- neighbors(g, node, mode = "all")  # or "out"/"in" for directed
+  
+  # Convert to names (if needed)
+  neighbor_names <- V(g)[neighbors_node]$name
+  
+  # Exclude other dominating set members
+  non_dom_neighbors <- setdiff(neighbor_names, representatives)
+  
+  # Store result
+  dom_neighborhoods[[node]] <- non_dom_neighbors
+}
+
+dom_sizes=sapply(dom_neighborhoods, length) 
+names(dom_sizes)=NULL
+table(dom_sizes==0) #TRUE 735
+
+
+sapply(dom_neighborhoods, length) %>% sum() #3652
+# 3652 +1232=4884, this is because non-representative can belong to multiple dom sets
+c(names(dom_neighborhoods), unlist(dom_neighborhoods)) %>% unique() %>% length() # 3933
+
+## My way ------------------------------------------------------------------
 
 represented_by_representatives=lapply(representatives, function(x, g) neighbors(g, x)$name, g )
 names(represented_by_representatives)=representatives
+
+sapply(represented_by_representatives, length) %>% sum() #3730
 
 #Remove "nonrepresentatives" that are actually representatives
 
@@ -90,50 +189,427 @@ processed_list <- lapply(represented_by_representatives, process_vectors)
 cleaned_list <- lapply(processed_list, `[[`, "cleaned")
 
 table(sapply(represented_by_representatives, length))
+sapply(represented_by_representatives, length) %>% sum() #3730
+
 table(sapply(cleaned_list, length))
-
-removed_indices <- lapply(processed_list, `[[`, "removed_indices")
-
-name=names(which(lapply(removed_indices, length)!=0)[1])
-
-removed_indices[[name]]
-
-represented_by_representatives[[name]][removed_indices[[name]]] %in% unlist(representatives)
+sapply(cleaned_list, length) %>% sum() #3652
 
 represented_by_representatives=cleaned_list
-
-
+c(names(represented_by_representatives), unlist(represented_by_representatives)) %>% unique() %>% length() 
 
 saveRDS(represented_by_representatives, file=paste0(TFBS_path,"RProjects/TFBS/RData/represented_by_representatives_version2.2.RDS"))
 
-names(represented_by_representatives)=representatives
+# Separate networks for monomers and CAP-SELEX motifs ---------------------
 
-# Convert the list to a tibble
-df <- tibble::enframe(represented_by_representatives, name = "representative", value = "represented")
 
-# Pad the list elements with NAs to make them of equal length
-max_length <- max(map_int(df$represented, length)) #122
 
-padded_list <- map(df$represented, ~ c(.x, rep(NA, max_length - length(.x))))
-# Convert the list to a dataframe
+# What about Methyl-SELEX motifs
 
-tmp=do.call(rbind, padded_list) #1031 x 122
+monomers <- metadata %>% filter(experiment != "CAP-SELEX") %>% pull(ID) #2035 16883 edges
+heterodimers <- metadata %>% filter(experiment == "CAP-SELEX") %>% pull(ID) # 1898
 
-tmp2 <- cbind(data.frame(representative=df$representative), data.frame(tmp))
+isolated_monomers = isolated_nodes[isolated_nodes %in% monomers]  #173
+isolated_heterodimers=isolated_nodes[isolated_nodes %in% heterodimers] #280
 
-#Does the represented by representatives contain the representative itself? No, because they were removed above.
-non_representatives=unique(as.vector(unlist(tmp2[,2:ncol(tmp2)])))
-#remove na
-non_representatives=non_representatives[!is.na(non_representatives)]
-representatives_in_unrepresentatives=unlist(representatives)[which(unlist(representatives) %in% non_representatives)]
 
-#Convert na values to "" 
+## Monomer network ---------------------------------------------------------
 
-tmp2[is.na(tmp2)] <- ""
+### motif-motif network ---------------------------------------------------------
 
-write.table(tmp2, file=paste0(TFBS_path, "PWMs_final_version2.2/","sstat_represented_by_representatives.tsv"), row.names = FALSE, col.names = FALSE, sep="\t")
+g_monomers <- subgraph(g, V(g)$name %in% monomers) #2023
 
-stop()
+edges_monomers=sapply(as_ids(E(g_monomers)), strsplit, "\\|")
+names(edges_monomers)=NULL
+edges_monomers=do.call(rbind, lapply(edges_monomers, function(x) data.frame(V1=x[1],V2=x[2]) ))
+
+unique(c(edges_monomers$V1, edges_monomers$V2)) %>% length() #1857
+#Are the missing ones the isolated monomers
+
+#1857 + 173 = 2030
+
+monomers[which(!(monomers %in% c(edges_monomers$V1, edges_monomers$V2, isolated_monomers)))]
+
+#Are these representing heterodimers, seems so
+
+metadata %>% filter(ID %in% monomers[which(!(monomers %in% c(edges_monomers$V1, edges_monomers$V2, isolated_monomers)))]) %>% select(ID,representative, seed, study)
+
+#Add them as isolated monomers
+
+isolated_monomers=c(isolated_monomers, 
+                    metadata %>% filter(ID %in% monomers[which(!(monomers %in% c(edges_monomers$V1, edges_monomers$V2, isolated_monomers)))]) %>% pull(ID)
+                    )
+
+#Are there additional isolated monomers? No, all are already in the list
+add_isolated_monomers <- V(g_monomers)$name[degree(g_monomers) == 0] #735
+
+add_isolated_monomers %in% isolated_monomers %>% table() #All true
+
+### motif-TF network ---------------------------------------------------------
+
+edges_monomer_TF=metadata %>% filter(ID %in% monomers) %>% select(ID,symbol)
+names(edges_monomer_TF)=c("Source", "Target")
+
+edges_monomer_TF$interaction_type="motif-TF"
+
+edges_monomer_TF <- edges_monomer_TF %>% select(Source, interaction_type, Target)
+
+### Write network in sif format -----------------------------------------------
+
+names(edges_monomers)=c("Source", "Target")
+
+edges_monomers$interaction_type="motif-motif"
+
+#order columns 
+edges_monomers <- edges_monomers %>% select(Source, interaction_type, Target)
+
+write.table(edges_monomers, file="/Users/osmalama/projects/cytoscape/review/monomer-network.sif", 
+            quote=FALSE, append=FALSE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#write isolated nodes
+write.table(data.frame(isolated_monomers), file="/Users/osmalama/projects/cytoscape/review/monomer-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#write motif-TF edges
+
+write.table(edges_monomer_TF, file="/Users/osmalama/projects/cytoscape/review/monomer-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#Write node list
+
+
+monomer_metadata=metadata %>% filter(ID %in% monomers)
+
+#Add new column, use dplyr 
+
+monomer_metadata <- monomer_metadata %>%
+  mutate(node_type = "motif") %>% relocate(node_type, .after = ID)
+
+
+
+
+monomer_TF_metadata <- as.data.frame(matrix(NA, nrow = edges_monomer_TF$Target %>% unique()%>% length(), 
+                                            ncol = ncol(monomer_metadata)))
+
+colnames(monomer_TF_metadata) <- colnames(monomer_metadata)
+
+monomer_TF_metadata$ID=edges_monomer_TF$Target %>% unique()
+monomer_TF_metadata$node_type="TF"
+monomer_metadata <- rbind(monomer_metadata, monomer_TF_metadata)
+
+#monomer_metadata$representative_circles <- ifelse(monomer_metadata$representative == "YES", "YES", "NO")
+
+
+#monomer_metadata <- mutate(monomer_metadata,
+#                           TF_label = ifelse(node_type == "TF", ID, ""))
+
+
+node_names$organism[which(node_names$organism=="NA")]="Homo_sapiens"
+mouse_nodes= node_names %>% filter(organism=="Mus_musculus")
+
+#Need to assign info about the protein family to the TF nodes itself
+
+TF_nodes=node_names %>% filter(node_type=="TF")
+
+TF_nodes$name %>% unique() %>% length() #718, all unique
+
+#Map these to motifs
+
+TF_motifs_list=lapply(TF_nodes$name, function(x) which(node_names$symbol==x))
+sapply(TF_motifs_list, length) %>% table()
+
+TF_protein_families_list=lapply(TF_motifs_list, function(x) unique(node_names$Lambert2018_families[x]) )
+sapply(TF_protein_families_list, length) %>% table() #unique
+TF_protein_families<- unlist(TF_protein_families_list)
+
+
+write.table(monomer_metadata, file="/Users/osmalama/projects/cytoscape/review/monomer_node_table.tsv", 
+            quote=FALSE, row.names = FALSE, col.names=TRUE, sep="\t")
+
+#save.image("~/projects/TFBS/RData/motif_networks.RData")
+load("~/projects/TFBS/RData/motif_networks.RData")
+
+
+# Interact with cytoscape -------------------------------------------------
+
+cytoscapePing()
+cytoscapeVersionInfo()
+
+saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network') #.cys
+
+#NODES should contain a column of character strings named: id. 
+#This name can be overridden by the arg: node.id.list. Additional columns are loaded as node attributes.
+
+#EDGES should contain columns of character strings named: source, target and interaction. 
+
+#These names can be overridden by args: source.id.list, target.id.list, interaction.type.list. 
+
+#Additional columns are loaded as edge attributes. 
+
+#The 'interaction' list can contain a single value to apply to all rows; and if excluded altogether,
+#the interaction type wiil be set to "interacts with". 
+
+#NOTE: attribute values of types (num) will be imported as (Double); 
+#(int) as (Integer); 
+#(chr) as (String); 
+#and (logical) as (Boolean). 
+#(Lists) will be imported as (Lists) in CyREST v3.9+.
+
+# tmp=rbind(edges_monomers,
+#       data.frame(Source=isolated_monomers, interaction_type=NA, Target=NA),
+#       edges_monomer_TF)
+# 
+# 
+# createNetworkFromDataFrames(monomer_metadata,
+#                             tmp, 
+#                             title="Monomer Network", 
+#                             collection="Review", 
+#                             node.id.list="ID", 
+#                             source.id.list="Source", 
+#                             target.id.list="Target", 
+#                             interaction.type.list="interaction_type")
+
+
+
+
+
+# Open the network in cytospaces
+# Interact programmatically with the network 
+
+#clearVisualPropertyMappings(style.name = getCurrentStyle(), visual.property = "NODE_LABEL")
+
+# a discrete mapping, where a style is defined for each, discrete value. 
+# This is useful for categorical data (like type) where there is only 
+#a limited set of possible values. 
+
+#This is in contast to the other two other types of mappings: continuous and passthrough. 
+# In the case of expression values, for example, we will want to use continuous mapping 
+# (e.g., to node color), defining a small set of control points, 
+# rather than an explicit color for each possible data value.
+
+
+## Set the TF node shape to diamond and mouse motif to triangle ----------------------------------------
+
+
+getNodeShapes() 
+column <- 'node_type'
+values <- c ('TF',  'motif')
+shapes <- c ('DIAMOND', 'ELLIPSE')
+setNodeShapeMapping (column, values, shapes)
+
+lockNodeDimensions(TRUE)
+
+node_names <- getTableColumns()
+
+
+
+setNodeShapeBypass(node.names= mouse_nodes$name,
+                   new.shapes="TRIANGLE")
+
+
+## Remove node label from motifs -------------------------------------------
+
+
+
+motif_nodes <- node_names %>% filter(node_type=="motif")
+
+#This worked
+setNodePropertyBypass(node.names= motif_nodes$name,
+                      visual.property="NODE_LABEL",
+                      new.value="")
+
+
+
+## Representative motifs with highlighted shape boundary -------------------
+
+
+#Get the current node edge color
+
+getNodeColor() %>% unique() "#89D0F5"
+setNodeColorDefault("#CCCCCC")
+
+getNodeProperty(node_names$name,visual.property="NODE_BORDER_PAINT") %>% unique() #"#CCCCCC"
+
+getNodeProperty(node_names$name,visual.property="NODE_BORDER_STROKE") %>% unique() #"SOLID"
+getNodeProperty(node_names$name,visual.property = "NODE_BORDER_WIDTH" ) %>% unique() #0
+
+getNodeProperty(node_names$name,visual.property = "NODE_BORDER_WIDTH" ) %>% unique() #0
+
+setNodeBorderWidthDefault(3)
+
+#Human
+representatives=node_names %>% filter(node_type=="motif" & representative=="YES" 
+                                      & organism=="Homo_sapiens")
+setNodePropertyBypass(node.names= representatives$name,
+                      visual.property="NODE_BORDER_PAINT",
+                      new.value="blue")
+
+representatives=node_names %>% filter(node_type=="motif" & representative=="YES" 
+                                      & organism=="Mus_musculus")
+setNodePropertyBypass(node.names= representatives$name,
+                      visual.property="NODE_BORDER_PAINT",
+                      new.value="red")
+
+
+# Color the nodes according to protein families ------------------------
+
+
+
+
+
+
+Protein_family_colours2=c()
+Protein_family_colours2["Homeodomain"]="#9c4c5b"
+Protein_family_colours2["Homeodomain; POU"]= "#9c4c5b"
+Protein_family_colours2["Homeodomain; Paired box"]= "#9c4c5b"
+Protein_family_colours2["CUT; Homeodomain"]= "#9c4c5b"    
+Protein_family_colours2["Ets"]=  "#61c350"
+Protein_family_colours2["Ets; AT hook"]=  "#61c350"
+Protein_family_colours2["bHLH"]= "#aa53cc" 
+Protein_family_colours2["T-box"]=  "#9cb835"                
+Protein_family_colours2["bZIP"]="#696add"
+Protein_family_colours2["C2H2 ZF"]= "#ceae33"
+Protein_family_colours2["C2H2 ZF; AT hook"]= "#ceae33"
+Protein_family_colours2["BED ZF" ]="#ceae33"
+Protein_family_colours2["CCCH ZF"]= "#ceae33"
+Protein_family_colours2["Znf"]= "#ceae33"  
+Protein_family_colours2["Forkhead"]="#7752a2"
+Protein_family_colours2["Nuclear receptor"]="#409437"
+Protein_family_colours2["TEA"]="#d94aa9"
+Protein_family_colours2["HMG/Sox"]="#4ec584"
+Protein_family_colours2["GCM"]="#e8437e"            
+Protein_family_colours2["Paired box"]="#54c9b3"
+Protein_family_colours2["IRF"]="#db3750"         
+Protein_family_colours2["E2F"]="#3bb7cb"
+Protein_family_colours2["RFX"]="#cf402b"
+Protein_family_colours2["Rel"]="#72a0da"
+Protein_family_colours2["AP-2"]="#dd6629"                 
+Protein_family_colours2["GATA"]="#6278c4"
+Protein_family_colours2["HSF"]="#d98c2f"
+Protein_family_colours2["Myb/SANT"]="#c885df"
+Protein_family_colours2["Runt"]="#678728"                 
+Protein_family_colours2["MADS box"]="#ab4a92"
+Protein_family_colours2["Grainyhead"]="#38793f"
+Protein_family_colours2["HMG"]="#b93a68"
+Protein_family_colours2["SMAD"]="#5aa77b"                 
+Protein_family_colours2["DM"]="#b64444"
+Protein_family_colours2["Prospero"]="#2c7c62"
+Protein_family_colours2["SAND"]="#e77f60"
+Protein_family_colours2["MEIS"]="#94b269"
+Protein_family_colours2["p53"]="#965581"
+Protein_family_colours2["POU"]="#bcad5e"                 
+Protein_family_colours2["TFAP"]="#de88b8"
+Protein_family_colours2["CSD"]="#646d2c"                
+Protein_family_colours2["CENPB"]="#dd7d7f"
+Protein_family_colours2["EBF1"]="#8d751f"
+Protein_family_colours2["NRF"]="#a15023"
+Protein_family_colours2["RRM"]="#dea66d"                  
+Protein_family_colours2["XPA"]="#9c6e3d"       
+
+setNodeColorMapping('Lambert2018_families', 
+                    colors=Protein_family_colours2, 
+                    mapping.type='d')
+
+
+
+
+
+#Change the node edge color based on representative column
+
+setNodeColorMapping(
+  column = "representative",
+  values = c("YES", "NO"),
+  colors = c("#FF0000", "#000000"),
+  default.color = "#000000"
+)
+
+
+clearNodePropertyBypass(
+  #node.names= motif_nodes$name ,
+  node.names = as.character(node_names %>% filter(node_type=="motif") %>% select(name) %>% unlist()),
+  visual.property="NODE_LABEL"
+)
+
+motif_node_names <- node_names %>% filter(node_type=="motif") %>% pull(name)
+
+for(node in motif_node_names) {
+  clearNodePropertyBypass(
+    node.names = node,
+    visual.property = "NODE_LABEL"
+  )
+}
+
+
+
+
+node_names <- getTableColumns("node", "name")$name
+clearNodePropertyBypass(node.names = node_names)
+
+node_data <- getTableColumns("node", c("name", "node_type"))
+
+label_nodes <- node_data
+label_nodes$new_name=label_nodes$name
+label_nodes$new_name[label_nodes$node_type!="TF"]=NA
+
+
+setNodeLabelBypass(node.names = label_nodes$name,
+                   new.labels = label_nodes$new_name)
+
+# Heterodimer network -----------------------------------------------------
+
+g_heterodimers <- subgraph(g, V(g)$name %in% heterodimers) #1898
+
+edges_heterodimers=sapply(as_ids(E(g_heterodimers)), strsplit, "\\|")
+names(edges_heterodimers)=NULL
+edges_heterodimers=do.call(rbind, lapply(edges_heterodimers, 
+                                     function(x) data.frame(V1=x[1],V2=x[2]) ))
+
+unique(c(edges_heterodimers$V1, edges_heterodimers$V2)) %>% length() #1307
+#Are the missing ones the isolated heterodimers, NO
+
+#1307 + 559 = 1866
+
+heterodimers[which(!(heterodimers %in% c(edges_heterodimers$V1, edges_heterodimers$V2, 
+                                         isolated_heterodimers)))] #32
+
+#Are these represented by monomers, seems so
+
+metadata %>% filter(ID %in% heterodimers[
+  which(!(heterodimers %in% c(edges_heterodimers$V1, edges_heterodimers$V2, isolated_heterodimers)))]
+  ) %>% select(ID,representative, seed, study)
+
+#Add them as isolated monomers
+
+isolated_heterodimers=c(isolated_heterodimers, 
+                    metadata %>% filter(ID %in% heterodimers[
+                      which(!(heterodimers %in% c(edges_heterodimers$V1, edges_heterodimers$V2, isolated_heterodimers)))
+                      ]) %>% pull(ID)
+)
+
+#Are there additional isolated monomers? No, all are already in the list
+add_isolated_heterodimers <- V(g_heterodimers)$name[degree(g_heterodimers) == 0] #735
+
+add_isolated_heterodimers %in% isolated_heterodimers %>% table() #All true
+
+
+### Write network in sif format ---------------------------------------------
+
+names(edges_heterodimers)=c("Source", "Target")
+
+edges_heterodimers$interaction_type="motif-motif"
+
+#order columns 
+edges_heterodimers <- edges_heterodimers%>% select(Source, interaction_type, Target)
+
+write.table(edges_heterodimers, file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
+            quote=FALSE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#write isolated nodes
+write.table(data.frame(isolated_heterodimers), file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+
+# Other stuff -------------------------------------------------------------------
+
 
 
 TFBS_path="/Users/osmalama/projects/TFBS/"
