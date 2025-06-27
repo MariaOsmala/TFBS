@@ -1067,12 +1067,14 @@ write.table(metadata,paste0(results_path,"/metadata.tsv"),sep="\t",
 
 # Separate networks for monomers and CAP-SELEX motifs ---------------------
 
+#Run these
+#~/projects/SELEX/TF-amino-acid-sequences/code/add_protein_sequence.R
+#~/projects/TFBS/code/motif-networks/add_protein_sequence_info_to_metadata.R
 
-metadata=read.table("~/projects/TFBS/code/motif-networks/motif_webpage/metadata.tsv",
+metadata=read.table("~/projects/TFBS/code/motif-networks/motif_webpage//metadata_with_protein_sequences.tsv",
                     sep="\t", header=TRUE, stringsAsFactors = FALSE)
 
 metadata$logo_path=NULL
-# What about Methyl-SELEX motifs
 
 monomers <- metadata %>% filter(experiment != "CAP-SELEX") %>% pull(ID) #2035 16883 edges
 heterodimers <- metadata %>% filter(experiment == "CAP-SELEX") %>% pull(ID) # 1898
@@ -1169,7 +1171,7 @@ monomer_metadata = monomer_metadata %>% select(-short, -filename, -IC, -match_nu
 monomer_metadata$logo_png=""
 monomer_metadata$logo_png_name=""
 monomer_metadata$logo_png_web=""
-#monomer_metadata$logo_pdf=""
+
 
 monomer_metadata$logo_width=""
 monomer_metadata$logo_height=""
@@ -1180,6 +1182,46 @@ monomer_metadata$logo_aspect_ratio=""
 monomer_metadata <- monomer_metadata %>%
   mutate(node_type = "motif") %>% relocate(node_type, .after = ID)
 
+#Add Katjas annotations 
+
+#Open network with Katja's annotation
+
+node_names <- getTableColumns()
+
+setdiff(names(node_names), names(monomer_metadata)) 
+
+node_names[which(node_names$`PDB ID`!=""), c("name", "PDB ID", "DNA sequence", "node_type")]
+# name PDB ID        DNA sequence node_type
+# 6344903        HOXB13_HT-SELEX_TCACTT40NTTG_KN_NCCAATAAAAN_1_4   5EEA  GGACCCAATAAAACACAA     motif
+# 6344927   CDX1_Methyl-HT-SELEX_TTAAGC40NAGT_KP_NGTCGTAAAAN_1_4   5LUX   GAGGTCGTAAAACACAA     motif
+# 6344873        HOXB13_HT-SELEX_TCACTT40NTTG_KN_NCTCGTAAAAN_1_4   5EDN GGACCTCGTAAAACACAAC     motif
+# 6344875 HOXB13_Methyl-HT-SELEX_TTACTT40NTAT_KN_NCTCGTAAAAN_1_4   5EF6  GGACCTCGTAAAACACAA     motif
+# 6346709               MEIS1_HT-SELEX_TGACCT20NGA_O_NTGACAN_1_6   4XRM   AGCTGACAGCTGTCAAG     motif
+# 6344099          CDX2_HT-SELEX_TGGCCT40NTAT_KO_NYAATAAAN_1_4b0   6ES2  GGAGGCAATAAAACACAA     motif
+# 6344107  CDX2_Methyl-HT-SELEX_TGGCAG40NCCT_KO_NRTCGTAAANNN_1_4   5LTY  GGAGGTCGTAAAACACAA     motif
+# 6344109         CDX2_HT-SELEX_TGGCCT40NTAT_KO_NRTCGTAAAN_1_4b0   6ES3  GGAGGTCGTAAAACACAA     motif
+
+node_names$`PDB ID` %>% table(useNA="always")
+node_names$`DNA sequence` %>% table()
+
+node_names = node_names %>% rename(ID=name)
+node_names = node_names %>% select(ID, `PDB ID`, `DNA sequence`)
+
+
+monomer_metadata <- monomer_metadata %>%
+  left_join(node_names, by = "ID") 
+
+
+monomer_metadata[which(monomer_metadata$`PDB ID`!=""), c("ID", "PDB ID", "DNA sequence", "node_type")]
+# ID PDB ID        DNA sequence node_type
+# 162                MEIS1_HT-SELEX_TGACCT20NGA_O_NTGACAN_1_6   4XRM   AGCTGACAGCTGTCAAG     motif
+# 1070 HOXB13_Methyl-HT-SELEX_TTACTT40NTAT_KN_NCTCGTAAAAN_1_4   5EF6  GGACCTCGTAAAACACAA     motif
+# 1071        HOXB13_HT-SELEX_TCACTT40NTTG_KN_NCTCGTAAAAN_1_4   5EDN GGACCTCGTAAAACACAAC     motif
+# 1072        HOXB13_HT-SELEX_TCACTT40NTTG_KN_NCCAATAAAAN_1_4   5EEA  GGACCCAATAAAACACAA     motif
+# 1073  CDX2_Methyl-HT-SELEX_TGGCAG40NCCT_KO_NRTCGTAAANNN_1_4   5LTY  GGAGGTCGTAAAACACAA     motif
+# 1074          CDX2_HT-SELEX_TGGCCT40NTAT_KO_NYAATAAAN_1_4b0   6ES2  GGAGGCAATAAAACACAA     motif
+# 1075         CDX2_HT-SELEX_TGGCCT40NTAT_KO_NRTCGTAAAN_1_4b0   6ES3  GGAGGTCGTAAAACACAA     motif
+# 1076   CDX1_Methyl-HT-SELEX_TTAAGC40NAGT_KP_NGTCGTAAAAN_1_4   5LUX   GAGGTCGTAAAACACAA     motif
 
 ## Add metadata for TF nodes -----------------------------------------------
 
@@ -1240,6 +1282,8 @@ monomer_logo_metadata$logo_aspect_ratio <- monomer_logo_metadata$logo_width / mo
 
 monomer_metadata <- rbind(monomer_metadata, monomer_TF_metadata, monomer_logo_metadata)
 
+monomer_metadata$protein.sequence.2=""
+
 write.table(monomer_metadata, file="/Users/osmalama/projects/cytoscape/review/monomer_node_table.tsv", 
             quote=FALSE, row.names = FALSE, col.names=TRUE, sep="\t")
 
@@ -1249,7 +1293,7 @@ load("~/projects/TFBS/RData/motif_networks.RData")
 
 #Not open the network in cytoscape and load the monomer metadata
 
-saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_logos') 
+saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_without_logos') 
 
 # Interact with cytoscape -------------------------------------------------
 
@@ -1260,7 +1304,6 @@ cytoscapeVersionInfo()
 
 #Layout:yFiles organic algorithm.
 
-saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_logos') #.cys
 
 
 ## Set the TF node shape to diamond and mouse motif to triangle ----------------------------------------
@@ -1430,7 +1473,7 @@ addAnnotationImage(
 )
 
 
-saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_logos') #.cys
+saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_without_logos') #.cys
 
 view_id <- getNetworkViewSuid()
 getNetworkCenter()
@@ -1595,12 +1638,12 @@ setNodePropertyBypass(node.names=logo_nodes$name,
 # load node graphics from a web
 #"org.cytoscape.ding.customgraphics.bitmap.URLImageCustomGraphics,2,https://esa1.ltdk.helsinki.fi/~osmalama/cytoscape/png/KLF12_Methyl-HT-SELEX_TAACTG40NGTA_KX_NGCCGACGCCCW_1_2.png,bitmap image" 
 
-setNodePropertyBypass(node.names=logo_nodes$name,
-                      new.values=paste0("org.cytoscape.ding.customgraphics.bitmap.URLImageCustomGraphics,4,",
-
-                        logo_nodes$logo_png_web,
-                        ",bitmap image" ),
-                      visual.property="NODE_CUSTOMGRAPHICS_1")
+# setNodePropertyBypass(node.names=logo_nodes$name,
+#                       new.values=paste0("org.cytoscape.ding.customgraphics.bitmap.URLImageCustomGraphics,4,",
+# 
+#                         logo_nodes$logo_png_web,
+#                         ",bitmap image" ),
+#                       visual.property="NODE_CUSTOMGRAPHICS_1")
 
 #getNodeProperty(node.names="KLF12_Methyl-HT-SELEX_TAACTG40NGTA_KX_NGCCGACGCCCW_1_2_logo", 
 #                 visual.property="NODE_CUSTOMGRAPHICS_1"
@@ -1612,9 +1655,125 @@ setNodePropertyBypass(node.names=logo_nodes$name,
 #                       new.values=35,
 #                       visual.property="NODE_SIZE")
 
+
+#ADD LOGOS MANUALLY FROM CYTOSCAPE!!!!
+
 saveSession('/Users/osmalama/projects/cytoscape/sessions/monomer_network_logos') #.cys
 
 # Heterodimer network -----------------------------------------------------
+
+## Heterodimer metadata for cytoscape ------------------------------------------
+
+metadata=read.table("~/projects/TFBS/code/motif-networks/motif_webpage/metadata_with_protein_sequences.tsv",
+                    sep="\t", header=TRUE, stringsAsFactors = FALSE)
+
+metadata = metadata %>% rename(
+  `TF1 protein sequence`="protein.sequence.1",
+  `TF2 protein sequence`="protein.sequence.2",
+)
+
+metadata <- metadata %>%
+  relocate(`TF1 protein sequence`, .after = clone)
+
+metadata <- metadata %>%
+  relocate(`TF2 protein sequence`, .after = `TF1 protein sequence`)
+
+
+heterodimer_metadata=metadata %>% filter(ID %in% heterodimers)
+
+heterodimer_metadata = heterodimer_metadata %>% select(-short, -filename, -IC, -match_number, -threshold, -phyloP_threshold)
+
+df_symbols=as.data.frame(do.call(rbind, strsplit(heterodimer_metadata$symbol, "_")))
+#order rows lexicographically
+df_symbols_sorted <- as.data.frame(t(apply(df_symbols, 1, function(row) sort(as.character(row)))))
+
+heterodimer_metadata$sorted_symbol=paste0(df_symbols_sorted[,1], "_", df_symbols_sorted[,2])
+
+df_symbols$flipped=!(heterodimer_metadata$sorted_symbol==heterodimer_metadata$symbol)
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(sorted_symbol, .after = symbol)
+
+
+heterodimer_metadata$TF1=df_symbols[,1]
+heterodimer_metadata$TF2=df_symbols[,2]
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF1, .before = symbol)
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF2, .before = symbol)
+
+heterodimer_metadata$TF1_sorted=df_symbols_sorted[,1]
+heterodimer_metadata$TF2_sorted=df_symbols_sorted[,2]
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF1_sorted, .before = sorted_symbol)
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF2_sorted, .before = sorted_symbol)
+
+test=heterodimer_metadata[which(df_symbols$flipped),]
+
+df_families=as.data.frame(do.call(rbind, strsplit(heterodimer_metadata$Lambert2018_families, "_")))
+#order rows lexicographically
+df_families_sorted <- as.data.frame(t(apply(df_families, 1, function(row) sort(as.character(row)))))
+
+heterodimer_metadata$sorted_Lambert2018_families=paste0(df_families_sorted[,1], "_", df_families_sorted[,2])
+
+df_families$flipped=!(heterodimer_metadata$sorted_Lambert2018_families==heterodimer_metadata$Lambert2018_families)
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(sorted_Lambert2018_families, .after = Lambert2018_families)
+
+heterodimer_metadata$TF1_families=df_families[,1]
+heterodimer_metadata$TF2_families=df_families[,2]
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF1_families, .after = Lambert2018_families)
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF2_families, .after = TF1_families)
+
+heterodimer_metadata$TF1_sorted_families=""
+heterodimer_metadata$TF1_sorted_families[which(!df_symbols$flipped)] =df_families[which(!df_symbols$flipped),1] 
+heterodimer_metadata$TF1_sorted_families[which(df_symbols$flipped)] =df_families[which(df_symbols$flipped),2] 
+
+heterodimer_metadata$TF2_sorted_families=""
+heterodimer_metadata$TF2_sorted_families[which(!df_symbols$flipped)] =df_families[which(!df_symbols$flipped),2] 
+heterodimer_metadata$TF2_sorted_families[which(df_symbols$flipped)] =df_families[which(df_symbols$flipped),1] 
+
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF1_sorted_families, .after = sorted_Lambert2018_families)
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(TF2_sorted_families, .after = TF1_sorted_families)
+
+test=heterodimer_metadata[which(heterodimer_metadata$TF1_sorted_families!=heterodimer_metadata$TF1_families), ]
+
+heterodimer_metadata$logo_png=""
+heterodimer_metadata$logo_png_name=""
+heterodimer_metadata$logo_png_web=""
+#heterodimer_metadata$logo_pdf=""
+
+heterodimer_metadata$logo_width=""
+heterodimer_metadata$logo_height=""
+heterodimer_metadata$logo_aspect_ratio=""
+
+heterodimer_metadata$node_png=""
+heterodimer_metadata$node_png_web=""
+#Add note_type column
+
+heterodimer_metadata <- heterodimer_metadata %>%
+  mutate(node_type = "motif") %>% relocate(node_type, .after = ID)
+
+#heterodimer_metadata$short %>% table(useNA="always")
+heterodimer_metadata$comment %>% table(useNA="always")
+heterodimer_metadata$Methyl.SELEX.Motif.Category %>% table(useNA="always")
+#heterodimer_metadata$short[is.na(heterodimer_metadata$short)] <- ""
+heterodimer_metadata$comment[is.na(heterodimer_metadata$comment)] <- ""
+heterodimer_metadata$Methyl.SELEX.Motif.Category[is.na(heterodimer_metadata$Methyl.SELEX.Motif.Category)] <- ""
+
+
+# Heterodimer network -----------------------------------------------------
+
 
 g_heterodimers <- subgraph(g, V(g)$name %in% heterodimers) #1898
 
@@ -1627,6 +1786,19 @@ unique(c(edges_heterodimers$V1, edges_heterodimers$V2)) %>% length() #1307
 #Are the missing ones the isolated heterodimers, NO
 
 #1307 + 559 = 1866
+
+names(edges_heterodimers)=c("Source", "Target")
+
+edges_heterodimers$interaction_type="motif-motif"
+
+#order columns 
+edges_heterodimers <- edges_heterodimers%>% select(Source, interaction_type, Target)
+
+
+
+## motif-motif network -----------------------------------------------------
+
+
 
 heterodimers[which(!(heterodimers %in% c(edges_heterodimers$V1, edges_heterodimers$V2, 
                                          isolated_heterodimers)))] #32
@@ -1650,15 +1822,30 @@ add_isolated_heterodimers <- V(g_heterodimers)$name[degree(g_heterodimers) == 0]
 
 add_isolated_heterodimers %in% isolated_heterodimers %>% table() #All true
 
+### motif-TF network ---------------------------------------------------------
+
+edges_heterodimer_TF=heterodimer_metadata %>% select(ID, sorted_symbol)
+
+names(edges_heterodimer_TF)=c("Source", "Target")
+
+edges_heterodimer_TF$interaction_type="motif-TF"
+
+edges_heterodimer_TF <- edges_heterodimer_TF %>% select(Source, interaction_type, Target)
+
+### motif-logo network ---------------------------------------------------------
+
+edges_heterodimer_logo=heterodimer_metadata %>% select(ID)
+names(edges_heterodimer_logo)=c("Source")
+
+edges_heterodimer_logo$interaction_type="motif-logo"
+
+edges_heterodimer_logo$Target=paste0(edges_heterodimer_logo$Source, "_logo")
+
+
 
 ### Write network in sif format ---------------------------------------------
 
-names(edges_heterodimers)=c("Source", "Target")
 
-edges_heterodimers$interaction_type="motif-motif"
-
-#order columns 
-edges_heterodimers <- edges_heterodimers%>% select(Source, interaction_type, Target)
 
 write.table(edges_heterodimers, file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
             quote=FALSE, row.names = FALSE, col.names=FALSE, sep="\t")
@@ -1667,4 +1854,459 @@ write.table(edges_heterodimers, file="/Users/osmalama/projects/cytoscape/review/
 write.table(data.frame(isolated_heterodimers), file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
             quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
 
+#write motif-TF edges
 
+write.table(edges_heterodimer_TF, file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+#write motif-logo edges
+
+write.table(edges_heterodimer_logo, file="/Users/osmalama/projects/cytoscape/review/heterodimer-network.sif", 
+            quote=FALSE,append=TRUE, row.names = FALSE, col.names=FALSE, sep="\t")
+
+
+
+## Metadata for TF nodes -----------------------------------------------
+
+heterodimer_TF_metadata <- as.data.frame(matrix("", nrow = edges_heterodimer_TF$Target %>% unique()%>% length(), 
+                                            ncol = ncol(heterodimer_metadata)))
+
+colnames(heterodimer_TF_metadata) <- colnames(heterodimer_metadata)
+
+heterodimer_TF_metadata$ID=edges_heterodimer_TF$Target %>% unique()
+heterodimer_TF_metadata$node_type="TF"
+
+#Need to assign info about the protein family to the TF nodes itself
+heterodimer_TF_metadata$ID %>% unique() %>% length() #1334, all unique
+
+#Map these to motifs
+
+TF_motifs_list=lapply(heterodimer_TF_metadata$ID, function(x) which(heterodimer_metadata$sorted_symbol==x))
+sapply(TF_motifs_list, length) %>% table()
+
+TF_protein_families_list=lapply(TF_motifs_list, function(x) unique(heterodimer_metadata$sorted_Lambert2018_families[x]) )
+sapply(TF_protein_families_list, length) %>% table() #unique
+heterodimer_TF_metadata$sorted_Lambert2018_families<- unlist(TF_protein_families_list)
+
+## Add metadata for logo nodes -----------------------------------------------
+
+heterodimer_logo_metadata <- as.data.frame(matrix("", nrow =  nrow(heterodimer_metadata), 
+                                              ncol = ncol(heterodimer_metadata)))
+
+colnames(heterodimer_logo_metadata) <- colnames(heterodimer_metadata)
+
+heterodimer_logo_metadata$ID=paste0(heterodimer_metadata$ID, "_logo")
+heterodimer_logo_metadata$node_type="logo"
+
+heterodimer_logo_metadata$logo_png=paste0("/Users/osmalama/projects/TFBS/code/motif-networks/cytoscape/png/", heterodimer_metadata$ID, ".png")
+#heterodimer_logo_metadata$logo_pdf=paste0("/Users/osmalama/projects/TFBS/code/motif-networks/cytoscape/pdf/", heterodimer_metadata$ID, ".pdf")
+
+heterodimer_logo_metadata$logo_png_web=paste0("https://esa1.ltdk.helsinki.fi/~osmalama/cytoscape/png/", heterodimer_metadata$ID, ".png")
+#heterodimer_logo_metadata$logo_pdf_web=paste0("https://esa1.ltdk.helsinki.fi/~osmalama/cytoscape/png/", heterodimer_metadata$ID, ".pdf")
+
+heterodimer_logo_metadata$logo_png_name=paste0(heterodimer_metadata$ID, ".png")
+
+imgs=image_read(heterodimer_logo_metadata$logo_png)
+info=image_info(imgs)
+
+heterodimer_logo_metadata$logo_width <- info$width
+heterodimer_logo_metadata$logo_height <- info$height
+heterodimer_logo_metadata$logo_aspect_ratio <- heterodimer_logo_metadata$logo_width / heterodimer_logo_metadata$logo_height
+
+
+## Combine all -----------------------------------------------
+
+heterodimer_metadata <- rbind(heterodimer_metadata, heterodimer_TF_metadata, heterodimer_logo_metadata)
+
+heterodimer_metadata %>% filter(is.na(Human_Ensemble_ID)) %>% nrow() #No NAs
+
+heterodimer_metadata$Human_Ensemble_ID[which(is.na(heterodimer_metadata$Human_Ensemble_ID))]=""
+
+heterodimer_metadata %>% filter(is.na(clone)) %>% nrow() #No NAs
+heterodimer_metadata$clone[which(is.na(heterodimer_metadata$clone))]=""
+
+heterodimer_metadata %>% filter(is.na(type)) %>% nrow() #No NAs
+heterodimer_metadata$type[which(is.na(heterodimer_metadata$type))]=""
+
+write.table(heterodimer_metadata, file="/Users/osmalama/projects/cytoscape/review/heterodimer_node_table.tsv", 
+            quote=FALSE, row.names = FALSE, col.names=TRUE, sep="\t")
+
+
+#Not open the network in cytoscape and load the monomer metadata
+
+saveSession('/Users/osmalama/projects/cytoscape/sessions/heterodimer_network') 
+
+# Interact with cytoscape -------------------------------------------------
+
+cytoscapePing()
+cytoscapeVersionInfo()
+#apiVersion cytoscapeVersion 
+#"v1"         "3.10.3" 
+
+#Layout:yFiles organic algorithm.
+
+## Set the TF node shape to diamond and mouse motif to triangle ----------------------------------------
+
+
+getNodeShapes() 
+
+getNodeProperty(visual.property="NODE_SHAPE") %>% unique() #"ROUND_RECTANGLE"
+column <- 'node_type'
+values <- c ('TF',  'motif', 'logo')
+shapes <- c ('DIAMOND', 'ELLIPSE', 'ROUND_RECTANGLE')
+setNodeShapeMapping (column, values, shapes)
+
+lockNodeDimensions(TRUE)
+#setNodeSizeDefault(35)
+
+node_names <- getTableColumns()
+
+#There should not be mouse nodes
+
+## Remove node label from motifs and logos-------------------------------------------
+
+motif_nodes <- node_names %>% filter(node_type=="motif")
+
+#This worked
+setNodePropertyBypass(node.names= motif_nodes$name,
+                      visual.property="NODE_LABEL",
+                      new.value="")
+
+
+logo_nodes <- node_names %>% filter(node_type=="logo")
+
+#This worked
+setNodePropertyBypass(node.names= logo_nodes$name,
+                      visual.property="NODE_LABEL",
+                      new.value="")
+
+
+## Representative motifs with highlighted shape boundary -------------------
+
+
+#Get the current node edge color
+
+
+getNodeColor() %>% unique() #"#89D0F5"
+setNodeColorDefault("#CCCCCC")
+
+#getNodeProperty(node_names$name,visual.property="NODE_BORDER_PAINT") %>% unique() #"#CCCCCC"
+#getNodeProperty(node_names$name,visual.property="NODE_BORDER_STROKE") %>% unique() #"SOLID"
+#getNodeProperty(node_names$name,visual.property = "NODE_BORDER_WIDTH" ) %>% unique() #0
+
+setNodeBorderWidthDefault(1)
+
+#Human
+representatives=node_names %>% filter(node_type=="motif" & representative=="YES" )
+setNodePropertyBypass(node.names= representatives$name,
+                      visual.property="NODE_BORDER_PAINT",
+                      new.value="blue")
+
+setNodePropertyBypass(node.names= representatives$name,
+                      visual.property="NODE_BORDER_WIDTH",
+                      new.value=3)
+
+## Color the nodes according to protein families ------------------------
+
+
+motif_and_TF_nodes_ind <- which(heterodimer_metadata$node_type %in% c("motif", "TF"))
+
+df=as.data.frame(do.call(rbind, 
+                         strsplit(heterodimer_metadata$sorted_Lambert2018_families[motif_and_TF_nodes_ind], "_")
+                         )
+                 )
+
+heterodimer_metadata$sorted_Lambert2018_families_TF1=""
+heterodimer_metadata$sorted_Lambert2018_families_TF2=""
+heterodimer_metadata <- heterodimer_metadata %>%
+  relocate(sorted_Lambert2018_families_TF1, .after = sorted_Lambert2018_families)
+heterodimer_metadata<- heterodimer_metadata %>%
+  relocate(sorted_Lambert2018_families_TF2, .after = sorted_Lambert2018_families_TF1)
+
+heterodimer_metadata$sorted_Lambert2018_families_TF1[motif_and_TF_nodes_ind]=df[,1]
+heterodimer_metadata$sorted_Lambert2018_families_TF2[motif_and_TF_nodes_ind]=df[,2]
+
+
+Protein_family_colours2=c()
+Protein_family_colours2["Homeodomain"]="#9c4c5b"
+Protein_family_colours2["Homeodomain; POU"]= "#9c4c5b"
+Protein_family_colours2["Homeodomain; Paired box"]= "#9c4c5b"
+Protein_family_colours2["CUT; Homeodomain"]= "#9c4c5b"    
+Protein_family_colours2["Ets"]=  "#61c350"
+Protein_family_colours2["Ets; AT hook"]=  "#61c350"
+Protein_family_colours2["bHLH"]= "#aa53cc" 
+Protein_family_colours2["T-box"]=  "#9cb835"                
+Protein_family_colours2["bZIP"]="#696add"
+Protein_family_colours2["C2H2 ZF"]= "#ceae33"
+Protein_family_colours2["C2H2 ZF; AT hook"]= "#ceae33"
+Protein_family_colours2["BED ZF" ]="#ceae33"
+Protein_family_colours2["CCCH ZF"]= "#ceae33"
+Protein_family_colours2["Znf"]= "#ceae33"  
+Protein_family_colours2["Forkhead"]="#7752a2"
+Protein_family_colours2["Nuclear receptor"]="#409437"
+Protein_family_colours2["TEA"]="#d94aa9"
+Protein_family_colours2["HMG/Sox"]="#4ec584"
+Protein_family_colours2["GCM"]="#e8437e"            
+Protein_family_colours2["Paired box"]="#54c9b3"
+Protein_family_colours2["IRF"]="#db3750"         
+Protein_family_colours2["E2F"]="#3bb7cb"
+Protein_family_colours2["RFX"]="#cf402b"
+Protein_family_colours2["Rel"]="#72a0da"
+Protein_family_colours2["AP-2"]="#dd6629"                 
+Protein_family_colours2["GATA"]="#6278c4"
+Protein_family_colours2["HSF"]="#d98c2f"
+Protein_family_colours2["Myb/SANT"]="#c885df"
+Protein_family_colours2["Runt"]="#678728"                 
+Protein_family_colours2["MADS box"]="#ab4a92"
+Protein_family_colours2["Grainyhead"]="#38793f"
+Protein_family_colours2["HMG"]="#b93a68"
+Protein_family_colours2["SMAD"]="#5aa77b"                 
+Protein_family_colours2["DM"]="#b64444"
+Protein_family_colours2["Prospero"]="#2c7c62"
+Protein_family_colours2["SAND"]="#e77f60"
+Protein_family_colours2["MEIS"]="#94b269"
+Protein_family_colours2["p53"]="#965581"
+Protein_family_colours2["POU"]="#bcad5e"                 
+Protein_family_colours2["TFAP"]="#de88b8"
+Protein_family_colours2["CSD"]="#646d2c"                
+Protein_family_colours2["CENPB"]="#dd7d7f"
+Protein_family_colours2["EBF1"]="#8d751f"
+Protein_family_colours2["NRF"]="#a15023"
+Protein_family_colours2["RRM"]="#dea66d"                  
+Protein_family_colours2["XPA"]="#9c6e3d"       
+
+heterodimer_metadata$color1=""
+heterodimer_metadata$color2=""
+
+# Apply color mapping
+heterodimer_metadata$color1[motif_and_TF_nodes_ind ] <- as.character(Protein_family_colours2[heterodimer_metadata$sorted_Lambert2018_families_TF1[motif_and_TF_nodes_ind ]])
+heterodimer_metadata$color2[motif_and_TF_nodes_ind ] <- as.character(Protein_family_colours2[heterodimer_metadata$sorted_Lambert2018_families_TF2[motif_and_TF_nodes_ind]])
+
+#Need to draw circles and diamong shapes 
+
+# Function to draw a circle or diamond with 2-color split
+draw_half_shape <- function(shape = "circle", color1 = "#FF0000", color2 = "#0000FF", 
+                            filename = "shape.png", width = 200, height = 200) {
+  
+  # Create a transparent PNG
+  png(filename, width = width, height = height, bg = "transparent")
+  grid.newpage()
+  
+  if (shape == "circle") {
+    # Left half (color1)
+    grid.circle(x = 0.5, y = 0.5, r = 0.48, gp = gpar(fill = color1, col = NA), draw = FALSE)
+    grid.clip(x = 0, y = 0.5, width = 0.5, height = 1, just = "left")
+    grid.draw(grid.circle(x = 0.5, y = 0.5, r = 0.48, gp = gpar(fill = color1, col = NA)))
+    
+    # Right half (color2)
+    grid.clip(x = 1, y = 0.5, width = 0.5, height = 1, just = "right")
+    grid.draw(grid.circle(x = 0.5, y = 0.5, r = 0.48, gp = gpar(fill = color2, col = NA)))
+    
+  } else if (shape == "diamond") {
+    # Diamond polygon coordinates
+    x <- c(0.5, 1, 0.5, 0)
+    y <- c(1, 0.5, 0, 0.5)
+    
+    # Split by left/right
+    # Left half triangle
+    grid.polygon(x = c(0.5, 0, 0.5), y = c(1, 0.5, 0), gp = gpar(fill = color1, col = NA))
+    # Right half triangle
+    grid.polygon(x = c(0.5, 1, 0.5), y = c(1, 0.5, 0), gp = gpar(fill = color2, col = NA))
+  } else {
+    stop("Shape must be 'circle' or 'diamond'")
+  }
+  
+  dev.off()
+}
+
+
+
+
+
+
+for(index in motif_and_TF_nodes_ind){
+  print(index)
+  #index=motif_and_TF_nodes_ind[1]
+  if(heterodimer_metadata$node_type[index ]=="motif"){
+    shape="circle"
+  } else if(heterodimer_metadata$node_type[index]=="TF"){
+    shape="diamond"
+  } else {
+    stop("Unknown node type")
+  }
+  
+  color1=heterodimer_metadata$color1[index]
+  color2=heterodimer_metadata$color2[index]
+  
+  filename=paste0("/Users/osmalama/projects/TFBS/code/motif-networks/cytoscape/half-colored-shapes/",
+                  heterodimer_metadata$ID[index],".png")
+  
+  
+  draw_half_shape(shape,color1, color2,filename, width = 200, height = 200)
+
+  heterodimer_metadata$node_png[index] <- filename
+    
+}
+
+
+heterodimer_metadata$node_png_web[motif_and_TF_nodes_ind] <- gsub("/Users/osmalama/projects/TFBS/code/motif-networks/",
+                                                                  "https://esa1.ltdk.helsinki.fi/~osmalama/",
+                                                                  heterodimer_metadata$node_png[motif_and_TF_nodes_ind])
+  
+  
+# Push updated data to Cytoscape node table
+loadTableData(data.frame(name = heterodimer_metadata$ID[motif_and_TF_nodes_ind], 
+                         node_png = heterodimer_metadata$node_png[motif_and_TF_nodes_ind],
+                         node_png_web = heterodimer_metadata$node_png_web[motif_and_TF_nodes_ind]), 
+              data.key.column = "name")
+
+
+## Change edge properties --------------------------------------------------
+
+# I want to change the edge line to dashed for some connections
+
+edge_names=getTableColumns(table="edge")
+
+getLineStyles()
+# "SINEWAVE"         "DOT"              "VERTICAL_SLASH"   "MARQUEE_DASH"     
+# "DASH_DOT"         "MARQUEE_DASH_DOT"
+# "BACKWARD_SLASH"   "LONG_DASH"        "EQUAL_DASH"       "SOLID"            
+# "FORWARD_SLASH"    "PARALLEL_LINES"  
+# "MARQUEE_EQUAL"    "ZIGZAG"           "CONTIGUOUS_ARROW" "SEPARATE_ARROW" 
+
+getEdgeProperty(visual.property="EDGE_LINE_TYPE") %>% unique() #SOLID
+getEdgeProperty(visual.property="EDGE_PAINT") %>% unique() "#808080"
+getEdgeProperty(visual.property="EDGE_TRANSPARENCY") %>% unique() #"255"
+getEdgeProperty(visual.property="EDGE_WIDTH") %>% unique() #"2"
+
+setEdgeLineWidthDefault(1)  
+
+TF_motif_edges=edge_names %>% filter(interaction=="motif-TF")
+
+setEdgeColorBypass(edge.names=TF_motif_edges$name,
+                   new.color="black")
+
+setEdgeLineStyleBypass(edge.names=TF_motif_edges$name,
+                       new.styles = "EQUAL_DASH")
+
+logo_motif_edges=edge_names %>% filter(interaction=="motif-logo")
+
+setEdgeColorBypass(edge.names=logo_motif_edges$name,
+                   new.color="black")
+
+setEdgeLineStyleBypass(edge.names=logo_motif_edges$name,
+                       new.styles = "DOT")
+
+
+motif_motif_edges=edge_names %>% filter(interaction=="motif-motif")
+
+setEdgeColorBypass(edge.names=motif_motif_edges$name,
+                   new.color="#CCCCCC")
+
+setEdgeLineWidthBypass(edge.names=motif_motif_edges$name,
+                       new.width=5)
+
+setEdgePropertyBypass(edge.names= motif_motif_edges$name,
+                      visual.property="EDGE_TRANSPARENCY",
+                      new.value=128)
+
+#How to color the edges based on that the source or target node belongs to a certain group?
+
+#How to extract the source and target nodes of the edges
+
+do.call(rbind, strsplit(motif_motif_edges$name, " \\(motif-motif\\) "))
+
+df_motif_motif_edges=do.call(rbind, lapply(strsplit(motif_motif_edges$name, 
+                                                    " \\(motif-motif\\) "), 
+                                           function(x) data.frame(x[1],x[2])))
+
+names(df_motif_motif_edges)=c("source", "target")
+df_motif_motif_edges$name=motif_motif_edges$name
+
+
+human_representatives=node_names %>% filter(node_type=="motif" & 
+                                              representative=="YES") 
+
+human_edges=df_motif_motif_edges %>% filter(source %in% human_representatives$name | 
+                                              target %in% human_representatives$name) 
+setEdgeColorBypass(edge.names=human_edges$name,
+                   new.color="blue")
+
+saveSession('/Users/osmalama/projects/cytoscape/sessions/heterodimer_network_without_logos') #.cys
+
+
+## Add logo images to logo nodes -------------------------------------------
+
+# "NODE_CUSTOMGRAPHICS_1"              "NODE_CUSTOMGRAPHICS_2"             
+# "NODE_CUSTOMGRAPHICS_3"              "NODE_CUSTOMGRAPHICS_4"              "NODE_CUSTOMGRAPHICS_5"             
+# "NODE_CUSTOMGRAPHICS_6"              "NODE_CUSTOMGRAPHICS_7"              "NODE_CUSTOMGRAPHICS_8"             
+# "NODE_CUSTOMGRAPHICS_9"              "NODE_CUSTOMGRAPHICS_POSITION_1"     "NODE_CUSTOMGRAPHICS_POSITION_2"    
+# "NODE_CUSTOMGRAPHICS_POSITION_3"     "NODE_CUSTOMGRAPHICS_POSITION_4"     "NODE_CUSTOMGRAPHICS_POSITION_5"    
+# "NODE_CUSTOMGRAPHICS_POSITION_6"     "NODE_CUSTOMGRAPHICS_POSITION_7"     "NODE_CUSTOMGRAPHICS_POSITION_8"    
+# "NODE_CUSTOMGRAPHICS_POSITION_9"     "NODE_CUSTOMGRAPHICS_SIZE_1"         "NODE_CUSTOMGRAPHICS_SIZE_2"        
+# "NODE_CUSTOMGRAPHICS_SIZE_3"         "NODE_CUSTOMGRAPHICS_SIZE_4"         "NODE_CUSTOMGRAPHICS_SIZE_5"        
+# "NODE_CUSTOMGRAPHICS_SIZE_6"         "NODE_CUSTOMGRAPHICS_SIZE_7"         "NODE_CUSTOMGRAPHICS_SIZE_8"
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", visual.property="NODE_CUSTOMGRAPHICS_1")
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", visual.property="NODE_CUSTOMGRAPHICS_POSITION_1")
+
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_BORDER_PAINT") "#FFFFFF"
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_BORDER_STROKE" ) #SOLID 
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_BORDER_TRANSPARENCY" ) #255, could set to zero
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_DEPTH" ) #50
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_FILL_COLOR" ) #"#FFFFFF" 
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_HEIGHT" ) #50
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#               visual.property ="NODE_WIDTH" ) #50
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_PAINT" ) #"#787878" 
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_SHAPE" ) #"RECTANGLE" 
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_SIZE" ) #50
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property ="NODE_TRANSPARENCY" )  #255, could be set to 0    
+
+#getNodeProperty(node.names="MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4_logo", 
+#                visual.property="NODE_CUSTOMGRAPHICS_1"
+#                )
+# "org.cytoscape.ding.customgraphics.bitmap.URLImageCustomGraphics,3935,file:/Users/osmalama/projects/TFBS/code/motif-networks/cytoscape/png/MAX_HT-SELEX_TCTAGG40NCTG_KR_NCACGTGNNNNNCACGTGN_1_4.png,bitmap image" 
+
+setNodePropertyBypass(node.names=logo_nodes$name,
+                      new.values=35*as.numeric(logo_nodes$logo_aspect_ratio),
+                      visual.property="NODE_WIDTH")
+
+setNodePropertyBypass(node.names=logo_nodes$name,
+                      new.values=0,
+                      visual.property="NODE_TRANSPARENCY")
+
+setNodePropertyBypass(node.names=logo_nodes$name,
+                      new.values=0,
+                      visual.property="NODE_BORDER_TRANSPARENCY")
+
+
+addAnnotationImage(
+  url = "https://esa1.ltdk.helsinki.fi/~osmalama/cytoscape/png/protein_families.png",
+  x.pos = -10000, y.pos = -1000,
+  width = 3000, height = 3000
+)
+
+
+saveSession('/Users/osmalama/projects/cytoscape/sessions/heterodimer_network_with_logos') #.cys
